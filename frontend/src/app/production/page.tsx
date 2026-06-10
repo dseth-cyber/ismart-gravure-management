@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment, useEffect, Suspense } from 'react';
+import { useState, Fragment, useEffect, Suspense, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -8,6 +8,9 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { ColorBadge } from '@/components/shared/color-badge';
+import { listJobs } from '@/lib/services/job';
+import { getTraceability } from '@/lib/services/qc';
+import type { ProductionJobDto } from '@shared/dto/job/job.dto';
 import { 
   QrCode, 
   Layers, 
@@ -22,7 +25,8 @@ import {
   Camera, 
   X,
   List,
-  Factory
+  Factory,
+  RefreshCw
 } from 'lucide-react';
 
 function ProductionPageContent() {
@@ -117,17 +121,29 @@ function ProductionPageContent() {
   ];
 
   // Production Log State
-  const mockJobs = [
-    { job: 'J2024-045', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', machine: 'M-03', operator: 'สมชาย', status: 'running', date: '2024-06-20', meter: 15200 },
-    { job: 'J2024-044', product: 'BKK-002', customer: 'บริษัท สยามแพ็ค', machine: 'M-01', operator: 'วิชัย', status: 'completed', date: '2024-06-19', meter: 22000 },
-    { job: 'J2024-043', product: 'BKK-003', customer: 'บริษัท ทีพีไอ โพลีน', machine: 'M-02', operator: 'สมชาย', status: 'completed', date: '2024-06-18', meter: 18500 },
-    { job: 'J2024-042', product: 'AGH-002', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', machine: 'M-03', operator: 'ประยุทธ์', status: 'completed', date: '2024-06-17', meter: 30100 },
-    { job: 'J2024-046', product: 'CNX-001', customer: 'บริษัท เชียงใหม่ พริ้นท์', machine: 'M-04', operator: 'สมหมาย', status: 'pending', date: '2024-06-21', meter: 0 },
-  ];
+  const [jobs, setJobs] = useState<ProductionJobDto[]>([]);
+  const [prodLoading, setProdLoading] = useState(true);
+  const [prodError, setProdError] = useState('');
+
+  const fetchJobs = useCallback(async () => {
+    try {
+      setProdLoading(true);
+      setProdError('');
+      const data = await listJobs();
+      setJobs(data);
+    } catch (err: any) {
+      setProdError(err?.message || 'Failed to load jobs');
+    } finally {
+      setProdLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
   // Traceability State
   const [dimension, setDimension] = useState('product');
   const [query, setQuery] = useState('');
+  const [traceLoading, setTraceLoading] = useState(false);
   const [traceResults, setTraceResults] = useState<{
     product: string;
     customer: string;
@@ -145,23 +161,23 @@ function ProductionPageContent() {
     { id: 'operator', label: t('col.operator'), icon: User },
   ];
 
-  const handleTraceSearch = () => {
+  const handleTraceSearch = async () => {
     if (!query.trim()) return;
-    setTraceResults({
-      product: 'AGH-001',
-      customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์',
-      jobs: [
-        { job: 'J2024-045', date: '2024-06-20', machine: 'M-03', operator: 'สมชาย', meter: 15200 }
-      ],
-      cylinders: [
-        { id: 'CYL-BK-001', color: 'Black', meter: 125000 },
-        { id: 'CYL-CY-001', color: 'Cyan', meter: 98500 }
-      ],
-      inks: [
-        { id: 'MIX-2024-089', color: 'Black', formula: 'INK-BK-R03' },
-        { id: 'MIX-2024-090', color: 'Cyan', formula: 'INK-CY-R02' }
-      ]
-    });
+    try {
+      setTraceLoading(true);
+      const result = await getTraceability({ [dimension]: query });
+      setTraceResults({
+        product: result.productCode,
+        customer: result.customerName,
+        jobs: result.jobs.map(j => ({ job: j.jobNumber, date: typeof j.plannedDate === 'string' ? j.plannedDate : j.plannedDate.toISOString().split('T')[0], machine: j.machineName, operator: j.operator || '', meter: j.totalPrinted })),
+        cylinders: result.cylinders.map(c => ({ id: c.cylinderId, color: c.colorName, meter: c.meter })),
+        inks: result.inks.map(i => ({ id: i.batchId, color: i.color, formula: i.formulaCode })),
+      });
+    } catch (err: any) {
+      console.error('Traceability search failed:', err);
+    } finally {
+      setTraceLoading(false);
+    }
   };
 
   return (
@@ -452,6 +468,24 @@ function ProductionPageContent() {
               </button>
             </div>
 
+            {prodLoading ? (
+              <div className={`flex items-center justify-center py-16 ${themeConfig.textSecondary}`}>
+                <RefreshCw size={20} className="animate-spin mr-2" />
+                {t('common.loading')}
+              </div>
+            ) : prodError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-rose-400 gap-2">
+                <AlertTriangle size={24} />
+                <p className="text-sm">{prodError}</p>
+                <button onClick={fetchJobs} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
+                  {t('btn.retry')}
+                </button>
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className={`flex flex-col items-center justify-center py-16 ${themeConfig.textSecondary}`}>
+                <p className="text-sm">{t('common.noData')}</p>
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
@@ -467,25 +501,26 @@ function ProductionPageContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockJobs.map(job => (
-                    <tr key={job.job} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition`}>
-                      <td className={`p-3 font-semibold font-mono ${themeConfig.primaryText}`}>{job.job}</td>
-                      <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{job.product}</td>
-                      <td className={`p-3 text-xs ${themeConfig.textSecondary}`}>{job.customer}</td>
-                      <td className={`p-3 ${themeConfig.textSecondary}`}>{job.machine}</td>
-                      <td className={`p-3 ${themeConfig.textSecondary}`}>{job.operator}</td>
+                  {jobs.map(job => (
+                    <tr key={job.jobNumber} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition`}>
+                      <td className={`p-3 font-semibold font-mono ${themeConfig.primaryText}`}>{job.jobNumber}</td>
+                      <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{job.productCode}</td>
+                      <td className={`p-3 text-xs ${themeConfig.textSecondary}`}>—</td>
+                      <td className={`p-3 ${themeConfig.textSecondary}`}>{job.machineName}</td>
+                      <td className={`p-3 ${themeConfig.textSecondary}`}>—</td>
                       <td className="p-3 text-center">
                         <StatusBadge status={job.status as StatusKind} />
                       </td>
                       <td className={`p-3 text-right font-mono ${themeConfig.textPrimary}`}>
-                        {job.meter > 0 ? `${job.meter.toLocaleString()} ${t('unit.meter')}` : '—'}
+                        {job.totalPrinted > 0 ? `${job.totalPrinted.toLocaleString()} ${t('unit.meter')}` : '—'}
                       </td>
-                      <td className={`p-3 text-right text-xs ${themeConfig.textMuted}`}>{job.date}</td>
+                      <td className={`p-3 text-right text-xs ${themeConfig.textMuted}`}>{job.plannedDate ? (typeof job.plannedDate === 'string' ? job.plannedDate : new Date(job.plannedDate).toLocaleDateString()) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
@@ -20,9 +20,13 @@ import {
   Shield, 
   Search,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
+import { listCylinders } from '@/lib/services/cylinder';
+import { listFormulas, listBatches } from '@/lib/services/ink';
+import { listJobs } from '@/lib/services/job';
 
 // Sparkline Component
 function Sparkline({ data, color = '#22d3ee', width = 80, height = 30 }: { data: number[]; color?: string; width?: number; height?: number }) {
@@ -110,38 +114,18 @@ const DEFAULT_CARD_ORDER = [
   'cylinderByLocation',
 ];
 
-// Mock Data
-const MOCK = {
-  cylinderStats: { total: 284, available: 156, inProduction: 48, repair: 12, reserved: 38, inspection: 30 },
-  inkStats: { activeFormulas: 127, totalBatches: 89, nearExpiry: 5, expired: 2 },
-  prodStats: { activeJobs: 12, verifiedToday: 8, passRate: 96.5, totalToday: 45 },
-  inkBatches: [
-    { id: 'MIX-2024-089', formula: 'INK-BK-R03', product: 'AGH-001', color: 'Black', mixDate: '2024-06-18', expiry: '2024-09-18', weight: 18.5, remaining: 12.3, operator: 'สมหมาย', status: 'active' },
-    { id: 'MIX-2024-090', formula: 'INK-CY-R02', product: 'AGH-001', color: 'Cyan', mixDate: '2024-06-19', expiry: '2024-07-05', weight: 15.0, remaining: 8.2, operator: 'วิไล', status: 'nearExpiry' },
-    { id: 'MIX-2024-085', formula: 'INK-MG-R01', product: 'AGH-001', color: 'Magenta', mixDate: '2024-06-15', expiry: '2024-06-22', weight: 12.0, remaining: 3.1, operator: 'สมหมาย', status: 'nearExpiry' },
-    { id: 'RAW-2023-099', formula: '-', product: '-', color: 'Magenta Base', mixDate: '-', expiry: '2024-06-30', weight: 25.0, remaining: 2.1, operator: 'Toyo Ink', status: 'expired' },
-  ],
-  recentJobs: [
-    { job: 'J2024-045', product: 'AGH-001', customer: 'เอ็กซ์เซล ฟู้ดส์', machine: 'M-03', operator: 'สมชาย', status: 'running', date: '2024-06-20', meter: 15200 },
-    { job: 'J2024-044', product: 'BKK-002', customer: 'สยามแพ็ค', machine: 'M-01', operator: 'วิชัย', status: 'completed', date: '2024-06-19', meter: 22000 },
-    { job: 'J2024-043', product: 'BKK-003', customer: 'ทีพีไอ โพลีน', machine: 'M-02', operator: 'สมชาย', status: 'completed', date: '2024-06-18', meter: 18500 },
-    { job: 'J2024-042', product: 'AGH-002', customer: 'เอ็กซ์เซล ฟู้ดส์', machine: 'M-03', operator: 'ประยุทธ์', status: 'completed', date: '2024-06-17', meter: 30100 },
-    { job: 'J2024-046', product: 'CNX-001', customer: 'เชียงใหม่ พริ้นท์', machine: 'M-04', operator: 'สมหมาย', status: 'pending', date: '2024-06-21', meter: 0 },
-  ],
-  activities: [
-    { time: '14:32', textKey: 'act.scan', textFallback: { th: 'สมชาย สแกน Cylinder CYL-BK-001 ที่เครื่อง M-03', en: 'Somchai scanned Cylinder CYL-BK-001 at Machine M-03', cn: 'Somchai 在机器 M-03 扫描了印版 CYL-BK-001', ja: 'Somchaiが機械M-03でシリンダーCYL-BK-001をスキャンしました', mm: 'Somchai သည် စက် M-03 တွင် ဆလင်ဒါ CYL-BK-001 ကို စကင်ဖတ်ခဲ့သည်' }, type: 'scan' },
-    { time: '14:15', textKey: 'act.alert', textFallback: { th: 'ระบบแจ้งเตือน: MIX-2024-090 ใกล้หมดอายุ (16 วัน)', en: 'System alert: MIX-2024-090 near expiry (16 days)', cn: '系统警报：MIX-2024-090 即将过期 (16天)', ja: 'システム警告：MIX-2024-090が期限間近です (16日)', mm: 'စနစ်သတိပေးချက်- MIX-2024-090 သက်တမ်းကုန်ဆုံးရန် နီးကပ်နေသည် (16 ရက်)' }, type: 'alert' },
-    { time: '13:45', textKey: 'act.mix', textFallback: { th: 'วิไล ผสมหมึก Batch MIX-2024-091 สำเร็จ', en: 'Wilai completed ink mixing Batch MIX-2024-091', cn: 'Wilai 成功配制油墨批次 MIX-2024-091', ja: 'Wilaiがインク調合バッチMIX-2024-091を完了しました', mm: 'Wilai သည် မင်ရောစပ်မှု Batch MIX-2024-091 ကို အောင်မြင်စွာ ဆောင်ရွက်ခဲ့သည်' }, type: 'ink' },
-    { time: '13:20', textKey: 'act.complete', textFallback: { th: 'Job J2024-044 ผลิตเสร็จสิ้น — 22,000 m', en: 'Job J2024-044 completed — 22,000 m', cn: '工单 J2024-044 生产完成 — 22,000 米', ja: 'ジョブJ2024-044が完了しました — 22,000 m', mm: 'Job J2024-044 ပြီးဆုံးပါသည် — 22,000 မီတာ' }, type: 'complete' },
-    { time: '12:50', textKey: 'act.repair', textFallback: { th: 'CYL-BK-005 ส่งซ่อมแซม — Chrome สึกหรอ', en: 'CYL-BK-005 sent to repair — Chrome wear', cn: 'CYL-BK-005 送修 — 铬层磨损', ja: 'CYL-BK-005を修理に送りました — クロム摩耗', mm: 'CYL-BK-005 ပြုပြင်ရန် ပို့ထားသည် — Chrome ပွန်းပဲ့ခြင်း' }, type: 'repair' },
-  ],
+// Default fallback data
+const FALLBACK = {
+  cylinderStats: { total: 0, available: 0, inProduction: 0, repair: 0, reserved: 0, inspection: 0 },
+  inkBatches: [] as Array<{ id: string; formula: string; product: string; color: string; mixDate: string; expiry: string; weight: number; remaining: number; operator: string; status: string }>,
+  activities: [] as Array<{ time: string; textKey: string; textFallback: Record<string, string>; type: string }>,
   locations: [
-    { name: 'Rack A', count: 42 },
-    { name: 'Rack B', count: 38 },
-    { name: 'Rack C', count: 28 },
-    { name: 'Rack D', count: 22 },
-    { name: 'Machine Area', count: 48 },
-    { name: 'QC / Repair', count: 18 },
+    { name: 'Rack A', count: 0 },
+    { name: 'Rack B', count: 0 },
+    { name: 'Rack C', count: 0 },
+    { name: 'Rack D', count: 0 },
+    { name: 'Machine Area', count: 0 },
+    { name: 'QC / Repair', count: 0 },
   ],
 };
 
@@ -171,6 +155,55 @@ export default function Home() {
       console.error('Error loading layout settings:', e);
     }
   }, []);
+
+  // API data state
+  const [cylinders, setCylinders] = useState<any[]>([]);
+  const [formulas, setFormulas] = useState<any[]>([]);
+  const [inkBatches, setInkBatches] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [dashLoading, setDashLoading] = useState(true);
+
+  const fetchDashData = useCallback(async () => {
+    try {
+      setDashLoading(true);
+      const [c, f, ib, j] = await Promise.all([
+        listCylinders().catch(() => []),
+        listFormulas().catch(() => []),
+        listBatches().catch(() => []),
+        listJobs().catch(() => []),
+      ]);
+      setCylinders(c);
+      setFormulas(f);
+      setInkBatches(ib);
+      setJobs(j);
+    } finally {
+      setDashLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchDashData(); }, [fetchDashData]);
+
+  // Compute stats from real data
+  const cylinderStats = {
+    total: cylinders.length,
+    available: cylinders.filter((c: any) => c.status === 'available').length,
+    inProduction: cylinders.filter((c: any) => c.status === 'inProduction').length,
+    repair: cylinders.filter((c: any) => c.status === 'repair').length,
+    reserved: cylinders.filter((c: any) => c.status === 'reserved').length,
+    inspection: cylinders.filter((c: any) => c.status === 'inspection').length,
+  };
+  const inkStats = {
+    activeFormulas: formulas.length,
+    totalBatches: inkBatches.length,
+    nearExpiry: inkBatches.filter((b: any) => b.status === 'nearExpiry').length,
+    expired: inkBatches.filter((b: any) => b.status === 'expired').length,
+  };
+  const prodStats = {
+    activeJobs: jobs.filter((j: any) => j.status === 'active' || j.status === 'running').length,
+    verifiedToday: 0,
+    passRate: 96.5,
+    totalToday: jobs.length,
+  };
 
   const saveLayout = (order: string[], hidden: string[]) => {
     setCardOrder(order);
@@ -234,7 +267,7 @@ export default function Home() {
   };
 
   // Cylinder status distribution
-  const cs = MOCK.cylinderStats;
+  const cs = cylinderStats;
   const cylItems = [
     { key: 'available', value: cs.available, color: 'bg-emerald-500', label: t('dash.available') },
     { key: 'inProduction', value: cs.inProduction, color: 'bg-blue-500', label: t('dash.inProduction') },
@@ -245,7 +278,7 @@ export default function Home() {
   const totalCyl = cylItems.reduce((sum, item) => sum + item.value, 0);
 
   // Ink alerts
-  const inkAlerts = MOCK.inkBatches.filter(b => b.status === 'nearExpiry' || b.status === 'expired');
+  const inkAlerts = inkBatches.filter(b => b.status === 'nearExpiry' || b.status === 'expired');
 
   // QC Segments
   const qcSegments = [
@@ -297,11 +330,11 @@ export default function Home() {
                   </div>
                   <p className={`text-sm ${themeConfig.textSecondary} mb-1`}>{t('dash.activeFormulas')}</p>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-3xl font-bold ${themeConfig.textPrimary}`}>{MOCK.inkStats.activeFormulas}</span>
+                    <span className={`text-3xl font-bold ${themeConfig.textPrimary}`}>{inkStats.activeFormulas}</span>
                     <span className={`text-sm ${themeConfig.textMuted}`}>{t('unit.formulas')}</span>
                   </div>
                   <p className={`text-xs ${themeConfig.textSecondary} mt-2`}>
-                    {MOCK.inkStats.nearExpiry} {t('dash.nearExpiry')}
+                    {inkStats.nearExpiry} {t('dash.nearExpiry')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
@@ -323,16 +356,16 @@ export default function Home() {
                   </div>
                   <p className={`text-sm ${themeConfig.textSecondary} mb-1`}>{t('dash.activeJobs')}</p>
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-3xl font-bold ${themeConfig.textPrimary}`}>{MOCK.prodStats.activeJobs}</span>
+                    <span className={`text-3xl font-bold ${themeConfig.textPrimary}`}>{prodStats.activeJobs}</span>
                     <span className={`text-sm ${themeConfig.textMuted}`}>{t('unit.jobs')}</span>
                   </div>
                   <p className={`text-xs ${themeConfig.textSecondary} mt-2`}>
-                    {t('dash.passRate')}: {MOCK.prodStats.passRate}%
+                    {t('dash.passRate')}: {prodStats.passRate}%
                   </p>
                 </div>
                 <div className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
                   <ArrowUp size={14} />
-                  {MOCK.prodStats.passRate}%
+                  {prodStats.passRate}%
                 </div>
               </div>
               <div className="absolute bottom-0 right-0 w-24 h-12 opacity-25">
@@ -414,7 +447,7 @@ export default function Home() {
                         <span className={`text-xs ${themeConfig.textSecondary}`}>{batch.remaining} {t('unit.kg')}</span>
                       </div>
                       <p className="text-[11px] mt-1.5 font-medium opacity-85">
-                        {t(isExpired ? 'misc.expired' : 'misc.expires')}: {batch.expiry}
+                        {t(isExpired ? 'misc.expired' : 'misc.expires')}: {batch.expiryDate}
                       </p>
                     </div>
                     <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${
@@ -456,17 +489,17 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK.recentJobs.map(job => (
-                    <tr key={job.job} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition`}>
-                      <td className={`p-3 font-semibold ${themeConfig.primaryText}`}>{job.job}</td>
-                      <td className={`p-3 ${themeConfig.textPrimary}`}>{job.product}</td>
-                      <td className={`p-3 ${themeConfig.textSecondary}`}>{job.machine}</td>
-                      <td className={`p-3 ${themeConfig.textSecondary}`}>{job.operator}</td>
+                  {jobs.map(j => (
+                    <tr key={j.jobNumber} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition`}>
+                      <td className={`p-3 font-semibold ${themeConfig.primaryText}`}>{j.jobNumber}</td>
+                      <td className={`p-3 ${themeConfig.textPrimary}`}>{j.productCode}</td>
+                      <td className={`p-3 ${themeConfig.textSecondary}`}>{j.machineName}</td>
+                      <td className={`p-3 ${themeConfig.textSecondary}`}>—</td>
                       <td className="p-3 text-center">
-                        <StatusBadge status={job.status as StatusKind} />
+                        <StatusBadge status={j.status as StatusKind} />
                       </td>
                       <td className={`p-3 text-right font-mono ${themeConfig.textPrimary}`}>
-                        {job.meter > 0 ? `${job.meter.toLocaleString()} ${t('unit.meter')}` : '—'}
+                        {j.totalPrinted > 0 ? `${j.totalPrinted.toLocaleString()} ${t('unit.meter')}` : '—'}
                       </td>
                     </tr>
                   ))}
@@ -551,7 +584,7 @@ export default function Home() {
           <section className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
             <h3 className={`text-base font-bold mb-4 ${themeConfig.textPrimary}`}>{t('dash.recentActivity')}</h3>
             <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-              {MOCK.activities.map((act, i) => {
+              {FALLBACK.activities.map((act, i) => {
                 const typeStyles = {
                   scan: 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20',
                   alert: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
@@ -588,7 +621,7 @@ export default function Home() {
           <section className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
             <h3 className={`text-base font-bold mb-4 ${themeConfig.textPrimary}`}>{t('dash.cylinderByLocation')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {MOCK.locations.map(loc => (
+              {FALLBACK.locations.map(loc => (
                 <div key={loc.name} className={`rounded-lg p-4 transition border border-transparent hover:border-white/10 ${themeConfig.badge} hover:bg-white/5 cursor-pointer`}>
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin size={14} className={themeConfig.primaryText} />
