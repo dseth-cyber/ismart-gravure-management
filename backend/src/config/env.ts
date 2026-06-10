@@ -7,6 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 export const env = {
   PORT: parseInt(process.env.PORT || '5000', 10),
   DATABASE_URL: process.env.DATABASE_URL || '',
+  REDIS_URL: process.env.REDIS_URL || 'redis://redis:6379',
   JWT_SECRET: process.env.JWT_SECRET || 'super_secret_jwt_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   NODE_ENV: process.env.NODE_ENV || 'development'

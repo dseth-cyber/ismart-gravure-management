@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { listCylinders } from '@/lib/services/cylinder';
 import { listFormulas, listBatches } from '@/lib/services/ink';
 import { listJobs } from '@/lib/services/job';
+import { useRealtimeEvent } from '@/lib/realtime/use-realtime';
 
 // Sparkline Component
 function Sparkline({ data, color = '#22d3ee', width = 80, height = 30 }: { data: number[]; color?: string; width?: number; height?: number }) {
@@ -182,6 +183,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => { fetchDashData(); }, [fetchDashData]);
+
+  useRealtimeEvent('dashboard:refresh', () => {
+    fetchDashData();
+  });
+
+  useRealtimeEvent('job:status', () => {
+    fetchDashData();
+  });
 
   // Compute stats from real data
   const cylinderStats = {

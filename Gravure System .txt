@@ -1,3 +1,12 @@
+https://github.com/dseth-cyber
+Username: ให้ใส่ชื่อ User GitHub ของคุณ (เช่น dseth-cyber)
+lohakij.lc.it@gmail.com
+
+Password: "ห้ามใส่รหัสผ่านเมล์" ให้วาง Token (ghp_xxxx...) ที่ก๊อปปี้มาลงไปแทนครับ (ตอนวางมันจะไม่โชว์ตัวอักษร ให้กด Enter ได้เลย)
+Personal access tokens (classic)
+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
+
+
 "แต่ละบริการ/โดเมนจะต้องถูกสร้างขึ้นมาในฐานะ Microservice แยกต่างหาก หรือเป็น Module ภายใน Modular Monolith ที่แยกกันอย่างเด็ดขาด (Strict Isolation) ทั้งในระดับของโค้ดและการเชื่อมข้อมูลผ่านฐานข้อมูล (ห้ามทำการ Join ข้ามโมดูลหรือใช้ Foreign Key ในระดับ DB) เพื่อให้สามารถดึงแยกออกไปรันเป็น Microservice เดี่ยวได้ทันทีเมื่อมีความต้องการในการ Scale โดยไม่ต้องแก้ไขโค้ดการทำงานหลักใดๆ"
 
 คุณสามารถตรวจสอบประวัติการปรับปรุงทั้งหมดได้ที่ไฟล์ 

@@ -1,8 +1,13 @@
+import http from 'http';
 import app from './app';
 import { env } from './config/env';
 import { prisma } from './config/database';
+import { initRealtime } from './modules/realtime/realtime';
 
-const server = app.listen(env.PORT, () => {
+const server = http.createServer(app);
+initRealtime(server);
+
+server.listen(env.PORT, () => {
   console.log(`=================================`);
   console.log(`  Gravure Backend Monolith Started`);
   console.log(`  Port: ${env.PORT}`);

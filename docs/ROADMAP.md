@@ -365,7 +365,14 @@ Notes:
 
 ### Phase 15: Real-Time Monitoring & Scanner
 
-Status: Not Started
+Status: In Progress
+
+Completed:
+- Backend WebSocket server via socket.io + Redis adapter for pub/sub
+- Frontend real-time hook (`useRealtimeEvent`)
+- Dashboard auto-refresh on WebSocket events (`dashboard:refresh`, `job:status`)
+- QR scanner component using `html5-qrcode` (browser `getUserMedia`)
+- Socket.io redis adapter for horizontal scaling
 
 Outputs:
 - WebSocket or Server-Sent Events (SSE) integration for live production updates
