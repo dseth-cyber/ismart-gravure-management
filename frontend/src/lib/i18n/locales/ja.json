@@ -1,0 +1,560 @@
+{
+  "app.title": "グラビア管理システム",
+  "app.subtitle": "シリンダー＆インク配合管理",
+  "app.facility": "iSmart Gravure Operations",
+  "app.mark": "GM",
+  "nav.main": "メインナビゲーション",
+  "nav.progress": "進捗",
+  "nav.cylinders": "シリンダー",
+  "nav.inks": "インク配合",
+  "nav.rules": "プロジェクトルール",
+  "nav.architecture": "アーキテクチャ",
+  "nav.documents": "ドキュメント",
+  "theme.label": "テーマ",
+  "theme.modern": "Modern",
+  "theme.dark": "Dark",
+  "theme.light": "Light",
+  "language.label": "言語",
+  "language.th": "TH",
+  "language.en": "EN",
+  "language.cn": "CN",
+  "language.mm": "MM",
+  "language.ja": "JA",
+  "status.healthy": "システム正常",
+  "status.done": "完了",
+  "status.progress": "進行中",
+  "status.blocked": "ブロック中",
+  "status.todo": "未開始",
+  "common.close": "閉じる",
+  "common.confirm": "確認",
+  "common.cancel": "キャンセル",
+  "common.viewDetails": "詳細を見る",
+  "common.empty": "データがありません",
+  "page.title": "ロードマップ進捗",
+  "page.subtitle": "新しいフロントエンド基盤は Next.js 16、React 19、TypeScript、Tailwind CSS 4、Docker Desktop を標準ランタイムとして開始します",
+  "summary.label": "進捗サマリー",
+  "summary.totalPhases": "全フェーズ",
+  "summary.totalPhasesNote": "Phase {{start}} から Phase {{end}}",
+  "summary.done": "完了",
+  "summary.doneNote": "最新完了：Phase {{phase}} ({{name}})",
+  "summary.progress": "進行中",
+  "summary.progressNote": "現在進行：Phase {{phase}} ({{name}})",
+  "summary.docker": "ランタイム",
+  "summary.dockerNote": "Docker Desktop で実行",
+  "phase.sectionTitle": "ロードマップフェーズ",
+  "phase.updateRule": "毎回 ROADMAP を更新する必要があります",
+  "phase.0.name": "Governance And Progress Tracking",
+  "phase.0.output": "Roadmap、project rules、design system rules、progress page",
+  "phase.1.name": "Frontend Migration Foundation",
+  "phase.1.output": "Next.js 16 scaffold、shared Layout、route structure、Docker runtime",
+  "phase.2.name": "Theme System",
+  "phase.2.output": "useTheme()、themeConfig、modern/dark/light themes",
+  "phase.3.name": "i18n System",
+  "phase.3.output": "react-i18next と 5 つの locale JSON",
+  "phase.4.name": "Shared UI Components",
+  "phase.4.output": "Central Dialog、PageHeader、DataTable、forms、controls",
+  "phase.5.name": "Auth Foundation",
+  "phase.5.output": "統合された認証ハンドラー、JWT、localStorage token、axios interceptor",
+  "phase.6.name": "Backend Monolith Foundation",
+  "phase.6.output": "Express 5 + TypeScript + Prisma 統合スターター",
+  "phase.7.name": "Docker Infrastructure",
+  "phase.7.output": "docker-compose.yml、Redis、単一の PostgreSQL データベース",
+  "phase.8.name": "API Contracts & DTOs",
+  "phase.8.output": "OpenAPI 規則、ルートパス、共有 DTO タイプ",
+  "phase.9.name": "Async Queue Foundation (Optional)",
+  "phase.9.output": "BullMQ / Redis バックグラウンドタスクキュー",
+  "phase.10.name": "Core Domain Modules",
+  "phase.10.output": "Customer、Product、Cylinder、Ink モジュール",
+  "phase.11.name": "Production Workflow Modules",
+  "phase.11.output": "Sales order、planning、execution、inventory、quality モジュール",
+  "phase.12.name": "Observability And Audit",
+  "phase.12.output": "Audit trail、health checks、logs、correlation IDs",
+  "phase.13.name": "Stabilization And Release",
+  "phase.13.output": "E2E tests、release checklist、production readiness",
+  "phase.14.name": "フロントエンドAPI統合と最適化",
+  "phase.14.output": "全ページを実際のAPIに接続、ナビゲーションのバグ修正、共有コンポーネントの監査",
+  "phase.15.name": "リアルタイム監視とスキャナー",
+  "phase.15.output": "WebSocketライブ更新、カメラQR/バーコードスキャン、QRラベル印刷",
+  "phase.16.name": "エンタープライズID基盤",
+  "phase.16.output": "LDAP/AD統合、SSO、パスワードポリシー、セッション管理",
+  "phase.17.name": "本番環境の強化",
+  "phase.17.output": "レート制限、APIスロットリング、パフォーマンス最適化、エラーモニタリング",
+  "phase.details.outputs": "アウトプット",
+  "phase.details.criteria": "受入基準",
+  "phase.details.notes": "備考",
+  "phase.0.details": {
+    "outputs": [
+      "docs/ROADMAP.md",
+      "docs/PROJECT_RULES.md",
+      "docs/DESIGN_SYSTEM.md",
+      "frontend/src/app/progress/page.tsx"
+    ],
+    "criteria": [
+      "プロジェクトのロードマップが存在し、更新ルールが定義されていること。",
+      "プロジェクト共通の開発規約が作成され、厳格な実装原則が定められていること。",
+      "デザインシステムのルールが作成され、コンポーネントのデザイン統一性が保たれていること。",
+      "フロントエンドの進捗管理ページが構築され、ブラウザから直接開けること。"
+    ],
+    "notes": [
+      "大規模な移行プロジェクトを開始する前に、必要な開発基盤とルールの統一を行います。",
+      "2026-06-09 に完了しました。"
+    ]
+  },
+  "phase.1.details": {
+    "outputs": [
+      "/frontend Next.js 16 + React 19 + TypeScript の基本構造",
+      "ルーティング構造 (App Router)",
+      "共通の Layout コンポーネント",
+      "従来の独立した HTML/コンポーネントからの移行計画"
+    ],
+    "criteria": [
+      "アプリケーションがローカル環境で正常に起動すること。",
+      "既存ダッシュボードのデザインとビジュアルコンセプトが Next.js で再現されていること。",
+      "新規ページはすべて共通の Layout コンポーネントを継承していること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "ローカルの Node.js バージョンは v22.17.0 であり、Next.js 16 の最小要件を満たしています。本番/CI 環境の基準は Node.js 24 LTS です。"
+    ]
+  },
+  "phase.2.details": {
+    "outputs": [
+      "useTheme() hook の作成",
+      "テーマごとのクラス名定義オブジェクト themeConfig",
+      "対応するテーマ：modern, dark, light",
+      "デフォルトテーマ：modern"
+    ],
+    "criteria": [
+      "すべてのページでスタイルクラスを themeConfig から取得していること。",
+      "コンポーネントにテーマ依存の Tailwind スタイルクラスを直接ハードコードしないこと。",
+      "選択されたテーマ状態がブラウザセッションで永続化保存されること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "全システムに統一された HSL グラスモフィズムスタイルを提供します。"
+    ]
+  },
+  "phase.3.details": {
+    "outputs": [
+      "react-i18next による国際化構成",
+      "5カ国語のローカライズファイル：/src/i18n/locales/ (th, en, cn, mm, ja)"
+    ],
+    "criteria": [
+      "デフォルト言語がタイ語 (th) に設定されていること。",
+      "すべての UI テキスト表示に t('key') が使用されていること。",
+      "コンポーネントファイル内にハードコードされた画面表示文字列がないこと。",
+      "従来の zh 言語コードがプロジェクト要件に沿って cn に移行されていること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "5言語の翻訳ファイルが完全に用意され、リアルタイムでの切り替えをサポートしています。"
+    ]
+  },
+  "phase.4.details": {
+    "outputs": [
+      "共通ダイアログコンポーネント (AppDialog, ConfirmDialog, FormDialog)",
+      "画面ヘッダーコンポーネント PageHeader",
+      "DataTable コンポーネント",
+      "共有入力、ボタン、ステータスバッジ"
+    ],
+    "criteria": [
+      "新規ポップアップ/ダイアログは共有ダイアログコンポーネントのみを使用すること。",
+      "ダイアログのスタイルは themeConfig から取得すること。",
+      "コンポーネントは表示テキストに i18n キーを使用すること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "中央の UI 入力と共通レイアウトを作成しました。"
+    ]
+  },
+  "phase.5.details": {
+    "outputs": [
+      "バックエンドモノリスの認証ルート",
+      "JWT ログインエンドポイント",
+      "フロントエンド認証ストア",
+      "Axios インターセプター"
+    ],
+    "criteria": [
+      "トークンは localStorage に保存されること。",
+      "API リクエストは自動的に Authorization: Bearer <token> ヘッダーを付与すること。",
+      "保護されたフロントエンドルートは未認証ユーザーをリダイレクトすること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "JWT 認証コンテキストとクライアント側ページリダイレクトガードを実装しました。"
+    ]
+  },
+  "phase.6.details": {
+    "outputs": [
+      "Node.js 24 LTS + TypeScript + Express 5 + Prisma ORM 7.x を使用したコードスターター",
+      "共有エラーハンドリングとルーティング分割構造",
+      "ヘルスチェックエンドポイント",
+      "Prisma マイグレーション規約"
+    ],
+    "criteria": [
+      "単一のモジュラーモノリスバックエンドサーバーが正常に起動すること。",
+      "Express 5 ルーティングがモジュールを論理的にグループ化していること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "Prisma 7 の adapter-pg プールを使用したクリーンな構造を構築しました。"
+    ]
+  },
+  "phase.7.details": {
+    "outputs": [
+      "docker-compose.yml",
+      "PostgreSQL インスタンス",
+      "Redis"
+    ],
+    "criteria": [
+      "Docker compose スタックがデータベース、キャッシュ、バックエンド、フロントエンドを起動すること。",
+      "単一のデータベースサーバーが使用されること。",
+      "環境変数が文書化されていること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "コンテナ内での完全動作を確認し、Next.js リライトでクライアント側の接続問題を解決しました。"
+    ]
+  },
+  "phase.8.details": {
+    "outputs": [
+      "ルーティング規約 (例: /api/v1)",
+      "OpenAPI/Swagger 仕様",
+      "共有 DTO 型定義"
+    ],
+    "criteria": [
+      "フロントエンドが統合バックエンドルートと直接通信すること。",
+      "API が OpenAPI で文書化されていること。"
+    ],
+    "notes": [
+      "2026-06-09 に完了しました。",
+      "Swagger UI を /api-docs で利用可能にしました。",
+      "共有 DTO 型を両方のコンテナにマウントし、完全な型安全を実現しました。"
+    ]
+  },
+  "phase.9.details": {
+    "outputs": [
+      "Redis と BullMQ を使用した非同期バックグラウンド処理の仕組み (メール配信、大量レポート生成など)"
+    ],
+    "criteria": [
+      "バックグラウンドジョブ実行中も、Web サーバーの要求受付スレッドをブロックしないこと。"
+    ],
+    "notes": [
+      "2026-06-10 に完了しました。",
+      "Redis と BullMQ をインストールして設定し、バックグラウンド処理のキューと Worker を構築しました。"
+    ]
+  },
+  "phase.10.details": {
+    "outputs": [
+      "コアテーブルおよびデータベースモデル：Customer, Product, Cylinder, Ink",
+      "バックエンドの CRUD 管理 API エンドポイント",
+      "モジュール内部のビジネスイベントとトリガー"
+    ],
+    "criteria": [
+      "すべての CRUD 操作 API が問題なく動作すること。",
+      "フロントエンドでの入力検証エラーの返却ルールが一意であること。"
+    ],
+    "notes": [
+      "2026-06-10 に完了しました。",
+      "コアモジュールのデータベースマイグレーションが実行され、シードデータがインポートされ、CRUD サービスがバックエンドで公開されました。"
+    ]
+  },
+  "phase.11.details": {
+    "outputs": [
+      "基幹生産プロセスのロジックとステートマシン：受注、計画、実行、在庫、QC",
+      "バックエンドでのトランザクション保護された業務処理"
+    ],
+    "criteria": [
+      "生産履歴およびワークフローの変更記録が監査可能であること。",
+      "FEFO (先入れ先出し) 出庫計算および在庫削減の処理が正確であること。",
+      "QC の検査記録が特定のシリンダーやインキバッチと正確に紐付けられていること。"
+    ],
+    "notes": [
+      "2026-06-10 に完了しました。",
+      "受注、計画、生産実行、在庫、品質管理（QC）モジュールの開発とテストに成功しました。"
+    ]
+  },
+  "phase.12.details": {
+    "outputs": [
+      "操作監査ログの記録ルール (Audit logs)",
+      "構造化されたアプリケーションログ出力 (Structured logs)",
+      "各サービスのヘルスチェックの実装",
+      "監視用ダッシュボード (Operational Dashboard) の要件定義"
+    ],
+    "criteria": [
+      "重要なシステム操作はすべて監査ログに出力されること。",
+      "メインモジュールおよび外部接続状態のヘルス状況が提供されていること。",
+      "リクエストの追跡用にすべてのログ出力に Correlation ID が自動付与されること。"
+    ],
+    "notes": [
+      "2026-06-10 に完了しました。",
+      "Correlation ID トラッキング、構造化されたログ出力、システムヘルスチェック、および監査ログ記録を実装しました。"
+    ]
+  },
+  "phase.13.details": {
+    "outputs": [
+      "本番リリース判定チェックリスト (Release checklist)",
+      "E2E テストシナリオおよび自動実行スクリプト",
+      "データベースのバックアップおよびリカバリ手順",
+      "本番運用開始の準備状況の最終レビュー"
+    ],
+    "criteria": [
+      "主要なユースケースの自動 E2E テストが正常に通過すること。",
+      "デプロイと有事の際のロールバック手順がドキュメント化されていること。",
+      "すべての技術およびビジネス要件のリスクレビューが行われ、合意されていること。"
+    ],
+    "notes": [
+      "2026-06-10 に完了しました。",
+      "本番リリース判定チェックリスト、データベースのバックアップリカバリ手順、本番運用手順書を作成し、E2Eテストをすべて通過させました。"
+    ]
+  },
+  "rule.sectionTitle": "守るべき主要ルール",
+  "rule.layout": "すべての新規ページは shared Layout component を使用します",
+  "rule.dialog": "すべての Dialog または Popup は中央 component を使用します",
+  "rule.i18n": "すべての UI text は t('key') を使い、5 言語に存在します",
+  "rule.theme": "theme に依存する styling は themeConfig から取得します",
+  "rule.database": "各サービスは、データベース分離またはモジュールテーブルを維持する必要があります",
+  "rule.docker": "システムは Docker Compose で実行します",
+  "doc.sectionTitle": "管理ドキュメント",
+  "doc.roadmap": "ROADMAP.md",
+  "doc.rules": "PROJECT_RULES.md",
+  "doc.design": "DESIGN_SYSTEM.md",
+  "architecture.sectionTitle": "Architecture Baseline",
+  "architecture.frontend": "Frontend",
+  "architecture.frontendValue": "Next.js 16、React 19、TypeScript 5.x、Tailwind CSS 4",
+  "architecture.auth": "Authentication",
+  "architecture.authValue": "Identity Service が JWT を発行し、frontend が axios interceptor で token を付与します",
+  "architecture.database": "Database",
+  "architecture.databaseValue": "PostgreSQL database configuration with schema/table isolation per service/module",
+  "architecture.events": "Event Broker",
+  "architecture.eventsValue": "メモリ内イベントまたは Redis バックグラウンドタスクキュー（オプション）",
+  "architecture.infra": "Infrastructure",
+  "architecture.infraValue": "Docker Compose、Redis、PostgreSQL、service containers",
+  "architecture.workflow": "Workflow",
+  "architecture.workflowValue": "負荷に応じてモジュールを個別のマイクロサービスに抽出できます",
+  "table.sectionTitle": "初期フェーズステータステーブル",
+  "table.phase": "Phase",
+  "table.status": "Status",
+  "table.output": "Output",
+  "dialog.title": "フェーズの詳細",
+  "dialog.phaseTitle": "フェーズ {{id}} の詳細: {{name}}",
+  "dialog.description": "Phase 1 では standalone screens を移行する前に、Next.js 16 Docker Desktop foundation、Layout、theme、i18n、axios、shared components を構築します",
+  "app.version": "v1.0.0",
+  "nav.dashboard": "ダッシュボード",
+  "nav.overview": "概要",
+  "nav.cylinder": "シリンダー",
+  "nav.cylinderList": "シリンダー一覧",
+  "nav.cylinderStatus": "リアルタイム状況",
+  "nav.cylinderLocation": "所在追跡",
+  "nav.cylinderHistory": "使用履歴",
+  "nav.ink": "インク配合",
+  "nav.inkFormula": "標準配合",
+  "nav.inkBatch": "インクバッチ管理",
+  "nav.inkExpiry": "FEFO & 有効期限",
+  "nav.inkShade": "色差調整",
+  "nav.production": "生産",
+  "nav.verification": "ライン検証",
+  "nav.prodLog": "生産ログ",
+  "nav.traceability": "トレーサビリティ",
+  "nav.settings": "設定",
+  "nav.systemSettings": "システム設定",
+  "dash.title": "システム概要",
+  "dash.subtitle": "グラビア管理ダッシュボード",
+  "dash.totalCylinders": "シリンダー総数",
+  "dash.available": "使用可能",
+  "dash.inProduction": "生産中",
+  "dash.repair": "修理中",
+  "dash.reserved": "予約済み",
+  "dash.inspection": "検査待ち",
+  "dash.activeFormulas": "有効配合",
+  "dash.totalBatches": "インクバッチ総数",
+  "dash.nearExpiry": "期限間近",
+  "dash.expired": "期限切れ",
+  "dash.activeJobs": "進行中のジョブ",
+  "dash.verifiedToday": "本日検証",
+  "dash.passRate": "合格率",
+  "dash.cylinderStatus": "シリンダー状況",
+  "dash.cylinderStatusSub": "全シリンダーのリアルタイム状況",
+  "dash.inkAlerts": "インク警告",
+  "dash.inkAlertsSub": "注意が必要なバッチ",
+  "dash.recentJobs": "最近のジョブ",
+  "dash.quickActions": "クイック操作",
+  "dash.cylinderByLocation": "場所別シリンダー",
+  "dash.qcRate": "QC合格率",
+  "dash.recentActivity": "最近のアクティビティ",
+  "dash.vsLastMonth": "前月比",
+  "dash.noAlerts": "警告なし",
+  "dash.qcPassed": "QC合格",
+  "dash.qcHold": "QC保留",
+  "dash.rework": "やり直し",
+  "status.available": "使用可能",
+  "status.inProduction": "生産中",
+  "status.reserved": "予約済み",
+  "status.repair": "修理中",
+  "status.inspection": "検査待ち",
+  "status.hold": "保留",
+  "status.active": "有効",
+  "status.superseded": "旧版",
+  "status.nearExpiry": "期限間近",
+  "status.expiredLabel": "期限切れ",
+  "status.pass": "合格",
+  "status.fail": "不合格",
+  "status.pending": "保留中",
+  "status.running": "稼働中",
+  "status.completed": "完了",
+  "col.code": "コード",
+  "col.product": "製品",
+  "col.customer": "顧客",
+  "col.status": "状態",
+  "col.location": "場所",
+  "col.meterRun": "累計メーター",
+  "col.lastUsed": "最終使用",
+  "col.formula": "配合",
+  "col.revision": "リビジョン",
+  "col.color": "色",
+  "col.viscosity": "粘度",
+  "col.expiry": "有効期限",
+  "col.batch": "バッチ",
+  "col.job": "ジョブ番号",
+  "col.machine": "機械",
+  "col.operator": "オペレーター",
+  "col.date": "日付",
+  "col.action": "操作",
+  "col.weight": "重量",
+  "col.remaining": "残量",
+  "btn.scan": "QRスキャン",
+  "btn.add": "追加",
+  "btn.search": "検索",
+  "btn.export": "エクスポート",
+  "btn.filter": "フィルター",
+  "btn.viewAll": "全表示",
+  "btn.startVerify": "検証開始",
+  "btn.mixInk": "インク調合",
+  "btn.refresh": "更新",
+  "btn.save": "保存",
+  "btn.cancel": "キャンセル",
+  "btn.back": "戻る",
+  "btn.next": "次へ",
+  "btn.edit": "編集",
+  "role.admin": "システム管理者",
+  "role.planner": "生産計画者",
+  "role.operator": "オペレーター",
+  "role.inkroom": "インク調合員",
+  "role.qc": "QC検査員",
+  "unit.lots": "本",
+  "unit.formulas": "配合",
+  "unit.batches": "バッチ",
+  "unit.jobs": "ジョブ",
+  "unit.kg": "kg",
+  "unit.meter": "m",
+  "unit.days": "日",
+  "unit.pcs": "個",
+  "layout.customize": "レイアウト編集",
+  "layout.reset": "リセット",
+  "layout.done": "完了",
+  "layout.editing": "レイアウト編集モード",
+  "layout.dragHint": "ドラッグで並べ替え",
+  "cyl.title": "シリンダー一覧",
+  "cyl.subtitle": "システム内全シリンダーの管理",
+  "cyl.searchPlaceholder": "シリンダー、製品、顧客を検索...",
+  "cyl.all": "全て",
+  "cyl.changeStatus": "状態変更",
+  "cyl.size": "サイズ",
+  "cyl.totalMeters": "累計メーター",
+  "cyl.scanTitle": "QRコードスキャン",
+  "cyl.scanning": "スキャン中...",
+  "cyl.scanSuccess": "スキャン成功！",
+  "cyl.viewDetails": "詳細表示",
+  "ink.title": "インク配合管理",
+  "ink.subtitle": "標準配合、バッチ、FEFO＆有効期限",
+  "ink.searchPlaceholder": "配合、バッチ、製品を検索...",
+  "ink.formulas": "配合",
+  "ink.addFormula": "配合追加",
+  "ink.mixTitle": "インク調合",
+  "ink.selectFormula": "調合する配合を選択",
+  "ink.scanRaw": "原料インクバッチスキャン (FEFO)",
+  "ink.weightUsed": "使用重量",
+  "ink.mixSuccess": "調合完了！",
+  "ink.qrReady": "QRコード印刷可",
+  "ink.printQr": "QR印刷して閉じる",
+  "ink.formulaUsed": "使用配合",
+  "ink.fefoTitle": "FEFO推奨",
+  "ink.fefoSubtitle": "有効期限順 — 最も早く期限切れのバッチを優先",
+  "ink.expired": "期限切れ",
+  "ink.urgent": "緊急",
+  "ink.nearExpiry": "期限間近",
+  "ink.normal": "正常",
+  "ink.mixDate": "調合日",
+  "prod.title": "生産＆トレーサビリティ",
+  "prod.subtitle": "ライン検証、生産ログ、7次元トレーサビリティ",
+  "prod.lineVerify": "ライン検証",
+  "prod.prodLog": "生産ログ",
+  "prod.traceability": "トレーサビリティ",
+  "prod.preVerify": "生産前検証",
+  "prod.preVerifyDesc": "ジョブ→シリンダー→インクバッチをスキャンして確認",
+  "prod.scanJob": "ジョブ番号スキャン",
+  "prod.scanJobSub": "製造指示書のQR/バーコードをスキャン",
+  "prod.scanCylinders": "全シリンダースキャン",
+  "prod.scanCylindersSub": "色順で各シリンダーをスキャン",
+  "prod.scanInk": "全インクバッチスキャン",
+  "prod.scanInkSub": "各インク容器のQRコードをスキャン",
+  "prod.result": "結果",
+  "prod.passed": "検証合格",
+  "prod.authorized": "生産許可",
+  "prod.failed": "不合格 — 問題検出",
+  "prod.fixIssues": "生産開始前に問題を修正してください",
+  "prod.newVerify": "再検証",
+  "prod.requestOverride": "オーバーライド申請",
+  "prod.scanning": "スキャン中...",
+  "prod.scan": "スキャン",
+  "prod.supervisorApproval": "期限間近 — 管理者承認が必要",
+  "prod.traceTitle": "7次元トレーサビリティ",
+  "prod.traceSubtitle": "任意の次元から検索 — 完全相互参照",
+  "prod.productInfo": "製品情報",
+  "prod.jobHistory": "ジョブ履歴",
+  "prod.cylindersUsed": "使用シリンダー",
+  "prod.inkBatchesUsed": "使用インクバッチ",
+  "misc.healthy": "healthy",
+  "misc.expired": "期限切れ",
+  "misc.expires": "有効期限",
+  "misc.underDev": "このページは開発中です",
+  "nav.masterSetup": "マスター設定",
+  "nav.ruleEngine": "ルールエンジン",
+  "nav.approvalMatrix": "承認マトリックス",
+  "setup.title": "マスター設定中心",
+  "setup.ruleEngine": "ルールエンジン — 自動化ルール",
+  "setup.approvalMatrix": "承認マトリックス",
+  "setup.statuses": "ステータス",
+  "setup.cylinderTypes": "シリンダータイプ",
+  "setup.defectTypes": "欠陥タイプ",
+  "setup.machines": "機械",
+  "setup.racks": "保管棚",
+  "setup.suppliers": "サプライヤー",
+  "setup.inkTypes": "インクタイプ",
+  "setup.solvents": "溶剤",
+  "setup.manageItems": "項目の追加・編集・有効/無効",
+  "setup.capacity": "容量",
+  "setup.description": "説明",
+  "setup.addRule": "ルール追加",
+  "setup.ruleName": "ルール名",
+  "setup.condition": "条件",
+  "setup.actions": "アクション",
+  "setup.totalRules": "ルール総数",
+  "setup.activeRules": "有効ルール",
+  "setup.notifications": "通知",
+  "setup.automations": "自動化",
+  "setup.event": "イベント",
+  "setup.approver": "承認者",
+  "mobile.home": "ホーム",
+  "mobile.scan": "スキャン",
+  "mobile.jobs": "ジョブ",
+  "mobile.alerts": "警告",
+  "mobile.more": "その他",
+  "login.title": "ログイン",
+  "login.username": "ユーザー名",
+  "login.password": "パスワード",
+  "login.submit": "ログイン",
+  "login.error.invalid": "ユーザー名またはパスワードが正しくありません",
+  "login.error.generic": "サーバー接続に失敗しました",
+  "btn.logout": "ログアウト"
+}

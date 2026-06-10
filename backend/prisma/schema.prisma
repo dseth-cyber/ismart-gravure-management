@@ -1,0 +1,226 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  admin
+  sales
+  planner
+  production
+  qc
+  warehouse
+  inkroom
+  viewer
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  contactInfo String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("customers")
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  customerCode String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("products")
+}
+
+enum CylinderStatus {
+  available
+  inProduction
+  reserved
+  repair
+  inspection
+  hold
+}
+
+model Cylinder {
+  id          String         @id
+  productCode String
+  color       String
+  colorName   String
+  status      CylinderStatus @default(available)
+  location    String
+  meter       Float          @default(0)
+  lastUsed    DateTime?
+  type        String         @default("Dedicated")
+  size        String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("cylinders")
+}
+
+enum InkFormulaStatus {
+  active
+  superseded
+}
+
+model InkFormula {
+  code        String           @id
+  productCode String
+  color       String
+  pantone     String
+  revision    String           @default("Rev.01")
+  status      InkFormulaStatus @default(active)
+  viscosity   String
+  labTarget   String
+  solvent     String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("ink_formulas")
+}
+
+enum InkBatchStatus {
+  active
+  nearExpiry
+  expired
+}
+
+model InkBatch {
+  id          String         @id
+  formulaCode String?
+  productCode String?
+  color       String
+  mixDate     DateTime?
+  expiryDate  DateTime
+  weight      Float
+  remaining   Float
+  operator    String
+  status      InkBatchStatus @default(active)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("ink_batches")
+}
+
+enum JobStatus {
+  pending
+  verifying
+  active
+  completed
+  hold
+  cancelled
+}
+
+model SalesOrder {
+  id           String   @id @default(uuid())
+  orderNumber  String   @unique
+  customerCode String
+  productCode  String
+  quantity     Float
+  unit         String
+  dueDate      DateTime
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("sales_orders")
+}
+
+model ProductionJob {
+  id           String    @id @default(uuid())
+  jobNumber    String    @unique
+  orderNumber  String
+  productCode  String
+  machineName  String
+  plannedDate  DateTime
+  status       JobStatus @default(pending)
+  totalPrinted Float     @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("production_jobs")
+}
+
+model JobVerification {
+  id                String   @id @default(uuid())
+  jobNumber         String   @unique
+  verifiedBy        String
+  isPassed          Boolean
+  scannedCylinders  String
+  scannedInkBatches String
+  requiresOverride  Boolean  @default(false)
+  overrideBy        String?
+  createdAt         DateTime @default(now())
+
+  @@map("job_verifications")
+}
+
+model ProductionLog {
+  id            String   @id @default(uuid())
+  jobNumber     String
+  machineName   String
+  operator      String
+  startMeter    Float
+  endMeter      Float
+  totalPrinted  Float
+  scrapQuantity Float
+  status        String   @default("completed")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("production_logs")
+}
+
+enum QcStatus {
+  pass
+  fail
+  hold
+}
+
+model QcInspection {
+  id                  String   @id @default(uuid())
+  jobNumber           String
+  inspector           String
+  shadeResult         String
+  barcodePassed       Boolean
+  colorSequencePassed Boolean
+  adhesionPassed      Boolean
+  status              QcStatus @default(pass)
+  remarks             String?
+  createdAt           DateTime @default(now())
+
+  @@map("qc_inspections")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  action        String
+  userId        String?
+  username      String?
+  details       String
+  ipAddress     String?
+  userAgent     String?
+  correlationId String?
+  createdAt     DateTime @default(now())
+
+  @@map("audit_logs")
+}
+

@@ -1,0 +1,108 @@
+import { Request, Response, NextFunction } from 'express';
+import { CustomerService } from './customer.service';
+import { ApiResponse } from '@shared/dto/auth/auth.dto';
+import { CustomerDto } from '@shared/dto/customer/customer.dto';
+
+export class CustomerController {
+  static async create(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const result = await CustomerService.create(req.body);
+      const response: ApiResponse<CustomerDto> = {
+        status: 'success',
+        statusCode: 201,
+        data: {
+          id: result.id,
+          code: result.code,
+          name: result.name,
+          contactInfo: result.contactInfo,
+          createdAt: result.createdAt.toISOString(),
+          updatedAt: result.updatedAt.toISOString()
+        }
+      };
+      return res.status(201).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async list(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const search = req.query.search as string;
+      const customers = await CustomerService.list(search);
+      
+      const data: CustomerDto[] = customers.map(c => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        contactInfo: c.contactInfo,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString()
+      }));
+
+      const response: ApiResponse<CustomerDto[]> = {
+        status: 'success',
+        statusCode: 200,
+        data
+      };
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getById(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const result = await CustomerService.getById(req.params.id as string);
+      const response: ApiResponse<CustomerDto> = {
+        status: 'success',
+        statusCode: 200,
+        data: {
+          id: result.id,
+          code: result.code,
+          name: result.name,
+          contactInfo: result.contactInfo,
+          createdAt: result.createdAt.toISOString(),
+          updatedAt: result.updatedAt.toISOString()
+        }
+      };
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const result = await CustomerService.update(req.params.id as string, req.body);
+      const response: ApiResponse<CustomerDto> = {
+        status: 'success',
+        statusCode: 200,
+        data: {
+          id: result.id,
+          code: result.code,
+          name: result.name,
+          contactInfo: result.contactInfo,
+          createdAt: result.createdAt.toISOString(),
+          updatedAt: result.updatedAt.toISOString()
+        }
+      };
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      await CustomerService.delete(req.params.id as string);
+      const response: ApiResponse = {
+        status: 'success',
+        statusCode: 200,
+        message: 'Customer deleted successfully'
+      };
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+}

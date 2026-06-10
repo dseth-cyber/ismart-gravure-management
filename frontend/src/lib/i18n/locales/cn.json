@@ -1,0 +1,559 @@
+{
+  "app.title": "凹版管理系统",
+  "app.subtitle": "印版与油墨配方管理系统",
+  "app.facility": "iSmart 凹版印刷运营",
+  "app.mark": "GM",
+  "nav.main": "主导航",
+  "nav.progress": "进度",
+  "nav.cylinders": "版辊",
+  "nav.inks": "油墨配方",
+  "nav.rules": "项目规则",
+  "nav.architecture": "架构",
+  "nav.documents": "文档",
+  "theme.label": "主题",
+  "theme.modern": "现代",
+  "theme.dark": "深色",
+  "theme.light": "浅色",
+  "language.label": "语言",
+  "language.th": "TH",
+  "language.en": "EN",
+  "language.cn": "CN",
+  "language.mm": "MM",
+  "language.ja": "JA",
+  "status.healthy": "系统正常",
+  "status.done": "已完成",
+  "status.progress": "进行中",
+  "status.blocked": "受阻",
+  "status.todo": "未开始",
+  "common.close": "关闭",
+  "common.confirm": "确认",
+  "common.cancel": "取消",
+  "common.viewDetails": "查看详情",
+  "common.empty": "暂无数据",
+  "page.title": "路线图进度",
+  "page.subtitle": "新的前端基础使用 Next.js 16、React 19、TypeScript、Tailwind CSS 4，并以 Docker Desktop 作为主要运行方式",
+  "summary.label": "进度摘要",
+  "summary.totalPhases": "总阶段",
+  "summary.totalPhasesNote": "Phase {{start}} 到 Phase {{end}}",
+  "summary.done": "已完成",
+  "summary.doneNote": "最新完成：Phase {{phase}} ({{name}})",
+  "summary.progress": "进行中",
+  "summary.progressNote": "当前进行：Phase {{phase}} ({{name}})",
+  "summary.docker": "运行方式",
+  "summary.dockerNote": "通过 Docker Desktop 运行",
+  "phase.sectionTitle": "路线图阶段",
+  "phase.updateRule": "每次都必须更新 ROADMAP",
+  "phase.0.name": "治理与进度追踪",
+  "phase.0.output": "路线图、项目规则、设计系统规则和进度页面",
+  "phase.1.name": "前端迁移基础",
+  "phase.1.output": "Next.js 16 scaffold、共享 Layout、路由结构和 Docker 运行环境",
+  "phase.2.name": "主题系统",
+  "phase.2.output": "useTheme()、themeConfig 和 modern/dark/light 主题",
+  "phase.3.name": "国际化系统",
+  "phase.3.output": "react-i18next 和五个语言 JSON 文件",
+  "phase.4.name": "共享 UI 组件",
+  "phase.4.output": "统一 Dialog、PageHeader、DataTable、表单和控件",
+  "phase.5.name": "认证基础",
+  "phase.5.output": "统一身份验证处理、JWT、localStorage token 和 axios interceptor",
+  "phase.6.name": "后端基础",
+  "phase.6.output": "Express 5 + TypeScript + Prisma 统一启动模板",
+  "phase.7.name": "Docker 基础设施",
+  "phase.7.output": "docker-compose.yml、Redis 和单 PostgreSQL 数据库",
+  "phase.8.name": "API 契约与 DTO",
+  "phase.8.output": "OpenAPI 规范、路由路径和共享 DTO 类型",
+  "phase.9.name": "异步队列基础 (可选)",
+  "phase.9.output": "BullMQ/Redis 后台任务队列",
+  "phase.10.name": "核心领域模块",
+  "phase.10.output": "Customer、Product、Cylinder 和 Ink 模块",
+  "phase.11.name": "生产流程模块",
+  "phase.11.output": "销售订单、规划、执行、库存和质量模块",
+  "phase.12.name": "可观测性与审计",
+  "phase.12.output": "审计轨迹、健康检查、日志和 correlation ID",
+  "phase.13.name": "稳定与发布",
+  "phase.13.output": "E2E 测试、发布核对清单和生产就绪性审查",
+  "phase.14.name": "前端 API 集成与优化",
+  "phase.14.output": "将所有页面连接到真实 API，修复导航错误，审计共享组件",
+  "phase.15.name": "实时监控与扫描",
+  "phase.15.output": "WebSocket 实时更新，摄像头二维码/条码扫描，打印二维码标签",
+  "phase.16.name": "企业身份认证基础",
+  "phase.16.output": "LDAP/AD 集成，SSO，密码策略，会话管理",
+  "phase.17.name": "生产环境加固",
+  "phase.17.output": "速率限制，API 节流，性能优化，错误监控",
+  "phase.details.outputs": "交付成果",
+  "phase.details.criteria": "验收标准",
+  "phase.details.notes": "备注",
+  "phase.0.details": {
+    "outputs": [
+      "docs/ROADMAP.md",
+      "docs/PROJECT_RULES.md",
+      "docs/DESIGN_SYSTEM.md",
+      "frontend/src/app/progress/page.tsx"
+    ],
+    "criteria": [
+      "项目路线图 (Roadmap) 已建立并包含更新规则。",
+      "项目开发规则 file 已创建并明确了核心实施原则。",
+      "设计系统规范文件已创建以确保视觉与组件一致性。",
+      "前端进度查看页面已创建并可通过浏览器正常打开。"
+    ],
+    "notes": [
+      "在开始大规模迁移之前建立统一的治理准则与保护机制。",
+      "已于 2026-06-09 完成。"
+    ]
+  },
+  "phase.1.details": {
+    "outputs": [
+      "/frontend Next.js 16 + React 19 + TypeScript 应用基础",
+      "应用路由结构 (App Router)",
+      "共享 Layout 组件",
+      "独立 HTML/组件迁移计划"
+    ],
+    "criteria": [
+      "应用可在本地成功启动。",
+      "现有仪表盘视觉规范在 Next.js 中完整重现。",
+      "新开发页面必须使用共享 Layout 外壳。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "本地开发环境使用 Node.js v22.17.0，已满足 Next.js 16 最低要求。生产/CI 标准仍以 Node.js 24 LTS 为准。"
+    ]
+  },
+  "phase.2.details": {
+    "outputs": [
+      "useTheme() hook 状态钩子",
+      "themeConfig 统一主题类定义对象",
+      "支持主题：modern, dark, light",
+      "默认主题：modern"
+    ],
+    "criteria": [
+      "所有页面统一使用 themeConfig 内置样式类。",
+      "禁止在组件内直接写死与特定主题相关的 Tailwind 颜色类。",
+      "主题选择状态在浏览器会话中持久化保存。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "提供全系统统一的 HSL 玻璃拟态风格设计支持。"
+    ]
+  },
+  "phase.3.details": {
+    "outputs": [
+      "react-i18next 国际化配置",
+      "5 种语言的 locale 本地化资源文件：/src/i18n/locales/ (th, en, cn, mm, ja)"
+    ],
+    "criteria": [
+      "默认语言设置为泰语 (th)。",
+      "所有 UI 文本均采用 t('key') 动态渲染。",
+      "组件源码中不得包含硬编码的可见文本内容。",
+      "原单体系统语言编码 zh 已按项目要求平滑迁移至 cn。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "五个语言版本的 JSON 翻译包已完整建立，支持多语种无缝切换。"
+    ]
+  },
+  "phase.4.details": {
+    "outputs": [
+      "标准对话框组件 (AppDialog, ConfirmDialog, FormDialog)",
+      "PageHeader 页面头部标题组件",
+      "DataTable 数据表格组件",
+      "共享表单输入框、按钮和状态标签"
+    ],
+    "criteria": [
+      "新弹出的窗体或通知必须使用预设的通用 Dialog 组件。",
+      "弹窗的样式与色彩统一从 themeConfig 派生。",
+      "所有基础组件内的文本均映射自 i18n 资源键。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "建立了系统的表单交互及核心展示基础样式。"
+    ]
+  },
+  "phase.5.details": {
+    "outputs": [
+      "后端单体框架中的身份验证路由",
+      "基于 JWT 的登录 API 接口",
+      "前端认证状态存储仓 (Auth store)",
+      "自动处理凭证的 axios 拦截器"
+    ],
+    "criteria": [
+      "身份凭证 (Token) 保存至 localStorage 缓存中。",
+      "API 请求拦截器将自动附加 Authorization: Bearer <token> 头部。",
+      "受路由卫士保护的前端页面将拦截未登录用户并跳转至登录页。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "完成 JWT 双端认证挂载与前端路由鉴权逻辑。"
+    ]
+  },
+  "phase.6.details": {
+    "outputs": [
+      "以 Node.js 24 LTS + TypeScript + Express 5 + Prisma ORM 7.x 编写的后端模板",
+      "共享的全局异常处理程序及路由模块化分割设计",
+      "健康检查接口 (Health check)",
+      "Prisma 数据库迁移 (Migration) 管理规范"
+    ],
+    "criteria": [
+      "单体后端服务成功启动并在本地稳定运行。",
+      "Express 5 路由分组清晰，按业务模块划分合理。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "结合 Prisma 7 和 PostgreSQL 容器构建了高效统一的接口基础架构。"
+    ]
+  },
+  "phase.7.details": {
+    "outputs": [
+      "docker-compose.yml 配置文件",
+      "PostgreSQL 数据库容器实例",
+      "Redis 缓存服务容器实例"
+    ],
+    "criteria": [
+      "Docker Compose 能够一键启动数据库、缓存、后端及前端完整堆栈。",
+      "在本地开发中统一使用单 PostgreSQL 实例。",
+      "环境变量 (env) 编写了清晰的文档说明。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "已通过容器运行测试，并在 Next.js 侧配置反向代理以避免前端跨域问题。"
+    ]
+  },
+  "phase.8.details": {
+    "outputs": [
+      "统一 API 路由命名规范 (例如 /api/v1)",
+      "OpenAPI/Swagger 接口规范定义文档",
+      "前后端共享的 DTO (数据传输对象) 类型声明"
+    ],
+    "criteria": [
+      "前端应用直接调用后端的 API 模块规范路由。",
+      "通过 OpenAPI 对全部可用 API 进行清晰而格式化的描述。"
+    ],
+    "notes": [
+      "已于 2026-06-09 完成。",
+      "在 /api-docs 通过 YAML 配置并挂载了 Swagger UI，并将 DTO 存放在项目共享根目录中。"
+    ]
+  },
+  "phase.9.details": {
+    "outputs": [
+      "配置 Redis 和 BullMQ 用以管理后台异步执行队列 (例如发送邮件、生成重型报表)"
+    ],
+    "criteria": [
+      "异步任务处理执行时不可阻塞 Web 主服务线程的请求处理。"
+    ],
+    "notes": [
+      "已于 2026-06-10 完成。",
+      "安装并配置了 Redis/BullMQ，实现了后台异步队列与 Worker 机制。"
+    ]
+  },
+  "phase.10.details": {
+    "outputs": [
+      "核心实体数据库表及对应模型：Customer, Product, Cylinder, Ink",
+      "后端统一模块下的 CRUD 数据管理 API",
+      "模块内消息触发器及业务事件"
+    ],
+    "criteria": [
+      "CRUD 基础管理 API 完全可用。",
+      "前端输入数据验证的报错逻辑与接口返回规范表现一致。"
+    ],
+    "notes": [
+      "已于 2026-06-10 完成。",
+      "核心表结构已迁移完成，且在数据库中配置了完备的 Seed 测试数据以供前端直接展示。"
+    ]
+  },
+  "phase.11.details": {
+    "outputs": [
+      "针对核心生产流程的业务逻辑与状态机：销售订单、排产规划、投产执行、原料及成品仓储、质量控制",
+      "后端中多步骤、事务性的核心底层事务处理"
+    ],
+    "criteria": [
+      "生产工单与流转状态卡片的流转历史需要具备可审计性。",
+      "仓储库存与 FEFO 出库逻辑的扣减计算精确无误。",
+      "QC 检测记录需能够精确关联到具体的油墨批次及印辊版版滚。"
+    ],
+    "notes": [
+      "已于 2026-06-10 完成。",
+      "开发并测试了销售订单、排产计划、生产执行、库存仓储和质量控制 (QC) 模块。"
+    ]
+  },
+  "phase.12.details": {
+    "outputs": [
+      "系统全局审计日志规范 (Audit logs)",
+      "结构化日志系统 (Structured logs)",
+      "核心节点及路由的健康检测机制",
+      "运维监控看板 (Operational Dashboard) 业务要求"
+    ],
+    "criteria": [
+      "关键业务操作均会有可追溯的审计日志写入。",
+      "主要服务及数据库连接均暴露探针式的健康接口。",
+      "全部日志流输出需自动包含统一的 Correlation ID 用以追踪请求链路。"
+    ],
+    "notes": [
+      "已于 2026-06-10 完成。",
+      "实现了 Correlation ID 全链路追踪、结构化控制台日志输出、数据库操作审计日志写入以及系统健康度实时检测接口。"
+    ]
+  },
+  "phase.13.details": {
+    "outputs": [
+      "上线发布核对清单 (Release checklist)",
+      "E2E 端到端回归冒烟测试脚本",
+      "数据库自动备份与异地恢复机制",
+      "生产系统就绪度综合审查意见"
+    ],
+    "criteria": [
+      "系统核心主干链路通过端到端自动化测试回归。",
+      "发布部署指引与恢复文档撰写完整并经过灾备演练验证。",
+      "全部系统及业务潜在风险经过技术主管与产品经理的综合评估并签字准许上线。"
+    ],
+    "notes": [
+      "已于 2026-06-10 完成。",
+      "完成了上线发布核对清单、数据库备份恢复机制、生产就绪度安全审查方案，并通过了完备的自动化 E2E 冒烟测试。"
+    ]
+  },
+  "rule.sectionTitle": "不可偏离的规则",
+  "rule.layout": "所有新页面必须使用共享 Layout component",
+  "rule.dialog": "所有 Dialog 或 Popup 必须使用统一组件",
+  "rule.i18n": "所有 UI 文本必须使用 t('key') 并包含五种语言",
+  "rule.theme": "所有主题相关样式必须来自 themeConfig",
+  "rule.database": "每个服务必须维持数据库隔离或模块表隔离",
+  "rule.docker": "系统必须通过 Docker Compose 运行",
+  "doc.sectionTitle": "控制文档",
+  "doc.roadmap": "ROADMAP.md",
+  "doc.rules": "PROJECT_RULES.md",
+  "doc.design": "DESIGN_SYSTEM.md",
+  "architecture.sectionTitle": "架构基线",
+  "architecture.frontend": "前端",
+  "architecture.frontendValue": "Next.js 16、React 19、TypeScript 5.x 和 Tailwind CSS 4",
+  "architecture.auth": "认证",
+  "architecture.authValue": "Identity Service 颁发 JWT，前端通过 axios interceptor 附加 token",
+  "architecture.database": "数据库",
+  "architecture.databaseValue": "PostgreSQL 数据库，每个服务/模块具有逻辑 Schema/表 隔离",
+  "architecture.events": "事件 Broker",
+  "architecture.eventsValue": "可选内存事件或 Redis 后台任务队列",
+  "architecture.infra": "基础设施",
+  "architecture.infraValue": "Docker Compose、Redis、PostgreSQL 和服务容器",
+  "architecture.workflow": "工作流",
+  "architecture.workflowValue": "模块可在需要时被提取为微服务以实现水平扩展",
+  "table.sectionTitle": "早期阶段状态表",
+  "table.phase": "Phase",
+  "table.status": "状态",
+  "table.output": "输出",
+  "dialog.title": "阶段详情",
+  "dialog.phaseTitle": "阶段 {{id}} 详情: {{name}}",
+  "dialog.description": "Phase 1 先建立 Next.js 16 Docker Desktop 基础，包括 Layout、theme、i18n、axios 和共享组件，然后再迁移 standalone 页面",
+  "app.version": "v1.0.0",
+  "nav.dashboard": "仪表板",
+  "nav.overview": "总览",
+  "nav.cylinder": "印版",
+  "nav.cylinderList": "印版列表",
+  "nav.cylinderStatus": "实时状态",
+  "nav.cylinderLocation": "位置追踪",
+  "nav.cylinderHistory": "使用记录",
+  "nav.ink": "油墨配方",
+  "nav.inkFormula": "标准配方",
+  "nav.inkBatch": "油墨批次管理",
+  "nav.inkExpiry": "FEFO & 有效期",
+  "nav.inkShade": "色差调整",
+  "nav.production": "生产",
+  "nav.verification": "生产验证",
+  "nav.prodLog": "生产日志",
+  "nav.traceability": "追溯查询",
+  "nav.settings": "设置",
+  "nav.systemSettings": "系统设置",
+  "dash.title": "系统总览",
+  "dash.subtitle": "凹版管理仪表板",
+  "dash.totalCylinders": "印版总数",
+  "dash.available": "可用",
+  "dash.inProduction": "生产中",
+  "dash.repair": "维修中",
+  "dash.reserved": "已预留",
+  "dash.inspection": "待检查",
+  "dash.activeFormulas": "活跃配方",
+  "dash.totalBatches": "油墨批次总数",
+  "dash.nearExpiry": "即将过期",
+  "dash.expired": "已过期",
+  "dash.activeJobs": "进行中的工单",
+  "dash.verifiedToday": "今日验证",
+  "dash.passRate": "通过率",
+  "dash.cylinderStatus": "印版状态",
+  "dash.cylinderStatusSub": "全部印版实时状态概览",
+  "dash.inkAlerts": "油墨警报",
+  "dash.inkAlertsSub": "需要注意的批次",
+  "dash.recentJobs": "最近工单",
+  "dash.quickActions": "快捷操作",
+  "dash.cylinderByLocation": "按位置分布",
+  "dash.qcRate": "QC通过率",
+  "dash.recentActivity": "最近活动",
+  "dash.vsLastMonth": "较上月",
+  "dash.noAlerts": "无警报",
+  "dash.qcPassed": "QC通过",
+  "dash.qcHold": "QC暂停",
+  "dash.rework": "返工",
+  "status.available": "可用",
+  "status.inProduction": "生产中",
+  "status.reserved": "已预留",
+  "status.repair": "维修中",
+  "status.inspection": "待检查",
+  "status.hold": "暂停",
+  "status.active": "活跃",
+  "status.superseded": "已替代",
+  "status.nearExpiry": "即将过期",
+  "status.expiredLabel": "已过期",
+  "status.pass": "通过",
+  "status.fail": "未通过",
+  "status.pending": "待处理",
+  "status.running": "运行中",
+  "status.completed": "已完成",
+  "col.code": "编号",
+  "col.product": "产品",
+  "col.customer": "客户",
+  "col.status": "状态",
+  "col.location": "位置",
+  "col.meterRun": "累计米数",
+  "col.lastUsed": "最后使用",
+  "col.formula": "配方",
+  "col.revision": "版本",
+  "col.color": "颜色",
+  "col.viscosity": "粘度",
+  "col.expiry": "有效期",
+  "col.batch": "批次",
+  "col.job": "工单号",
+  "col.machine": "机器",
+  "col.operator": "操作员",
+  "col.date": "日期",
+  "col.action": "操作",
+  "col.weight": "重量",
+  "col.remaining": "剩余",
+  "btn.scan": "扫描QR",
+  "btn.add": "添加",
+  "btn.search": "搜索",
+  "btn.export": "导出",
+  "btn.filter": "筛选",
+  "btn.viewAll": "查看全部",
+  "btn.startVerify": "开始验证",
+  "btn.mixInk": "配墨",
+  "btn.refresh": "刷新",
+  "btn.save": "保存",
+  "btn.cancel": "取消",
+  "btn.back": "返回",
+  "btn.next": "下一步",
+  "btn.edit": "编辑",
+  "role.admin": "系统管理员",
+  "role.planner": "生产计划员",
+  "role.operator": "操作员",
+  "role.inkroom": "配墨员",
+  "role.qc": "QC检查员",
+  "unit.lots": "支",
+  "unit.formulas": "个配方",
+  "unit.batches": "批次",
+  "unit.jobs": "工单",
+  "unit.kg": "kg",
+  "unit.meter": "m",
+  "unit.days": "天",
+  "unit.pcs": "件",
+  "layout.customize": "自定义布局",
+  "layout.reset": "重置布局",
+  "layout.done": "完成",
+  "layout.editing": "布局编辑模式",
+  "layout.dragHint": "拖动以重新排列",
+  "cyl.title": "印版列表",
+  "cyl.subtitle": "管理系统中的所有印版",
+  "cyl.searchPlaceholder": "搜索印版、产品、客户...",
+  "cyl.all": "全部",
+  "cyl.changeStatus": "更改状态",
+  "cyl.size": "尺寸",
+  "cyl.totalMeters": "累计米数",
+  "cyl.scanTitle": "扫描QR码",
+  "cyl.scanning": "扫描中...",
+  "cyl.scanSuccess": "扫描成功！",
+  "cyl.viewDetails": "查看详情",
+  "ink.title": "油墨配方管理",
+  "ink.subtitle": "标准配方、批次、FEFO和有效期",
+  "ink.searchPlaceholder": "搜索配方、批次、产品...",
+  "ink.formulas": "配方",
+  "ink.addFormula": "添加配方",
+  "ink.mixTitle": "配墨",
+  "ink.selectFormula": "选择要配制的配方",
+  "ink.scanRaw": "扫描原料油墨批次 (FEFO)",
+  "ink.weightUsed": "使用重量",
+  "ink.mixSuccess": "配墨成功！",
+  "ink.qrReady": "QR码已就绪",
+  "ink.printQr": "打印QR并关闭",
+  "ink.formulaUsed": "使用配方",
+  "ink.fefoTitle": "FEFO推荐",
+  "ink.fefoSubtitle": "按有效期排序 — 优先使用最早过期的批次",
+  "ink.expired": "已过期",
+  "ink.urgent": "紧急",
+  "ink.nearExpiry": "即将过期",
+  "ink.normal": "正常",
+  "ink.mixDate": "配制日期",
+  "prod.title": "生产与追溯",
+  "prod.subtitle": "生产验证、生产日志、7维追溯",
+  "prod.lineVerify": "生产验证",
+  "prod.prodLog": "生产日志",
+  "prod.traceability": "追溯查询",
+  "prod.preVerify": "生产前验证",
+  "prod.preVerifyDesc": "扫描工单→印版→油墨批次验证正确性",
+  "prod.scanJob": "扫描工单号",
+  "prod.scanJobSub": "扫描生产单上的QR/条码",
+  "prod.scanCylinders": "扫描所有印版",
+  "prod.scanCylindersSub": "按颜色顺序扫描每个印版",
+  "prod.scanInk": "扫描所有油墨批次",
+  "prod.scanInkSub": "扫描每个墨桶上的QR码",
+  "prod.result": "结果",
+  "prod.passed": "验证通过",
+  "prod.authorized": "授权开始生产",
+  "prod.failed": "未通过 — 发现问题",
+  "prod.fixIssues": "请在开始生产前修正问题",
+  "prod.newVerify": "重新验证",
+  "prod.requestOverride": "申请覆盖",
+  "prod.scanning": "扫描中...",
+  "prod.scan": "扫描",
+  "prod.supervisorApproval": "即将过期 — 需主管批准",
+  "prod.traceTitle": "7维追溯",
+  "prod.traceSubtitle": "从任意维度搜索 — 完整交叉引用",
+  "prod.productInfo": "产品信息",
+  "prod.jobHistory": "工单记录",
+  "prod.cylindersUsed": "使用过的印版",
+  "prod.inkBatchesUsed": "使用过的墨批",
+  "misc.healthy": "healthy",
+  "misc.expired": "已过期",
+  "misc.expires": "到期",
+  "misc.underDev": "此页面正在开发中",
+  "nav.masterSetup": "主数据设置",
+  "nav.ruleEngine": "规则引擎",
+  "nav.approvalMatrix": "审批矩阵",
+  "setup.title": "主数据设置中心",
+  "setup.ruleEngine": "规则引擎 — 自动化规则",
+  "setup.approvalMatrix": "审批矩阵",
+  "setup.statuses": "状态",
+  "setup.cylinderTypes": "印版类型",
+  "setup.defectTypes": "缺陷类型",
+  "setup.machines": "机器",
+  "setup.racks": "存储架",
+  "setup.suppliers": "供应商",
+  "setup.inkTypes": "油墨类型",
+  "setup.solvents": "溶剂",
+  "setup.manageItems": "添加、编辑、启用/禁用项目",
+  "setup.capacity": "容量",
+  "setup.description": "描述",
+  "setup.addRule": "添加规则",
+  "setup.ruleName": "规则名称",
+  "setup.condition": "条件",
+  "setup.actions": "操作",
+  "setup.totalRules": "规则总数",
+  "setup.activeRules": "活跃规则",
+  "setup.notifications": "通知",
+  "setup.automations": "自动化",
+  "setup.event": "事件",
+  "setup.approver": "审批人",
+  "mobile.home": "首页",
+  "mobile.scan": "扫描",
+  "mobile.jobs": "工单",
+  "mobile.alerts": "警报",
+  "mobile.more": "更多",
+  "login.title": "登录",
+  "login.username": "用户名",
+  "login.password": "密码",
+  "login.submit": "登录",
+  "login.error.invalid": "用户名或密码错误",
+  "login.error.generic": "服务器连接失败",
+  "btn.logout": "退出登录"
+}

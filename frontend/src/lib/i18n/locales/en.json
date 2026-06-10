@@ -1,0 +1,560 @@
+{
+  "app.title": "Gravure Management",
+  "app.subtitle": "Cylinder & Ink Formula System",
+  "app.facility": "iSmart Gravure Operations",
+  "app.mark": "GM",
+  "nav.main": "Main navigation",
+  "nav.progress": "Progress",
+  "nav.cylinders": "Cylinders",
+  "nav.inks": "Inks",
+  "nav.rules": "Project Rules",
+  "nav.architecture": "Architecture",
+  "nav.documents": "Documents",
+  "theme.label": "Theme",
+  "theme.modern": "Modern",
+  "theme.dark": "Dark",
+  "theme.light": "Light",
+  "language.label": "Language",
+  "language.th": "TH",
+  "language.en": "EN",
+  "language.cn": "CN",
+  "language.mm": "MM",
+  "language.ja": "JA",
+  "status.healthy": "System healthy",
+  "status.done": "Done",
+  "status.progress": "In Progress",
+  "status.blocked": "Blocked",
+  "status.todo": "Not Started",
+  "common.close": "Close",
+  "common.confirm": "Confirm",
+  "common.cancel": "Cancel",
+  "common.viewDetails": "View details",
+  "common.empty": "No data",
+  "page.title": "Roadmap Progress",
+  "page.subtitle": "The new frontend foundation starts with Next.js 16, React 19, TypeScript, Tailwind CSS 4, and Docker Desktop as the primary runtime",
+  "summary.label": "Progress summary",
+  "summary.totalPhases": "Total phases",
+  "summary.totalPhasesNote": "Phase {{start}} through Phase {{end}}",
+  "summary.done": "Completed",
+  "summary.doneNote": "Latest: Phase {{phase}} ({{name}})",
+  "summary.progress": "Active",
+  "summary.progressNote": "Current: Phase {{phase}} ({{name}})",
+  "summary.docker": "Runtime",
+  "summary.dockerNote": "Runs through Docker Desktop",
+  "phase.sectionTitle": "Roadmap phases",
+  "phase.updateRule": "ROADMAP must be updated every time",
+  "phase.0.name": "Governance And Progress Tracking",
+  "phase.0.output": "Roadmap, project rules, design system rules, and progress page",
+  "phase.1.name": "Frontend Migration Foundation",
+  "phase.1.output": "Next.js 16 scaffold, shared Layout, route structure, and Docker runtime",
+  "phase.2.name": "Theme System",
+  "phase.2.output": "useTheme(), themeConfig, and modern/dark/light themes",
+  "phase.3.name": "i18n System",
+  "phase.3.output": "react-i18next and five locale JSON files",
+  "phase.4.name": "Shared UI Components",
+  "phase.4.output": "Central Dialog, PageHeader, DataTable, forms, and controls",
+  "phase.5.name": "Auth Foundation",
+  "phase.5.output": "Consolidated auth handlers, JWT, localStorage token, and axios interceptor",
+  "phase.6.name": "Backend Monolith Foundation",
+  "phase.6.output": "Express 5 + TypeScript + Prisma consolidated starter",
+  "phase.7.name": "Docker Infrastructure",
+  "phase.7.output": "Simplified docker-compose.yml, Redis, and single PostgreSQL database",
+  "phase.8.name": "API Contracts & DTOs",
+  "phase.8.output": "OpenAPI conventions, route paths, and shared DTO types",
+  "phase.9.name": "Async Queue Foundation (Optional)",
+  "phase.9.output": "BullMQ/Redis background task queues",
+  "phase.10.name": "Core Domain Modules",
+  "phase.10.output": "Customer, Product, Cylinder, and Ink modules",
+  "phase.11.name": "Production Workflow Modules",
+  "phase.11.output": "Sales order, planning, execution, inventory, and quality modules",
+  "phase.12.name": "Observability And Audit",
+  "phase.12.output": "Audit trail, health checks, logs, and correlation IDs",
+  "phase.13.name": "Stabilization And Release",
+  "phase.13.output": "E2E tests, release checklist, and production readiness",
+  "phase.14.name": "Frontend API Integration & Polish",
+  "phase.14.output": "Connect all pages to real API, fix nav bugs, audit shared components",
+  "phase.15.name": "Real-Time Monitoring & Scanner",
+  "phase.15.output": "WebSocket live updates, camera QR/barcode scanning, print QR labels",
+  "phase.16.name": "Enterprise Identity Foundation",
+  "phase.16.output": "LDAP/AD integration, SSO, password policy, session management",
+  "phase.17.name": "Production Hardening",
+  "phase.17.output": "Rate limiting, API throttling, performance optimization, error monitoring",
+  "phase.details.outputs": "Outputs",
+  "phase.details.criteria": "Acceptance Criteria",
+  "phase.details.notes": "Notes",
+  "phase.0.details": {
+    "outputs": [
+      "docs/ROADMAP.md",
+      "docs/PROJECT_RULES.md",
+      "docs/DESIGN_SYSTEM.md",
+      "frontend/src/app/progress/page.tsx"
+    ],
+    "criteria": [
+      "Project roadmap exists and includes update rules.",
+      "Project rules file exists and defines non-negotiable implementation rules.",
+      "Design system file exists and defines visual/component consistency rules.",
+      "Frontend progress page exists and can be opened directly in a browser."
+    ],
+    "notes": [
+      "This phase creates the guardrails before large migration work begins.",
+      "Completed on 2026-06-09."
+    ]
+  },
+  "phase.1.details": {
+    "outputs": [
+      "/frontend Next.js 16 + React 19 + TypeScript app",
+      "App route structure",
+      "Shared Layout component",
+      "Migration plan from standalone HTML/components"
+    ],
+    "criteria": [
+      "App starts locally.",
+      "Existing dashboard visual direction is represented in Next.js.",
+      "No new page bypasses the shared Layout."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Local machine currently reports Node.js v22.17.0, which passes Next.js 16 minimum requirements. CI/production baseline remains Node.js 24 LTS."
+    ]
+  },
+  "phase.2.details": {
+    "outputs": [
+      "useTheme() hook",
+      "themeConfig object",
+      "Supported themes: modern, dark, light",
+      "Default theme: modern"
+    ],
+    "criteria": [
+      "All pages use classes from themeConfig.",
+      "No page hardcodes theme-dependent Tailwind classes.",
+      "Theme persists between sessions."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Provides unified HSL glassmorphism design system support."
+    ]
+  },
+  "phase.3.details": {
+    "outputs": [
+      "react-i18next setup",
+      "Locale files: /src/i18n/locales/ (th, en, cn, mm, ja)"
+    ],
+    "criteria": [
+      "Default language is Thai (th).",
+      "UI text uses t('key').",
+      "No hardcoded visible UI text in React components.",
+      "Existing standalone language code zh is migrated to required code cn."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Five fully translated JSON files are set up and dynamically toggled."
+    ]
+  },
+  "phase.4.details": {
+    "outputs": [
+      "AppDialog, ConfirmDialog, FormDialog components",
+      "PageHeader component",
+      "DataTable component",
+      "Shared inputs, buttons, and status badges"
+    ],
+    "criteria": [
+      "New popups/dialogs use only shared dialog components.",
+      "Dialog styling comes from themeConfig.",
+      "Components use i18n keys for visible text."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Created central UI inputs and common layouts."
+    ]
+  },
+  "phase.5.details": {
+    "outputs": [
+      "Auth routes in backend monolith",
+      "JWT login endpoint",
+      "Frontend auth store",
+      "Axios interceptor"
+    ],
+    "criteria": [
+      "Token is stored in localStorage.",
+      "API requests attach Authorization: Bearer <token> automatically.",
+      "Protected frontend routes redirect unauthenticated users."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Wired JWT authentication context and client-side page redirect guards."
+    ]
+  },
+  "phase.6.details": {
+    "outputs": [
+      "Code starter using Node.js 24 LTS + TypeScript + Express 5 + Prisma ORM 7.x",
+      "Shared error handling and route-splitting structure",
+      "Health endpoint",
+      "Prisma migration conventions"
+    ],
+    "criteria": [
+      "Single modular monolith backend server runs successfully.",
+      "Express 5 routing groups modules logically."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Built-out clean structure with Prisma 7 config adapter-pg pool."
+    ]
+  },
+  "phase.7.details": {
+    "outputs": [
+      "docker-compose.yml",
+      "PostgreSQL instance",
+      "Redis"
+    ],
+    "criteria": [
+      "Docker compose stack starts database, cache, backend, and frontend.",
+      "Single database server is used.",
+      "Environment variables are documented."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Verified running completely in containers, with Next.js rewrites resolving client-side connection issues."
+    ]
+  },
+  "phase.8.details": {
+    "outputs": [
+      "Route conventions (e.g., /api/v1)",
+      "OpenAPI/Swagger specifications",
+      "Shared DTO types"
+    ],
+    "criteria": [
+      "Frontend communicates directly with consolidated backend routes.",
+      "API is documented via OpenAPI."
+    ],
+    "notes": [
+      "Completed on 2026-06-09.",
+      "Defined Swagger UI at /api-docs using a clean YAML schema.",
+      "Integrated shared DTO types in a parent-relative workspace folder mounted into both containers."
+    ]
+  },
+  "phase.9.details": {
+    "outputs": [
+      "Redis/BullMQ setup if asynchronous jobs are needed (e.g., email notifications, heavy reporting)"
+    ],
+    "criteria": [
+      "Background jobs process without locking web request loop."
+    ],
+    "notes": [
+      "Completed on 2026-06-10.",
+      "Installed and configured Redis/BullMQ to manage background tasks queue and Worker."
+    ]
+  },
+  "phase.10.details": {
+    "outputs": [
+      "Core database tables and models for: Customer, Product, Cylinder, Ink",
+      "CRUD APIs in backend monolith",
+      "Internal module events/triggers"
+    ],
+    "criteria": [
+      "CRUD APIs are fully operational.",
+      "Input validation behaves consistently."
+    ],
+    "notes": [
+      "Completed on 2026-06-10.",
+      "Core modules database migration has been executed, seed scripts are fully integrated, and CRUD services are exposed on backend."
+    ]
+  },
+  "phase.11.details": {
+    "outputs": [
+      "Logic and state machines for: Sales order, planning, execution, inventory, QC",
+      "Integrated transactional logic in backend"
+    ],
+    "criteria": [
+      "Workflow transitions are auditable.",
+      "Inventory checks are reliable.",
+      "QC inspections associate properly with cylinders and ink batches."
+    ],
+    "notes": [
+      "Completed on 2026-06-10.",
+      "Successfully developed Sales Order, Planning, Production execution, Inventory warehouse, and Quality Control modules."
+    ]
+  },
+  "phase.12.details": {
+    "outputs": [
+      "Audit log conventions",
+      "Structured logs",
+      "Health checks",
+      "Operational dashboard requirements"
+    ],
+    "criteria": [
+      "Critical actions are auditable.",
+      "Services expose health endpoints.",
+      "Logs include correlation IDs."
+    ],
+    "notes": [
+      "Completed on 2026-06-10.",
+      "Configured correlation ID tracking, structured console logging, system-wide health checks, and database audit trails."
+    ]
+  },
+  "phase.13.details": {
+    "outputs": [
+      "Release checklist",
+      "E2E smoke tests",
+      "Backup/restore notes",
+      "Production readiness review"
+    ],
+    "criteria": [
+      "Main user flows pass E2E tests.",
+      "Deployment steps are documented.",
+      "Risks are reviewed and signed off."
+    ],
+    "notes": [
+      "Completed on 2026-06-10.",
+      "Created deployment checklist, backup/restore instructions, security/scalability guides, and verified all integration flows via E2E smoke tests."
+    ]
+  },
+  "rule.sectionTitle": "Rules that must not drift",
+  "rule.layout": "Every new page must use the shared Layout component",
+  "rule.dialog": "Every Dialog or Popup must use the central component",
+  "rule.i18n": "Every UI string must use t('key') and exist in all five languages",
+  "rule.theme": "Every theme-dependent style must come from themeConfig",
+  "rule.database": "Each service/module must maintain database isolation (shared server with schema/table isolation or separate DB)",
+  "rule.docker": "The system must run through Docker Compose",
+  "doc.sectionTitle": "Control documents",
+  "doc.roadmap": "ROADMAP.md",
+  "doc.rules": "PROJECT_RULES.md",
+  "doc.design": "DESIGN_SYSTEM.md",
+  "architecture.sectionTitle": "Architecture Baseline",
+  "architecture.frontend": "Frontend",
+  "architecture.frontendValue": "Next.js 16, React 19, TypeScript 5.x, and Tailwind CSS 4",
+  "architecture.auth": "Authentication",
+  "architecture.authValue": "Identity Service issues JWTs and the frontend attaches tokens through the axios interceptor",
+  "architecture.database": "Database",
+  "architecture.databaseValue": "PostgreSQL database with logical schema/table isolation per service/module",
+  "architecture.events": "Event Broker",
+  "architecture.eventsValue": "Optional in-memory events or Redis background queues",
+  "architecture.infra": "Infrastructure",
+  "architecture.infraValue": "Docker Compose, Redis, PostgreSQL, and service containers",
+  "architecture.workflow": "Workflow",
+  "architecture.workflowValue": "Modules can be extracted into Microservices as load demands",
+  "table.sectionTitle": "Early phase status table",
+  "table.phase": "Phase",
+  "table.status": "Status",
+  "table.output": "Output",
+  "dialog.title": "Phase Details",
+  "dialog.phaseTitle": "Phase {{id}} Details: {{name}}",
+  "dialog.description": "Phase 1 builds the Next.js 16 Docker Desktop foundation with Layout, theme, i18n, axios, and shared components before migrating the standalone screens",
+  "app.version": "v1.0.0",
+  "nav.dashboard": "Dashboard",
+  "nav.overview": "Overview",
+  "nav.cylinder": "Cylinder",
+  "nav.cylinderList": "Cylinder List",
+  "nav.cylinderStatus": "Real-time Status",
+  "nav.cylinderLocation": "Location Tracking",
+  "nav.cylinderHistory": "Usage History",
+  "nav.ink": "Ink Formula",
+  "nav.inkFormula": "Standard Formulas",
+  "nav.inkBatch": "Ink Batch Mgmt",
+  "nav.inkExpiry": "FEFO & Expiry",
+  "nav.inkShade": "Shade Adjustment",
+  "nav.production": "Production",
+  "nav.verification": "Line Verification",
+  "nav.prodLog": "Production Log",
+  "nav.traceability": "Traceability",
+  "nav.settings": "Settings",
+  "nav.systemSettings": "System Settings",
+  "dash.title": "System Overview",
+  "dash.subtitle": "Gravure Management Dashboard",
+  "dash.totalCylinders": "Total Cylinders",
+  "dash.available": "Available",
+  "dash.inProduction": "In Production",
+  "dash.repair": "Under Repair",
+  "dash.reserved": "Reserved",
+  "dash.inspection": "Pending Inspection",
+  "dash.activeFormulas": "Active Formulas",
+  "dash.totalBatches": "Total Ink Batches",
+  "dash.nearExpiry": "Near Expiry",
+  "dash.expired": "Expired",
+  "dash.activeJobs": "Active Jobs",
+  "dash.verifiedToday": "Verified Today",
+  "dash.passRate": "Pass Rate",
+  "dash.cylinderStatus": "Cylinder Status",
+  "dash.cylinderStatusSub": "Real-time cylinder status overview",
+  "dash.inkAlerts": "Ink Alerts",
+  "dash.inkAlertsSub": "Batches requiring attention",
+  "dash.recentJobs": "Recent Jobs",
+  "dash.quickActions": "Quick Actions",
+  "dash.cylinderByLocation": "Cylinders by Location",
+  "dash.qcRate": "QC Pass Rate",
+  "dash.recentActivity": "Recent Activity",
+  "dash.vsLastMonth": "vs last month",
+  "dash.noAlerts": "No alerts",
+  "dash.qcPassed": "QC Passed",
+  "dash.qcHold": "QC Hold",
+  "dash.rework": "Rework",
+  "status.available": "Available",
+  "status.inProduction": "In Production",
+  "status.reserved": "Reserved",
+  "status.repair": "Under Repair",
+  "status.inspection": "Pending Inspection",
+  "status.hold": "Hold",
+  "status.active": "Active",
+  "status.superseded": "Superseded",
+  "status.nearExpiry": "Near Expiry",
+  "status.expiredLabel": "Expired",
+  "status.pass": "Pass",
+  "status.fail": "Fail",
+  "status.pending": "Pending",
+  "status.running": "Running",
+  "status.completed": "Completed",
+  "col.code": "Code",
+  "col.product": "Product",
+  "col.customer": "Customer",
+  "col.status": "Status",
+  "col.location": "Location",
+  "col.meterRun": "Meter Run",
+  "col.lastUsed": "Last Used",
+  "col.formula": "Formula",
+  "col.revision": "Revision",
+  "col.color": "Color",
+  "col.viscosity": "Viscosity",
+  "col.expiry": "Expiry Date",
+  "col.batch": "Batch",
+  "col.job": "Job Number",
+  "col.machine": "Machine",
+  "col.operator": "Operator",
+  "col.date": "Date",
+  "col.action": "Actions",
+  "col.weight": "Weight",
+  "col.remaining": "Remaining",
+  "btn.scan": "Scan QR",
+  "btn.add": "Add",
+  "btn.search": "Search",
+  "btn.export": "Export",
+  "btn.filter": "Filter",
+  "btn.viewAll": "View All",
+  "btn.startVerify": "Start Verification",
+  "btn.mixInk": "Mix Ink",
+  "btn.refresh": "Refresh",
+  "btn.save": "Save",
+  "btn.cancel": "Cancel",
+  "btn.back": "Back",
+  "btn.next": "Next",
+  "btn.edit": "Edit",
+  "role.admin": "System Administrator",
+  "role.planner": "Production Planner",
+  "role.operator": "Operator",
+  "role.inkroom": "Ink Room Staff",
+  "role.qc": "QC Inspector",
+  "unit.lots": "pcs",
+  "unit.formulas": "formulas",
+  "unit.batches": "batches",
+  "unit.jobs": "jobs",
+  "unit.kg": "kg",
+  "unit.meter": "m",
+  "unit.days": "days",
+  "unit.pcs": "pcs",
+  "layout.customize": "Customize Layout",
+  "layout.reset": "Reset Layout",
+  "layout.done": "Done",
+  "layout.editing": "Layout Edit Mode",
+  "layout.dragHint": "Drag to reorder",
+  "cyl.title": "Cylinder List",
+  "cyl.subtitle": "Manage all cylinders in the system",
+  "cyl.searchPlaceholder": "Search cylinder, product, customer...",
+  "cyl.all": "All",
+  "cyl.changeStatus": "Change Status",
+  "cyl.size": "Size",
+  "cyl.totalMeters": "Total Meters",
+  "cyl.scanTitle": "Scan QR Code",
+  "cyl.scanning": "Scanning...",
+  "cyl.scanSuccess": "Scan successful!",
+  "cyl.viewDetails": "View Details",
+  "ink.title": "Ink Formula Management",
+  "ink.subtitle": "Standard formulas, batches, FEFO & expiry",
+  "ink.searchPlaceholder": "Search formula, batch, product...",
+  "ink.formulas": "Formulas",
+  "ink.addFormula": "Add Formula",
+  "ink.mixTitle": "Mix Ink",
+  "ink.selectFormula": "Select formula to mix",
+  "ink.scanRaw": "Scan Raw Ink Batch (FEFO)",
+  "ink.weightUsed": "Weight Used",
+  "ink.mixSuccess": "Ink Mixed Successfully!",
+  "ink.qrReady": "QR Code ready to print",
+  "ink.printQr": "Print QR & Close",
+  "ink.formulaUsed": "Formula",
+  "ink.fefoTitle": "FEFO Recommendation",
+  "ink.fefoSubtitle": "Sorted by expiry — use earliest expiring batch first",
+  "ink.expired": "Expired",
+  "ink.urgent": "Urgent",
+  "ink.nearExpiry": "Near Expiry",
+  "ink.normal": "Normal",
+  "ink.mixDate": "Mix Date",
+  "prod.title": "Production & Traceability",
+  "prod.subtitle": "Line verification, production log, 7-dimension traceability",
+  "prod.lineVerify": "Line Verification",
+  "prod.prodLog": "Production Log",
+  "prod.traceability": "Traceability",
+  "prod.preVerify": "Pre-Production Verification",
+  "prod.preVerifyDesc": "Scan Job → Cylinder → Ink Batch to verify correctness",
+  "prod.scanJob": "Scan Job Number",
+  "prod.scanJobSub": "Scan QR/Barcode on production order",
+  "prod.scanCylinders": "Scan All Cylinders",
+  "prod.scanCylindersSub": "Scan every cylinder in color sequence",
+  "prod.scanInk": "Scan All Ink Batches",
+  "prod.scanInkSub": "Scan QR code on every ink container",
+  "prod.result": "Result",
+  "prod.passed": "Verification Passed",
+  "prod.authorized": "Production authorized",
+  "prod.failed": "Failed — Issues Detected",
+  "prod.fixIssues": "Fix issues before starting production",
+  "prod.newVerify": "New Verification",
+  "prod.requestOverride": "Request Override",
+  "prod.scanning": "Scanning...",
+  "prod.scan": "Scan",
+  "prod.supervisorApproval": "Near expiry — Supervisor approval required",
+  "prod.traceTitle": "7-Dimension Traceability",
+  "prod.traceSubtitle": "Search from any dimension — full cross-reference",
+  "prod.productInfo": "Product Info",
+  "prod.jobHistory": "Job History",
+  "prod.cylindersUsed": "Cylinders Used",
+  "prod.inkBatchesUsed": "Ink Batches Used",
+  "misc.healthy": "healthy",
+  "misc.expired": "Expired",
+  "misc.expires": "Expires",
+  "misc.underDev": "This page is under development",
+  "nav.masterSetup": "Master Setup",
+  "nav.ruleEngine": "Rule Engine",
+  "nav.approvalMatrix": "Approval Matrix",
+  "setup.title": "Master Setup Center",
+  "setup.ruleEngine": "Rule Engine — Automation Rules",
+  "setup.approvalMatrix": "Approval Matrix",
+  "setup.statuses": "Statuses",
+  "setup.cylinderTypes": "Cylinder Types",
+  "setup.defectTypes": "Defect Types",
+  "setup.machines": "Machines",
+  "setup.racks": "Storage Racks",
+  "setup.suppliers": "Suppliers",
+  "setup.inkTypes": "Ink Types",
+  "setup.solvents": "Solvents",
+  "setup.manageItems": "Add, edit, enable/disable items",
+  "setup.capacity": "Capacity",
+  "setup.description": "Description",
+  "setup.addRule": "Add Rule",
+  "setup.ruleName": "Rule Name",
+  "setup.condition": "Condition",
+  "setup.actions": "Actions",
+  "setup.totalRules": "Total Rules",
+  "setup.activeRules": "Active Rules",
+  "setup.notifications": "Notifications",
+  "setup.automations": "Automations",
+  "setup.event": "Event",
+  "setup.approver": "Approver",
+  "mobile.home": "Home",
+  "mobile.scan": "Scan",
+  "mobile.jobs": "Jobs",
+  "mobile.alerts": "Alerts",
+  "mobile.more": "More",
+  "login.title": "Sign In",
+  "login.username": "Username",
+  "login.password": "Password",
+  "login.submit": "Sign In",
+  "login.error.invalid": "Invalid username or password",
+  "login.error.generic": "Server connection failed",
+  "btn.logout": "Log Out"
+}

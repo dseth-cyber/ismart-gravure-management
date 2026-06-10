@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+dist
+npm-debug.log
+Dockerfile
+.git
+*.png
+*.jpg
+*.jpeg

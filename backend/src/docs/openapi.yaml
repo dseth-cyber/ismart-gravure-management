@@ -1,0 +1,1172 @@
+openapi: 3.0.0
+info:
+  title: iSmart Gravure Management API
+  description: Consolidated API contracts and endpoints for the Gravure Management System.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Next.js API Proxy Gateway (Production/Dev Default)
+  - url: http://localhost:5000/api/v1
+    description: Direct Backend Monolith Service
+paths:
+  /auth/login:
+    post:
+      summary: User Login Authentication
+      description: Validates user credentials and returns a JWT access token along with user details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponseEnvelope'
+        '400':
+          description: Invalid username or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseEnvelope'
+
+  /auth/me:
+    get:
+      summary: Get Logged In User Profile
+      description: Returns the profile of the currently authenticated user based on the provided JWT token.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponseEnvelope'
+        '401':
+          description: Unauthorized / Invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseEnvelope'
+
+  /customers:
+    get:
+      summary: Get List of Customers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Create New Customer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+              properties:
+                code:
+                  type: string
+                  example: CUST-EXCEL
+                name:
+                  type: string
+                  example: บริษัท เอ็กซ์เซล ฟู้ดส์
+                contactInfo:
+                  type: string
+      responses:
+        '201':
+          description: Created successfully
+
+  /customers/{id}:
+    get:
+      summary: Get Customer Details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful
+    put:
+      summary: Update Customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                contactInfo:
+                  type: string
+      responses:
+        '200':
+          description: Updated successfully
+    delete:
+      summary: Delete Customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /products:
+    get:
+      summary: Get List of Products
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Create New Product
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+                - customerCode
+              properties:
+                code:
+                  type: string
+                  example: AGH-001
+                name:
+                  type: string
+                  example: AGH-001 Package
+                customerCode:
+                  type: string
+                  example: CUST-EXCEL
+      responses:
+        '201':
+          description: Created successfully
+
+  /products/{id}:
+    get:
+      summary: Get Product Details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful
+    put:
+      summary: Update Product
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                customerCode:
+                  type: string
+      responses:
+        '200':
+          description: Updated successfully
+    delete:
+      summary: Delete Product
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /cylinders:
+    get:
+      summary: Get List of Cylinders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Create New Cylinder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - productCode
+                - color
+                - colorName
+                - location
+                - size
+              properties:
+                id:
+                  type: string
+                  example: CYL-BK-001
+                productCode:
+                  type: string
+                  example: AGH-001
+                color:
+                  type: string
+                  example: BK
+                colorName:
+                  type: string
+                  example: Black
+                location:
+                  type: string
+                  example: Rack A-03
+                type:
+                  type: string
+                  example: Dedicated
+                size:
+                  type: string
+                  example: 800×250
+      responses:
+        '201':
+          description: Created successfully
+
+  /cylinders/{id}:
+    get:
+      summary: Get Cylinder Details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful
+    put:
+      summary: Update Cylinder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [available, inProduction, reserved, repair, inspection, hold]
+                location:
+                  type: string
+                meter:
+                  type: number
+                lastUsed:
+                  type: string
+                  format: date-time
+                type:
+                  type: string
+                size:
+                  type: string
+      responses:
+        '200':
+          description: Updated successfully
+    delete:
+      summary: Delete Cylinder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /inks/formulas:
+    get:
+      summary: Get List of Ink Formulas
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Create New Ink Formula
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - productCode
+                - color
+                - pantone
+                - viscosity
+                - labTarget
+                - solvent
+              properties:
+                code:
+                  type: string
+                  example: INK-BK-R03
+                productCode:
+                  type: string
+                  example: AGH-001
+                color:
+                  type: string
+                  example: Black
+                pantone:
+                  type: string
+                  example: Process Black
+                viscosity:
+                  type: string
+                  example: 18±2 sec
+                labTarget:
+                  type: string
+                  example: 'L:25 a:0 b:1'
+                solvent:
+                  type: string
+                  example: Ethyl Acetate
+      responses:
+        '201':
+          description: Created successfully
+
+  /inks/formulas/{code}:
+    get:
+      summary: Get Ink Formula Details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful
+    put:
+      summary: Update Ink Formula
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pantone:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, superseded]
+                viscosity:
+                  type: string
+                labTarget:
+                  type: string
+                solvent:
+                  type: string
+      responses:
+        '200':
+          description: Updated successfully
+    delete:
+      summary: Delete Ink Formula
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /inks/batches:
+    get:
+      summary: Get List of Ink Batches
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: fefo
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 'true'
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Create New Ink Batch
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - color
+                - expiryDate
+                - weight
+                - operator
+              properties:
+                id:
+                  type: string
+                  example: MIX-2024-092
+                formulaCode:
+                  type: string
+                  example: INK-BK-R03
+                productCode:
+                  type: string
+                  example: AGH-001
+                color:
+                  type: string
+                  example: Black
+                mixDate:
+                  type: string
+                  format: date-time
+                expiryDate:
+                  type: string
+                  format: date-time
+                weight:
+                  type: number
+                  example: 15
+                operator:
+                  type: string
+                  example: สมหมาย
+      responses:
+        '201':
+          description: Created successfully
+
+  /inks/batches/{id}:
+    get:
+      summary: Get Ink Batch Details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful
+    put:
+      summary: Update Ink Batch
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                remaining:
+                  type: number
+                status:
+                  type: string
+                  enum: [active, nearExpiry, expired]
+      responses:
+        '200':
+          description: Updated successfully
+    delete:
+      summary: Delete Ink Batch
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /orders:
+    get:
+      summary: Get List of Sales Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful retrieval of sales orders
+    post:
+      summary: Create New Sales Order
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderNumber
+                - customerCode
+                - productCode
+                - quantity
+                - unit
+                - dueDate
+              properties:
+                orderNumber:
+                  type: string
+                  example: SO2024-001
+                customerCode:
+                  type: string
+                  example: CUST-EXCEL
+                productCode:
+                  type: string
+                  example: AGH-001
+                quantity:
+                  type: number
+                  example: 25000
+                unit:
+                  type: string
+                  example: m
+                dueDate:
+                  type: string
+                  format: date-time
+                  example: "2024-06-25T00:00:00.000Z"
+      responses:
+        '201':
+          description: Created successfully
+
+  /orders/{id}:
+    get:
+      summary: Get Sales Order by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    put:
+      summary: Update Sales Order Status
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  example: active
+      responses:
+        '200':
+          description: Updated successfully
+    delete:
+      summary: Delete Sales Order
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /jobs:
+    get:
+      summary: Get List of Production Jobs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Create New Production Job
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jobNumber
+                - orderNumber
+                - productCode
+                - machineName
+                - plannedDate
+              properties:
+                jobNumber:
+                  type: string
+                  example: J2024-045
+                orderNumber:
+                  type: string
+                  example: SO2024-001
+                productCode:
+                  type: string
+                  example: AGH-001
+                machineName:
+                  type: string
+                  example: M-03
+                plannedDate:
+                  type: string
+                  format: date-time
+                  example: "2024-06-20T00:00:00.000Z"
+      responses:
+        '201':
+          description: Created successfully
+
+  /jobs/logs:
+    get:
+      summary: Get List of All Production Logs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+
+  /jobs/{jobNumber}:
+    get:
+      summary: Get Production Job details by Job Number
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+
+  /jobs/{jobNumber}/status:
+    put:
+      summary: Update Production Job status
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  example: active
+      responses:
+        '200':
+          description: Updated successfully
+
+  /jobs/{jobNumber}/verify:
+    post:
+      summary: Scanner verification check for job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - verifiedBy
+                - scannedCylinderIds
+                - scannedInkBatchIds
+              properties:
+                verifiedBy:
+                  type: string
+                  example: planner1
+                scannedCylinderIds:
+                  type: array
+                  items:
+                    type: string
+                  example: ["CYL-BK-001", "CYL-CY-001"]
+                scannedInkBatchIds:
+                  type: array
+                  items:
+                    type: string
+                  example: ["MIX-2024-089"]
+      responses:
+        '200':
+          description: Verification processed successfully
+
+  /jobs/{jobNumber}/override:
+    post:
+      summary: Supervisor override for near-expiry batch warning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - overrideBy
+              properties:
+                overrideBy:
+                  type: string
+                  example: admin
+      responses:
+        '200':
+          description: Override successfully recorded
+
+  /jobs/{jobNumber}/verification:
+    get:
+      summary: Get verification details for job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+
+  /jobs/{jobNumber}/logs:
+    get:
+      summary: Get production logs for a specific job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    post:
+      summary: Submit production log entry
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - machineName
+                - operator
+                - startMeter
+                - endMeter
+                - scrapQuantity
+              properties:
+                machineName:
+                  type: string
+                  example: M-03
+                operator:
+                  type: string
+                  example: สมชาย
+                startMeter:
+                  type: number
+                  example: 0
+                endMeter:
+                  type: number
+                  example: 15200
+                scrapQuantity:
+                  type: number
+                  example: 120
+      responses:
+        '201':
+          description: Production log recorded successfully
+
+  /qc/inspections:
+    get:
+      summary: Get List of all QC Inspections
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful retrieval
+
+  /qc/inspections/{id}:
+    get:
+      summary: Get QC Inspection by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+    delete:
+      summary: Delete QC Inspection
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /qc/inspections/{jobNumber}:
+    post:
+      summary: Create QC Inspection for job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - inspector
+                - shadeResult
+                - barcodePassed
+                - colorSequencePassed
+                - adhesionPassed
+              properties:
+                inspector:
+                  type: string
+                  example: qc1
+                shadeResult:
+                  type: string
+                  example: match
+                barcodePassed:
+                  type: boolean
+                  example: true
+                colorSequencePassed:
+                  type: boolean
+                  example: true
+                adhesionPassed:
+                  type: boolean
+                  example: true
+                remarks:
+                  type: string
+                  example: เรียบร้อยดี
+      responses:
+        '201':
+          description: Created successfully
+
+  /qc/inspections/job/{jobNumber}:
+    get:
+      summary: List QC Inspections for job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+
+  /qc/traceability:
+    get:
+      summary: Get multi-dimensional traceability query
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dimension
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [job, product, sku, cylinder, ink, operator, machine]
+            example: job
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            example: J2024-045
+      responses:
+        '200':
+          description: Successful retrieval of traceability history
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserProfile:
+      type: object
+      required:
+        - id
+        - username
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 137bde3d-22ac-470a-bb86-648d1fca071a
+        username:
+          type: string
+          example: admin
+        role:
+          type: string
+          enum: [admin, sales, planner, production, qc, warehouse, inkroom, viewer]
+          example: admin
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-06-09T13:42:38.996Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2026-06-09T13:42:38.996Z
+
+    LoginResponse:
+      type: object
+      required:
+        - token
+        - user
+      properties:
+        token:
+          type: string
+          description: JWT Access Token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    LoginResponseEnvelope:
+      type: object
+      required:
+        - status
+        - statusCode
+        - data
+      properties:
+        status:
+          type: string
+          example: success
+        statusCode:
+          type: integer
+          example: 200
+        data:
+          $ref: '#/components/schemas/LoginResponse'
+
+    UserProfileResponseEnvelope:
+      type: object
+      required:
+        - status
+        - statusCode
+        - data
+      properties:
+        status:
+          type: string
+          example: success
+        statusCode:
+          type: integer
+          example: 200
+        data:
+          $ref: '#/components/schemas/UserProfile'
+
+    ErrorResponseEnvelope:
+      type: object
+      required:
+        - status
+        - statusCode
+        - message
+      properties:
+        status:
+          type: string
+          example: error
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Invalid username or password
+        stack:
+          type: string
+          example: "Error: Invalid username or password at..."

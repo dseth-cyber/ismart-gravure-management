@@ -1,0 +1,562 @@
+{
+  "app.title": "Gravure စီမံခန့်ခွဲမှု",
+  "app.subtitle": "ဆလင်ဒါနှင့် မင်ဖော်မြူလာ စီမံခန့်ခွဲမှု",
+  "app.facility": "iSmart Gravure Operations",
+  "app.mark": "GM",
+  "nav.main": "အဓိက မီနူး",
+  "nav.progress": "တိုးတက်မှု",
+  "nav.cylinders": "ဆလင်ဒါ",
+  "nav.inks": "မှင်ဖော်မြူလာ",
+  "nav.rules": "ပရောဂျက် စည်းမျဉ်းများ",
+  "nav.architecture": "Architecture",
+  "nav.documents": "စာရွက်စာတမ်းများ",
+  "theme.label": "Theme",
+  "theme.modern": "Modern",
+  "theme.dark": "Dark",
+  "theme.light": "Light",
+  "language.label": "ဘာသာစကား",
+  "language.th": "TH",
+  "language.en": "EN",
+  "language.cn": "CN",
+  "language.mm": "MM",
+  "language.ja": "JA",
+  "status.healthy": "စနစ် အဆင်ပြေသည်",
+  "status.done": "ပြီးဆုံး",
+  "status.progress": "လုပ်ဆောင်နေ",
+  "status.blocked": "ပိတ်ဆို့နေ",
+  "status.todo": "မစတင်သေး",
+  "common.close": "ပိတ်မည်",
+  "common.confirm": "အတည်ပြုမည်",
+  "common.cancel": "မလုပ်တော့ပါ",
+  "common.viewDetails": "အသေးစိတ်ကြည့်မည်",
+  "common.empty": "ဒေတာမရှိပါ",
+  "page.title": "Roadmap တိုးတက်မှု",
+  "page.subtitle": "Frontend အခြေခံအသစ်ကို Next.js 16, React 19, TypeScript, Tailwind CSS 4 နှင့် Docker Desktop ဖြင့် စတင်ထားသည်",
+  "summary.label": "တိုးတက်မှု အကျဉ်းချုပ်",
+  "summary.totalPhases": "Phase စုစုပေါင်း",
+  "summary.totalPhasesNote": "Phase {{start}} မှ Phase {{end}} အထိ",
+  "summary.done": "ပြီးဆုံး",
+  "summary.doneNote": "နောက်ဆုံးပြီးဆုံးမှု: Phase {{phase}} ({{name}})",
+  "summary.progress": "လုပ်ဆောင်နေ",
+  "summary.progressNote": "လက်ရှိလုပ်ဆောင်နေမှု: Phase {{phase}} ({{name}})",
+  "summary.docker": "Runtime",
+  "summary.dockerNote": "Docker Desktop မှ run မည်",
+  "phase.sectionTitle": "Roadmap phases",
+  "phase.updateRule": "ROADMAP ကို အမြဲ update လုပ်ရမည်",
+  "phase.0.name": "Governance And Progress Tracking",
+  "phase.0.output": "Roadmap, project rules, design system rules နှင့် progress page",
+  "phase.1.name": "Frontend Migration Foundation",
+  "phase.1.output": "Next.js 16 scaffold, shared Layout, route structure နှင့် Docker runtime",
+  "phase.2.name": "Theme System",
+  "phase.2.output": "useTheme(), themeConfig နှင့် modern/dark/light themes",
+  "phase.3.name": "i18n System",
+  "phase.3.output": "react-i18next နှင့် locale JSON ၅ ခု",
+  "phase.4.name": "Shared UI Components",
+  "phase.4.output": "Central Dialog, PageHeader, DataTable, forms နှင့် controls",
+  "phase.5.name": "Auth Foundation",
+  "phase.5.output": "Consolidated auth handlers, JWT, localStorage token နှင့် axios interceptor",
+  "phase.6.name": "Backend Monolith Foundation",
+  "phase.6.output": "Express 5 + TypeScript + Prisma consolidated starter",
+  "phase.7.name": "Docker Infrastructure",
+  "phase.7.output": "docker-compose.yml, Redis နှင့် single PostgreSQL database",
+  "phase.8.name": "API Contracts & DTOs",
+  "phase.8.output": "OpenAPI conventions, route paths, DTO types",
+  "phase.9.name": "Async Queue Foundation (Optional)",
+  "phase.9.output": "BullMQ/Redis background task queues",
+  "phase.10.name": "Core Domain Modules",
+  "phase.10.output": "Customer, Product, Cylinder နှင့် Ink modules",
+  "phase.11.name": "Production Workflow Modules",
+  "phase.11.output": "Sales order, planning, execution, inventory နှင့် quality modules",
+  "phase.12.name": "Observability And Audit",
+  "phase.12.output": "Audit trail, health checks, logs နှင့် correlation IDs",
+  "phase.13.name": "Stabilization And Release",
+  "phase.13.output": "E2E tests, release checklist နှင့် production readiness",
+  "phase.14.name": "Frontend API Integration & Polish",
+  "phase.14.output": "စာမျက်နှာအားလုံးကို API အစစ်နှင့်ချိတ်ဆက်ခြင်း၊ nav bug ပြင်ဆင်ခြင်း၊ shared components စစ်ဆေးခြင်း",
+  "phase.15.name": "Real-Time Monitoring & Scanner",
+  "phase.15.output": "WebSocket တိုက်ရိုက်အပ်ဒိတ်၊ ကင်မရာ QR/barcode စကင်ဖတ်ခြင်း၊ QR တံဆိပ်ထုတ်ခြင်း",
+  "phase.16.name": "Enterprise Identity Foundation",
+  "phase.16.output": "LDAP/AD ပေါင်းစည်းခြင်း၊ SSO၊ စကားဝှက်မူဝါဒ၊ session စီမံခန့်ခွဲခြင်း",
+  "phase.17.name": "Production Hardening",
+  "phase.17.output": "Rate limiting၊ API throttling၊ စွမ်းဆောင်ရည်မြှင့်တင်ခြင်း၊ error စောင့်ကြည့်ခြင်း",
+  "phase.details.outputs": "ထွက်ပေါ်လာသော ရလဒ်များ",
+  "phase.details.criteria": "လက်ခံနိုင်မှု စံနှုန်းများ",
+  "phase.details.notes": "မှတ်စုများ",
+  "phase.0.details": {
+    "outputs": [
+      "docs/ROADMAP.md",
+      "docs/PROJECT_RULES.md",
+      "docs/DESIGN_SYSTEM.md",
+      "frontend/src/app/progress/page.tsx"
+    ],
+    "criteria": [
+      "ပရောဂျက် လမ်းညွှန်ချက် (Roadmap) နှင့် အပ်ဒိတ်စည်းမျဉ်းများ တည်ရှိရမည်။",
+      "ပရောဂျက်၏ လိုက်နာရမည့် စည်းမျဉ်းများဖိုင် ရှိရမည်။",
+      "ဒီဇိုင်းစနစ် စည်းမျဉ်းများဖိုင် ရှိရမည်။",
+      "တိုးတက်မှု စောင့်ကြည့်ရေး စာမျက်နှာ ရှိပြီး ဘရောက်ဇာမှ တိုက်ရိုက် ကြည့်ရှုနိုင်ရမည်။"
+    ],
+    "notes": [
+      "ကြီးမားသော ပြောင်းလဲမှုများ မစတင်မီ စည်းကမ်းသတ်မှတ်ချက်များကို ဖန်တီးပေးခြင်း ဖြစ်သည်။",
+      "2026-06-09 တွင် ပြီးစီးသည်။"
+    ]
+  },
+  "phase.1.details": {
+    "outputs": [
+      "/frontend Next.js 16 + React 19 + TypeScript အခြေခံ ဖွဲ့စည်းမှု",
+      "စာမျက်နှာများ၏ လမ်းကြောင်း ဖွဲ့စည်းမှု (App Router)",
+      "မျှဝေအသုံးပြုမည့် Layout Component",
+      "မူလစာမျက်နှာများမှ ပြောင်းရွှေ့ရန် အစီအစဉ်"
+    ],
+    "criteria": [
+      "အပလီကေးရှင်းသည် စက်တွင်း၌ ကောင်းမွန်စွာ စတင်နိုင်ရမည်။",
+      "လက်ရှိ Dashboard ၏ ဒီဇိုင်းကို Next.js တွင် အပြည့်အဝ ဖော်ပြနိုင်ရမည်။",
+      "မည်သည့်စာမျက်နှာသစ်မျှ မျှဝေသုံး Layout ကို ကျော်လွှဲ၍ မရစေရ။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "စက်တွင်းတွင် Node.js v22.17.0 ကို သုံးထားပြီး ၎င်းသည် Next.js 16 ၏ အနိမ့်ဆုံး လိုအပ်ချက်ကို ကျော်လွန်ပါသည်။ သို့သော် Production စနစ်အတွက် Node.js 24 LTS ကို သတ်မှတ်ထားသည်။"
+    ]
+  },
+  "phase.2.details": {
+    "outputs": [
+      "useTheme() hook",
+      "themeConfig ဖွဲ့စည်းမှု အရာဝတ္ထု",
+      "ရရှိနိုင်သော Theme များ- modern, dark, light",
+      "မူလ Theme- modern"
+    ],
+    "criteria": [
+      "စာမျက်နှာအားလုံးသည် themeConfig မှ သတ်မှတ်ချက်များကို သုံးရမည်။",
+      "Tailwind class များကို စာမျက်နှာများတွင် တိုက်ရိုက် ရေးသားခြင်း မပြုရ။",
+      "ရွေးချယ်ထားသော Theme ကို ဘရောက်ဇာတွင် မှတ်သားထားရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "စနစ်တစ်ခုလုံးအတွက် HSL glassmorphism ဒီဇိုင်းကို ထောက်ပံ့ပေးသည်။"
+    ]
+  },
+  "phase.3.details": {
+    "outputs": [
+      "react-i18next စနစ် ဖွဲ့စည်းခြင်း",
+      "ဘာသာစကား ၅ မျိုးအတွက် ဖိုင်များ- /src/i18n/locales/ (th, en, cn, mm, ja)"
+    ],
+    "criteria": [
+      "မူလဘာသာစကားမှာ ထိုင်း (th) ဖြစ်ရမည်။",
+      "UI ရှိ စာသားအားလုံးအတွက် t('key') ကို သုံးရမည်။",
+      "React code များထဲတွင် မည်သည့်စာသားမျှ တိုက်ရိုက် ရေးသားခြင်း မရှိစေရ။",
+      "တရုတ်ဘာသာစကား ကုဒ်ကို zh မှ cn သို့ ပြောင်းလဲ သတ်မှတ်ရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "ဘာသာစကားဖိုင် ၅ မျိုးလုံးကို ပြီးပြည့်စုံစွာ ပြန်ဆိုပြီးဖြစ်ကာ အချိန်မရွေး ပြောင်းလဲနိုင်သည်။"
+    ]
+  },
+  "phase.4.details": {
+    "outputs": [
+      "ဗဟို Dialog များ (AppDialog, ConfirmDialog, FormDialog)",
+      "PageHeader component",
+      "DataTable component",
+      "အသုံးပြုမည့် input များ၊ ခလုတ်များနှင့် အခြေအနေပြ badge များ"
+    ],
+    "criteria": [
+      "ပွင့်လာမည့် ပေါ့ပ်အပ် Dialog များအားလုံး ဗဟို component ကိုသာ သုံးရမည်။",
+      "Dialog များ၏ အရောင်အသွေးကို themeConfig จาก ရယူရမည်။",
+      "အသုံးပြုထားသော စာသားများအားလုံးကို i18n key များဖြင့် ချိတ်ဆက်ရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "စနစ်၏ အချက်အလက် ထည့်သွင်းပုံစံများနှင့် ဇယားပုံစံများကို စံသတ်မှတ်ပြီးဖြစ်သည်။"
+    ]
+  },
+  "phase.5.details": {
+    "outputs": [
+      "backend monolith တွင် ဝင်ရောက်ခွင့် လမ်းကြောင်းများ",
+      "JWT ကို အသုံးပြု၍ login ဝင်သည့် endpoint",
+      "frontend တွင် ဝင်ရောက်ခွင့် အခြေအနေ သိမ်းဆည်းရန် နေရာ",
+      "axios interceptor စနစ်"
+    ],
+    "criteria": [
+      "Token ကို localStorage တွင် သိမ်းဆည်းရမည်။",
+      "API တောင်းဆိုမှုတိုင်းတွင် Authorization: Bearer <token> ကို အလိုအလျောက် ထည့်သွင်းရမည်။",
+      "ကာကွယ်ထားသော လမ်းကြောင်းများသို့ login မဝင်ထားသူများ ဝင်ရောက်ပါက စနစ်က ပြန်လည် လမ်းညွှန်ပေးရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "JWT နှင့် frontend စာမျက်နှာ ကာကွယ်မှု စနစ်များကို ချိတ်ဆက်ပြီးဖြစ်သည်။"
+    ]
+  },
+  "phase.6.details": {
+    "outputs": [
+      "backend စနစ်အတွက် Node.js 24 LTS + TypeScript + Express 5 + Prisma ORM 7.x စတင်ခြင်း",
+      "အမှားစီမံခန့်ခွဲမှုစနစ်နှင့် စနစ်ခွဲများ ခွဲခြားခြင်း ဖွဲ့စည်းပုံ",
+      "စနစ် အခြေအနေ စစ်ဆေးရန် နေရာ (Health check endpoint)",
+      "Prisma migration စံနှုန်းများ"
+    ],
+    "criteria": [
+      "backend ဆာဗာသည် ကောင်းမွန်စွာ အလုပ်လုပ်ပြီး စတင်နိုင်ရမည်。 ",
+      "Express 5 ၏ လမ်းကြောင်းများကို စနစ်ခွဲများအလိုက် သေသပ်စွာ စုစည်းထားရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "Prisma 7 နှင့် PostgreSQL container တို့ ချိတ်ဆက်ထားသော အခြေခံစနစ်ကို တည်ဆောက်ပြီးဖြစ်သည်။"
+    ]
+  },
+  "phase.7.details": {
+    "outputs": [
+      "docker-compose.yml ဖိုင်",
+      "PostgreSQL database container",
+      "Redis container"
+    ],
+    "criteria": [
+      "Docker compose သည် database, cache, backend နှင့် frontend အားလုံးကို တစ်ပြိုင်နက် စတင်နိုင်ရမည်။",
+      "စမ်းသပ်မှုတွင် database ဆာဗာ တစ်ခုတည်းကိုသာ သုံးရမည်။",
+      "ပတ်ဝန်းကျင် ပြောင်းလဲနိုင်သော တန်ဖိုးများ (env) ကို သေချာစွာ မှတ်တမ်းတင်ထားရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "container များအတွင်း ပတ်လည် လည်ပတ်မှုကို စမ်းသပ်ပြီးဖြစ်ကာ Next.js บက်တွင် လမ်းကြောင်း ပြန်ညွှန်မှုများ စီစဉ်ပြီးဖြစ်သည်။"
+    ]
+  },
+  "phase.8.details": {
+    "outputs": [
+      "API ลမ်းကြောင်း စည်းမျဉ်းများ (ဥပမာ- /api/v1)",
+      "OpenAPI/Swagger စံနှုန်း ညွှန်းတမ်းဖိုင်",
+      "မျှဝေသုံးစွဲမည့် DTO (Data Transfer Object) အမျိုးအစားများ"
+    ],
+    "criteria": [
+      "frontend စနစ်သည် သတ်မှတ်ထားသော API လမ်းကြောင်းများမှတစ်ဆင့် backend သို့ တိုက်ရိုက် ဆက်သွယ်ရမည်။",
+      "API တည်ဆောက်ပုံကို OpenAPI ဖြင့် သေချာစွာ ဖော်ပြထားရမည်။"
+    ],
+    "notes": [
+      "2026-06-09 တွင် ပြီးစီးသည်။",
+      "/api-docs တွင် Swagger UI ကို YAML ဖိုင်ဖြင့် ထားရှိပြီး DTO ဖိုင်များကို စနစ်တစ်ခုလုံး မျှဝေသုံးနိုင်ရန် စီစဉ်ပြီးဖြစ်သည်။"
+    ]
+  },
+  "phase.9.details": {
+    "outputs": [
+      "နောက်ကွယ်တွင် လုပ်ဆောင်မည့် အလုပ်များအတွက် Redis/BullMQ စနစ် တည်ဆောက်ခြင်း (ဥပမာ- အီးမေးလ် ပို့ခြင်း၊ အစီရင်ခံစာ ထုတ်ခြင်း)"
+    ],
+    "criteria": [
+      "နောက်ကွယ်မှ အလုပ်လုပ်ဆောင်မှုများသည် web server အလုပ်လုပ်မှုကို မနှောင့်ယှက်ရ။"
+    ],
+    "notes": [
+      "2026-06-10 တွင် ပြီးစီးသည်။",
+      "Redis နှင့် BullMQ တို့ကို ထည့်သွင်းသတ်မှတ်ပြီး နောက်ကွယ်လုပ်ငန်းစဉ်များ စီမံရန် Queue နှင့် Worker ကို တည်ဆောက်ခဲ့သည်။"
+    ]
+  },
+  "phase.10.details": {
+    "outputs": [
+      "အဓိက ဇယားများနှင့် database model များ- Customer, Product, Cylinder, Ink",
+      "backend ရှိ CRUD API ลမ်းကြောင်းများ",
+      "စနစ်ခွဲများအတွင်း လှုပ်ရှားမှုများနှင့် အသိပေးစနစ်များ"
+    ],
+    "criteria": [
+      "CRUD API များအားလုံး ကောင်းမွန်စွာ အလုပ်လုပ်ရမည်။",
+      "ဖြည့်စွက်အချက်အလက် စစ်ဆေးမှု လုပ်ဆောင်ချက်များသည် တညီတညွတ်တည်း ဖြစ်ရမည်။"
+    ],
+    "notes": [
+      "2026-06-10 တွင် ပြီးစီးသည်။",
+      "အဓိက database ဇယားများ တည်ဆောက်ပြီးဖြစ်ကာ frontend တွင် စမ်းသပ်ပြသရန်အတွက် စမ်းသပ်ဒေတာ (seed data) များ ထည့်သွင်းပြီးဖြစ်သည်။"
+    ]
+  },
+  "phase.11.details": {
+    "outputs": [
+      "အဓိက ထုတ်လုပ်မှု လုပ်ငန်းစဉ်များအတွက် logic နှင့် အခြေအနေများ- အရောင်းအော်ဒါ၊ စီမံကိန်း၊ ထုတ်လုပ်မှု၊ ဂိုဒေါင်၊ အရည်အသွေး ထိန်းချုပ်မှု",
+      "backend ရှိ လုပ်ငန်းစဉ် ချိတ်ဆက်မှုများ"
+    ],
+    "criteria": [
+      "ထုတ်လုပ်မှု အဆင့်ဆင့် ပြောင်းလဲမှုများကို စစ်ဆေးမှု ပြုလုပ်နိုင်ရမည်။",
+      "ကုန်ပစ္စည်း စာရင်းဇယား နှုတ်ယူမှုများ တိကျမှันကန်ရမည်။",
+      "QC စစ်ဆေးမှု မှတ်တမ်းများသည် သုံးစွဲခဲ့သော ဆလင်ဒါနှင့် ဆိုးဆေးအုပ်စုများနှင့် တိကျစွာ ချိတ်ဆက်ရမည်။"
+    ],
+    "notes": [
+      "2026-06-10 တွင် ပြီးစီးသည်။",
+      "အရောင်းအော်ဒါ၊ စီမံကိန်း၊ ထုတ်လုပ်မှု၊ ကลังစနစ် နှင့် QC စနစ်ခွဲများကို တည်ဆောက်စမ်းသပ်ပြီးစီးခဲ့သည်။"
+    ]
+  },
+  "phase.12.details": {
+    "outputs": [
+      "အသုံးပြုမှု မှတ်တမ်းများ ထားရှိမှု စည်းမျဉ်းများ (Audit logs)",
+      "စနစ်ကျသော မှတ်တမ်းများစနစ် (Structured logs)",
+      "စနစ် ကျန်းမာရေး စစ်ဆေးမှုများ (Health checks)",
+      "လုပ်ငန်းလည်ပတ်မှု စောင့်ကြည့်ရေး Dashboard ဆိုင်ရာ လိုအပ်ချက်များ"
+    ],
+    "criteria": [
+      "အရေးကြီးသော လုပ်ဆောင်ချက်များကို မှတ်တမ်းတင်ထားရမည်။",
+      "အဓိက စနစ်ခွဲများတွင် ကျန်းမာရေး စစ်ဆေးရန် လမ်းကြောင်းများ ရှိရမည်။",
+      "မှတ်တမ်းများတွင် ရှာဖွေရ လွယ်ကူစေရန် Correlation ID ထည့်သွင်းရမည်။"
+    ],
+    "notes": [
+      "2026-06-10 တွင် ပြီးစီးသည်။",
+      "Correlation ID ခြေရာခံခြင်း၊ console logs စနစ်ကျထုတ်ခြင်း၊ health checks နှင့် audit logs စနစ်များကို တပ်ဆင်ခဲ့သည်။"
+    ]
+  },
+  "phase.13.details": {
+    "outputs": [
+      "စနစ် စတင်အသုံးပြုရန် စစ်ဆေးရမည့်စာရင်း (Release checklist)",
+      "E2E စမ်းသပ်မှု ညွှန်းတမ်းများ",
+      "ဒေတာဘေ့စ် သိမ်းဆည်းခြင်းနှင့် ပြန်လည် ရယူခြင်း မှတ်စုများ",
+      "စနစ် အဆင်သင့် ဖြစ်မှုအား ပြန်လည် သုံးသပ်ခြင်း"
+    ],
+    "criteria": [
+      "အဓိက အသုံးပြုမှုများအားလုံး E2E စမ်းသပ်မှု အောင်မြင်ရမည်။",
+      "စနစ် စတင်တင်မည့် အဆင့်များကို သေချာစွာ ရေးသားထားရမည်။",
+      "ဖြစ်နိုင်ခြေရှိသော ဘေးအန္တရာယ်များကို ပြန်လည် သုံးသပ်ပြီး သဘောတူညီမှု ရယူရမည်။"
+    ],
+    "notes": [
+      "2026-06-10 တွင် ပြီးစီးသည်။",
+      "Release checklist၊ database backup/restore နှင့် readiness စာရွက်စာတမ်းများ ပြုစုခဲ့ပြီး E2E regression tests စမ်းသပ်အောင်မြင်ခဲ့သည်။"
+    ]
+  },
+  "rule.sectionTitle": "မလွဲရမည့် စည်းမျဉ်းများ",
+  "rule.layout": "စာမျက်နှာအသစ်တိုင်း shared Layout component ကို သုံးရမည်",
+  "rule.dialog": "Dialog သို့မဟုတ် Popup အားလုံး central component ကို သုံးရမည်",
+  "rule.i18n": "UI text အားလုံး t('key') သုံးပြီး ဘာသာ ၅ မျိုးရှိရမည်",
+  "rule.theme": "Theme styling အားလုံး themeConfig မှ လာရမည်",
+  "rule.database": "Service တိုင်းတွင် database isolation သို့မဟုတ် module table ခွဲထားရမည်",
+  "rule.docker": "စနစ်ကို Docker Compose ဖြင့် run ရမည်",
+  "doc.sectionTitle": "Control documents",
+  "doc.roadmap": "ROADMAP.md",
+  "doc.rules": "PROJECT_RULES.md",
+  "doc.design": "DESIGN_SYSTEM.md",
+  "architecture.sectionTitle": "Architecture Baseline",
+  "architecture.frontend": "Frontend",
+  "architecture.frontendValue": "Next.js 16, React 19, TypeScript 5.x နှင့် Tailwind CSS 4",
+  "architecture.auth": "Authentication",
+  "architecture.authValue": "Identity Service จาก JWT ထုတ်ပေးပြီး frontend မှ axios interceptor ဖြင့် token ထည့်မည်",
+  "architecture.database": "Database",
+  "architecture.databaseValue": "PostgreSQL database configuration with schema/table isolation per service/module",
+  "architecture.events": "Event Broker",
+  "architecture.eventsValue": "Optional in-memory events or Redis background queues",
+  "architecture.infra": "Infrastructure",
+  "architecture.infraValue": "Docker Compose, Redis, PostgreSQL နှင့် service containers",
+  "architecture.workflow": "Workflow",
+  "architecture.workflowValue": "Future services များကို API Gateway နှင့် event-driven communication ဖြင့် ထပ်တိုးနိုင်မည်",
+  "table.sectionTitle": "အစောပိုင်း Phase status table",
+  "table.phase": "Phase",
+  "table.status": "Status",
+  "table.output": "Output",
+  "dialog.title": "အဆင့်အသေးစိတ်",
+  "dialog.phaseTitle": "အဆင့် {{id}} အသေးစိတ်: {{name}}",
+  "dialog.description": "Phase 1 သည် standalone screens များကို မရွှေ့မီ Next.js 16 Docker Desktop foundation, Layout, theme, i18n, axios နှင့် shared components တို့ကို တည်ဆောက်မည်",
+  "app.version": "v1.0.0",
+  "nav.dashboard": "ဒက်ရှ်ဘုတ်",
+  "nav.overview": "ခြုံငုံသုံးသပ်ချက်",
+  "nav.cylinder": "ဆလင်ဒါ",
+  "nav.cylinderList": "ဆလင်ဒါစာရင်း",
+  "nav.cylinderStatus": "Real-time အခြေအနေ",
+  "nav.cylinderLocation": "တည်နေရာခြေရာခံ",
+  "nav.cylinderHistory": "အသုံးပြုမှုမှတ်တမ်း",
+  "nav.ink": "မင်ဖော်မြူလာ",
+  "nav.inkFormula": "စံဖော်မြူလာ",
+  "nav.inkBatch": "မင်အသုတ်စီမံခန့်ခွဲမှု",
+  "nav.inkExpiry": "FEFO နှင့် သက်တမ်း",
+  "nav.inkShade": "အရောင်ညှိခြင်း",
+  "nav.production": "ထုတ်လုပ်ရေး",
+  "nav.verification": "လိုင်းစစ်ဆေးခြင်း",
+  "nav.prodLog": "ထုတ်လုပ်မှုမှတ်တမ်း",
+  "nav.traceability": "ခြေရာခံရှာဖွေ",
+  "nav.settings": "ဆက်တင်",
+  "nav.systemSettings": "စနစ်ဆက်တင်",
+  "dash.title": "စနစ်ခြုံငုံသုံးသပ်ချက်",
+  "dash.subtitle": "Gravure စีမံခန့်ခွဲမှု ဒက်ရှ်ဘုတ်",
+  "dash.totalCylinders": "ဆလင်ဒါအားလုံး",
+  "dash.available": "အသုံးပြုနိုင်",
+  "dash.inProduction": "ထုတ်လုပ်နေဆဲ",
+  "dash.repair": "ပြုပြင်နေ",
+  "dash.reserved": "ကြိုတင်စာရင်းသွင်း",
+  "dash.inspection": "စစ်ဆေးရန်စောင့်",
+  "dash.activeFormulas": "အသုံးပြုနေသော ဖော်မြူလာ",
+  "dash.totalBatches": "မင်အသုတ်အားလုံး",
+  "dash.nearExpiry": "သက်တမ်းနီး",
+  "dash.expired": "သက်တမ်းကုန်",
+  "dash.activeJobs": "လုပ်ဆောင်နေသော Job",
+  "dash.verifiedToday": "ယနေ့စစ်ဆေးပြီး",
+  "dash.passRate": "အောင်မြင်နှုန်း",
+  "dash.cylinderStatus": "ဆလင်ဒါအခြေအနေ",
+  "dash.cylinderStatusSub": "ဆလင်ဒါအားလုံး Real-time အခြေအနေ",
+  "dash.inkAlerts": "မင်သတိပေးချက်",
+  "dash.inkAlertsSub": "သတိပြုရမည့် အသုတ်များ",
+  "dash.recentJobs": "မကြာသေး Job",
+  "dash.quickActions": "အမြန်လုပ်ဆောင်ချက်",
+  "dash.cylinderByLocation": "တည်နေရာအလိုက်",
+  "dash.qcRate": "QC အောင်မြင်နှုန်း",
+  "dash.recentActivity": "မကြာသေးလှုပ်ရှားမှု",
+  "dash.vsLastMonth": "ယခင်လနှင့်",
+  "dash.noAlerts": "သတိပေးချက်မရှိ",
+  "dash.qcPassed": "QC အောင်",
+  "dash.qcHold": "QC ဆိုင်းငံ့",
+  "dash.rework": "ပြန်လုပ်",
+  "status.available": "အသုံးပြုနိုင်",
+  "status.inProduction": "ထုတ်လုပ်နေ",
+  "status.reserved": "ကြိုတင်စာရင်း",
+  "status.repair": "ပြုပြင်နေ",
+  "status.inspection": "စစ်ဆေးရန်",
+  "status.hold": "ဆိုင်းငံ့",
+  "status.active": "အသုံးပြုနေ",
+  "status.superseded": "အစားထိုးပြီး",
+  "status.nearExpiry": "သက်တမ်းနီး",
+  "status.expiredLabel": "သက်တမ်းကုန်",
+  "status.pass": "အောင်",
+  "status.fail": "ကျ",
+  "status.pending": "စောင့်နေ",
+  "status.running": "လုပ်ဆောင်နေ",
+  "status.completed": "ပြီးဆုံး",
+  "col.code": "ကုဒ်",
+  "col.product": "ထုတ်ကုန်",
+  "col.customer": "ဖောက်သည်",
+  "col.status": "အခြေအနေ",
+  "col.location": "တည်နေရာ",
+  "col.meterRun": "စုစုပေါင်းမီတာ",
+  "col.lastUsed": "နောက်ဆုံးသုံး",
+  "col.formula": "ဖော်မြူလာ",
+  "col.revision": "ဗားရှင်း",
+  "col.color": "အရောင်",
+  "col.viscosity": "ပျစ်နှစ်မှု",
+  "col.expiry": "သက်တမ်း",
+  "col.batch": "အသုတ်",
+  "col.job": "Job နံပါတ်",
+  "col.machine": "စက်",
+  "col.operator": "လုပ်ဆောင်သူ",
+  "col.date": "ရက်စွဲ",
+  "col.action": "လုပ်ဆောင်",
+  "col.weight": "အလေးချိန်",
+  "col.remaining": "ကျန်ရှိ",
+  "btn.scan": "QR စကင်",
+  "btn.add": "ထည့်",
+  "btn.search": "ရှာဖွေ",
+  "btn.export": "ထုတ်ယူ",
+  "btn.filter": "စစ်ထုတ်",
+  "btn.viewAll": "အားလုံးကြည့်",
+  "btn.startVerify": "စစ်ဆေးရန်",
+  "btn.mixInk": "မင်ရောစပ်",
+  "btn.refresh": "ပြန်လည်စတင်",
+  "btn.save": "သိမ်းဆည်း",
+  "btn.cancel": "ပယ်ဖျက်",
+  "btn.back": "နောက်သို့",
+  "btn.next": "ရှေ့ဆက်",
+  "btn.edit": "ပြင်ဆင်",
+  "role.admin": "စနစ်စီမံသူ",
+  "role.planner": "ထုတ်လုပ်ရေးစီမံသူ",
+  "role.operator": "လုပ်ဆောင်သူ",
+  "role.inkroom": "မင်ခန်းဝန်ထမ်း",
+  "role.qc": "QC စစ်ဆေးသူ",
+  "unit.lots": "ခု",
+  "unit.formulas": "ဖော်မြူလာ",
+  "unit.batches": "အသုတ်",
+  "unit.jobs": "ခု",
+  "unit.kg": "kg",
+  "unit.meter": "m",
+  "unit.days": "ရက်",
+  "unit.pcs": "ခု",
+  "layout.customize": "Layout ပြင်ဆင်",
+  "layout.reset": "Layout ပြန်သတ်မှတ်",
+  "layout.done": "ပြီးပါပြီ",
+  "layout.editing": "Layout တည်းဖြတ်မုဒ်",
+  "layout.dragHint": "ဆွဲ၍ နေရာပြောင်း",
+  "cyl.title": "ဆလင်ဒါစာရင်း",
+  "cyl.subtitle": "ဆလင်ဒါအားလုံးကို စီမံခန့်ခွဲ",
+  "cyl.searchPlaceholder": "ဆလင်ဒါ၊ ထုတ်ကုန်၊ ဖောက်သည် ရှာဖွေ...",
+  "cyl.all": "အားလုံး",
+  "cyl.changeStatus": "အခြေအနေပြောင်း",
+  "cyl.size": "အရွယ်အစား",
+  "cyl.totalMeters": "စုစုပေါင်းမီတာ",
+  "cyl.scanTitle": "QR Code စကင်",
+  "cyl.scanning": "စကင်နေသည်...",
+  "cyl.scanSuccess": "စကင်အောင်မြင်!",
+  "cyl.viewDetails": "အသေးစိတ်ကြည့်",
+  "ink.title": "မင်ဖော်မြူလာစီမံခန့်ခွဲမှု",
+  "ink.subtitle": "စံဖော်မြူလာ၊ အသုတ်၊ FEFO နှင့် သက်တမ်း",
+  "ink.searchPlaceholder": "ဖော်မြူလာ၊ အသုတ်၊ ထုတ်ကုန် ရှာဖွေ...",
+  "ink.formulas": "ဖော်မြူလာ",
+  "ink.addFormula": "ဖော်မြူလာထည့်",
+  "ink.mixTitle": "မင်ရောစပ်",
+  "ink.selectFormula": "ရောစပ်မည့် ဖော်မြူလာရွေး",
+  "ink.scanRaw": "ကုန်ကြမ်းမင်အသုတ် စကင် (FEFO)",
+  "ink.weightUsed": "အသုံးပြုအလေးချိန်",
+  "ink.mixSuccess": "မင်ရောစပ်အောင်မြင်!",
+  "ink.qrReady": "QR Code ပုံနှိပ်ရန်အသင့်",
+  "ink.printQr": "QR ပုံနှိပ်ပြီးပိတ်",
+  "ink.formulaUsed": "ဖော်မြူလာ",
+  "ink.qrReady": "QR Code ပုံနှိပ်ရန်အသင့်",
+  "ink.printQr": "QR ပုံနှိပ်ပြီးပိတ်",
+  "ink.formulaUsed": "ဖော်မြူလာ",
+  "ink.fefoTitle": "FEFO အကြံပြု",
+  "ink.fefoSubtitle": "သက်တမ်းအစဉ် — အစောဆုံးကုန်မည့်အသုတ်ကို ဦးစားပေး",
+  "ink.expired": "သက်တမ်းကုန်",
+  "ink.urgent": "အရေးပေါ်",
+  "ink.nearExpiry": "သက်တမ်းနီး",
+  "ink.normal": "ပုံမှန်",
+  "ink.mixDate": "ရောစပ်ရက်",
+  "prod.title": "ထုတ်လုပ်ရေးနှင့် ခြေရာခံ",
+  "prod.subtitle": "လိုင်းစစ်ဆေး၊ ထုတ်လုပ်မှုမှတ်တမ်း၊ 7 မိုင်ခြေရာခံ",
+  "prod.lineVerify": "လိုင်းစစ်ဆေး",
+  "prod.prodLog": "ထုတ်လုပ်မှုမှတ်တမ်း",
+  "prod.traceability": "ခြေရာခံ",
+  "prod.preVerify": "ထုတ်လုပ်မှုမတိုင်မီ စစ်ဆေး",
+  "prod.preVerifyDesc": "Job → ဆလင်ဒါ → မင်အသုတ် စကင်ဖတ်၍ စစ်ဆေး",
+  "prod.scanJob": "Job နံပါတ် စကင်",
+  "prod.scanJobSub": "ထုတ်လုပ်မှုအမှာစာ QR/Barcode စကင်",
+  "prod.scanCylinders": "ဆလင်ဒါအားလုံး စကင်",
+  "prod.scanCylindersSub": "အရောင်အစီအစဉ်အတိုင်း စကင်",
+  "prod.scanInk": "မင်အသုတ်အားလုံး စကင်",
+  "prod.scanInkSub": "မင်ပုံးတိုင်း QR စကင်",
+  "prod.result": "ရလဒ်",
+  "prod.passed": "စစ်ဆေးအောင်မြင်",
+  "prod.authorized": "ထုတ်လုပ်ခွင့်ပြု",
+  "prod.failed": "မအောင်မြင် — ပြဿနာတွေ့",
+  "prod.fixIssues": "ထုတ်လုပ်မှုမတိုင်မီ ပြင်ဆင်ပါ",
+  "prod.newVerify": "ပြန်စစ်ဆေး",
+  "prod.requestOverride": "Override တောင်းဆို",
+  "prod.scanning": "စကင်နေသည်...",
+  "prod.scan": "စကင်",
+  "prod.supervisorApproval": "သက်တမ်းနီး — အကြီးအကဲ ขွင့်ပြုချက်လို",
+  "prod.traceTitle": "7 မိုင်ခြေရာခံ",
+  "prod.traceSubtitle": "မည်သည့်အတိုင်းအတာမှ ရှာဖွေနိုင်",
+  "prod.productInfo": "ထုတ်ကုန်အချက်အလက်",
+  "prod.jobHistory": "Job မှတ်တမ်း",
+  "prod.cylindersUsed": "အသုံးပြုခဲ့သော ဆလင်ဒါ",
+  "prod.inkBatchesUsed": "အသုံးပြုခဲ့သော မင်အသုတ်",
+  "misc.healthy": "healthy",
+  "misc.expired": "သက်တမ်းကုန်",
+  "misc.expires": "သက်တမ်း",
+  "misc.underDev": "ဤစာမျက်နှာ ဖွံ့ဖြိုးဆဲ",
+  "nav.masterSetup": "အခြေခံဒေတာ",
+  "nav.ruleEngine": "စည်းမျဉ်းအင်ဂျင်",
+  "nav.approvalMatrix": "ခွင့်ပြုချက်",
+  "setup.title": "အခြေခံဒေတာစီမံခန့်ခွဲမှု",
+  "setup.ruleEngine": "စည်းမျဉ်းအင်ဂျင် — အလိုအလျောက်",
+  "setup.approvalMatrix": "ခွင့်ပြုချက် Matrix",
+  "setup.statuses": "အခြေအနေ",
+  "setup.cylinderTypes": "ဆလင်ဒါအမျိုးအစား",
+  "setup.defectTypes": "ချို့ယွင်းချက်",
+  "setup.machines": "စက်",
+  "setup.racks": "သိုလှောင်ခန်း",
+  "setup.suppliers": "ပေးသွင်းသူ",
+  "setup.inkTypes": "မင်အမျိုးအစား",
+  "setup.solvents": "ပျော်ခွဲအရည်",
+  "setup.manageItems": "ထည့်၊ တည်းဖြတ်၊ ဖွင့်/ပိတ်",
+  "setup.capacity": "ဆံ့မှု",
+  "setup.description": "ဖော်ပြချက်",
+  "setup.addRule": "စည်းမျဉ်းထည့်",
+  "setup.ruleName": "စည်းမျဉ်းအမည်",
+  "setup.condition": "အခြေအနေ",
+  "setup.actions": "လုပ်ဆောင်ချက်",
+  "setup.totalRules": "စည်းမျဉ်းအားလုံး",
+  "setup.activeRules": "အသုံးပြုနေ",
+  "setup.notifications": "သတိပေးချက်",
+  "setup.automations": "အလိုအလျောက်",
+  "setup.event": "ဖြစ်ရပ်",
+  "setup.approver": "ခွင့်ပြုသူ",
+  "mobile.home": "ပင်မ",
+  "mobile.scan": "စကင်",
+  "mobile.jobs": "အလုပ်",
+  "mobile.alerts": "သတိပေး",
+  "mobile.more": "ထပ်မံ",
+  "login.title": "ဆိုင်းအင်ဝင်ရန်",
+  "login.username": "အသုံးပြုသူအမည်",
+  "login.password": "စကားဝှက်",
+  "login.submit": "ဆိုင်းအင်ဝင်ရန်",
+  "login.error.invalid": "အသုံးပြုသူအမည် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
+  "login.error.generic": "ဆာဗာချိတ်ဆက်မှု မအောင်မြင်ပါ",
+  "btn.logout": "ထွက်ရန်"
+}
