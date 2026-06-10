@@ -1,28 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
-
-// Mock Data matching components/config.jsx
-const initialFormulas = [
-  { code: 'INK-BK-R03', product: 'AGH-001', color: 'Black', pantone: 'Process Black', revision: 'Rev.03', status: 'active', viscosity: '18±2 sec', lab: 'L:25 a:0 b:1', solvent: 'Ethyl Acetate' },
-  { code: 'INK-CY-R02', product: 'AGH-001', color: 'Cyan', pantone: 'PMS 299C', revision: 'Rev.02', status: 'active', viscosity: '16±2 sec', lab: 'L:55 a:-30 b:-45', solvent: 'Ethyl Acetate' },
-  { code: 'INK-MG-R01', product: 'AGH-001', color: 'Magenta', pantone: 'PMS 226C', revision: 'Rev.01', status: 'active', viscosity: '17±2 sec', lab: 'L:48 a:70 b:-5', solvent: 'Toluene' },
-  { code: 'INK-WH-R04', product: 'AGH-001', color: 'White', pantone: 'Opaque White', revision: 'Rev.04', status: 'active', viscosity: '20±2 sec', lab: 'L:95 a:0 b:2', solvent: 'Ethyl Acetate' },
-  { code: 'INK-BK-R02', product: 'AGH-001', color: 'Black', pantone: 'Process Black', revision: 'Rev.02', status: 'superseded', viscosity: '18±2 sec', lab: 'L:24 a:0 b:0', solvent: 'Toluene' },
-];
-
-const initialBatches = [
-  { id: 'MIX-2024-089', formula: 'INK-BK-R03', product: 'AGH-001', color: 'Black', mixDate: '2024-06-18', expiry: '2024-09-18', weight: 18.5, remaining: 12.3, operator: 'สมหมาย', status: 'active' },
-  { id: 'MIX-2024-090', formula: 'INK-CY-R02', product: 'AGH-001', color: 'Cyan', mixDate: '2024-06-19', expiry: '2024-07-05', weight: 15.0, remaining: 8.2, operator: 'วิไล', status: 'nearExpiry' },
-  { id: 'MIX-2024-085', formula: 'INK-MG-R01', product: 'AGH-001', color: 'Magenta', mixDate: '2024-06-15', expiry: '2024-06-22', weight: 12.0, remaining: 3.1, operator: 'สมหมาย', status: 'nearExpiry' },
-  { id: 'RAW-2024-001', formula: '-', product: '-', color: 'Black Base', mixDate: '-', expiry: '2024-12-31', weight: 50.0, remaining: 38.5, operator: 'DIC Corp', status: 'active' },
-  { id: 'RAW-2023-099', formula: '-', product: '-', color: 'Magenta Base', mixDate: '-', expiry: '2024-06-30', weight: 25.0, remaining: 2.1, operator: 'Toyo Ink', status: 'expired' },
-];
+import { listFormulas, createFormula, listBatches, createBatch, updateBatch } from '@/lib/services/ink';
+import type { InkFormulaDto, InkBatchDto } from '@shared/dto/ink/ink.dto';
 
 const initialShadeHistory = [
   { job: 'J2024-045', product: 'AGH-001', color: 'Black', time: '09:30', action: 'Add Yellow', material: 'Yellow Base Ink', qty: '0.2 kg', labBefore: 'L:24 a:0 b:0', labAfter: 'L:55 a:5 b:30', operator: 'สมชาย' },
@@ -67,8 +52,10 @@ function InksPageContent() {
   };
   
   // Data states
-  const [formulas, setFormulas] = useState(initialFormulas);
-  const [batches, setBatches] = useState(initialBatches);
+  const [formulas, setFormulas] = useState<InkFormulaDto[]>([]);
+  const [batches, setBatches] = useState<InkBatchDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Search/Filters
   const [search, setSearch] = useState('');
@@ -84,11 +71,27 @@ function InksPageContent() {
   const [mixColor, setMixColor] = useState('Black');
   const [mixWeight, setMixWeight] = useState('15');
 
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const [f, b] = await Promise.all([listFormulas(), listBatches()]);
+      setFormulas(f);
+      setBatches(b);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load ink data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
   // Filtering lists
   const filteredFormulas = formulas.filter(f => 
     !search || 
     f.code.toLowerCase().includes(search.toLowerCase()) || 
-    f.product.toLowerCase().includes(search.toLowerCase()) || 
+    (f.productCode || '').toLowerCase().includes(search.toLowerCase()) || 
     f.color.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -99,54 +102,58 @@ function InksPageContent() {
   );
 
   // Expiry FEFO Sorting & Calculations
-  const sortedExpiry = [...batches].sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
-  const getUrgency = (expiry: string) => {
-    if (expiry === '-') return { label: t('ink.normal'), color: 'green', days: 999 };
-    const days = Math.ceil((new Date(expiry).getTime() - new Date('2024-06-20').getTime()) / 86400000);
+  const sortedExpiry = [...batches].sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+  const getUrgency = (expiryDate: string) => {
+    if (!expiryDate) return { label: t('ink.normal'), color: 'green', days: 999 };
+    const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
     if (days <= 0) return { label: t('ink.expired'), color: 'rose', days };
     if (days <= 7) return { label: t('ink.urgent'), color: 'rose', days };
     if (days <= 30) return { label: t('ink.nearExpiry'), color: 'amber', days };
     return { label: t('ink.normal'), color: 'green', days };
   };
 
-  const expiredCount = sortedExpiry.filter(b => getUrgency(b.expiry).days <= 0).length;
-  const urgentCount = sortedExpiry.filter(b => { const d = getUrgency(b.expiry).days; return d > 0 && d <= 7; }).length;
-  const nearCount = sortedExpiry.filter(b => { const d = getUrgency(b.expiry).days; return d > 7 && d <= 30; }).length;
-  const normalCount = sortedExpiry.filter(b => getUrgency(b.expiry).days > 30).length;
+  const expiredCount = sortedExpiry.filter(b => getUrgency(b.expiryDate).days <= 0).length;
+  const urgentCount = sortedExpiry.filter(b => { const d = getUrgency(b.expiryDate).days; return d > 0 && d <= 7; }).length;
+  const nearCount = sortedExpiry.filter(b => { const d = getUrgency(b.expiryDate).days; return d > 7 && d <= 30; }).length;
+  const normalCount = sortedExpiry.filter(b => getUrgency(b.expiryDate).days > 30).length;
 
-  const handleSaveFormula = () => {
-    const newF = {
-      code: formulaForm.code || `INK-${formulaForm.color.substring(0, 2).toUpperCase()}-R${Math.floor(Math.random() * 9 + 1)}`,
-      product: formulaForm.product || 'UNKNOWN-001',
-      color: formulaForm.color,
-      pantone: formulaForm.pantone || 'Custom',
-      revision: 'Rev.01',
-      status: 'active',
-      viscosity: formulaForm.viscosity || '18±2 sec',
-      lab: `L:${formulaForm.labL || '0'} a:${formulaForm.labA || '0'} b:${formulaForm.labB || '0'}`,
-      solvent: formulaForm.solvent,
-    };
-    setFormulas([newF, ...formulas]);
-    setShowAddFormula(false);
-    setFormulaForm({ code: '', product: '', color: 'Black', pantone: '', solvent: 'Ethyl Acetate', viscosity: '', labL: '', labA: '', labB: '' });
+  const handleSaveFormula = async () => {
+    try {
+      const newF = await createFormula({
+        code: formulaForm.code || `INK-${formulaForm.color.substring(0, 2).toUpperCase()}-R${Math.floor(Math.random() * 9 + 1)}`,
+        productCode: formulaForm.product || 'UNKNOWN-001',
+        color: formulaForm.color,
+        pantone: formulaForm.pantone || 'Custom',
+        viscosity: formulaForm.viscosity || '18±2 sec',
+        labTarget: `L:${formulaForm.labL || '0'} a:${formulaForm.labA || '0'} b:${formulaForm.labB || '0'}`,
+        solvent: formulaForm.solvent,
+      });
+      setFormulas(prev => [newF, ...prev]);
+      setShowAddFormula(false);
+      setFormulaForm({ code: '', product: '', color: 'Black', pantone: '', solvent: 'Ethyl Acetate', viscosity: '', labL: '', labA: '', labB: '' });
+    } catch (err: any) {
+      console.error('Failed to create formula:', err);
+    }
   };
 
-  const handleMixComplete = () => {
-    const newB = {
-      id: `MIX-2024-${Math.floor(100 + Math.random() * 900)}`,
-      formula: `INK-${mixColor.substring(0, 2).toUpperCase()}-R03`,
-      product: mixProduct,
-      color: mixColor,
-      mixDate: '2024-06-20',
-      expiry: '2024-09-20',
-      weight: parseFloat(mixWeight) || 15.0,
-      remaining: parseFloat(mixWeight) || 15.0,
-      operator: 'สมหมาย',
-      status: 'active',
-    };
-    setBatches([newB, ...batches]);
-    setShowMix(false);
-    setMixStep(1);
+  const handleMixComplete = async () => {
+    try {
+      const newB = await createBatch({
+        id: `MIX-2024-${Math.floor(100 + Math.random() * 900)}`,
+        formulaCode: `INK-${mixColor.substring(0, 2).toUpperCase()}-R03`,
+        productCode: mixProduct,
+        color: mixColor,
+        mixDate: new Date().toISOString().split('T')[0],
+        expiryDate: '2024-09-20',
+        weight: parseFloat(mixWeight) || 15.0,
+        operator: 'สมหมาย',
+      });
+      setBatches(prev => [newB, ...prev]);
+      setShowMix(false);
+      setMixStep(1);
+    } catch (err: any) {
+      console.error('Failed to create batch:', err);
+    }
   };
 
   return (
@@ -212,8 +219,22 @@ function InksPageContent() {
           </div>
         )}
 
-        {/* Tab Content 1. Formulas */}
-        {activeTab === 'formulas' && (
+        {loading ? (
+          <div className={`flex items-center justify-center py-16 ${themeConfig.textSecondary}`}>
+            <RefreshCw size={20} className="animate-spin mr-2" />
+            {t('common.loading')}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 text-rose-400 gap-2">
+            <AlertTriangle size={24} />
+            <p className="text-sm">{error}</p>
+            <button onClick={fetchData} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
+              {t('btn.retry')}
+            </button>
+          </div>
+        ) : null}
+
+        {!loading && !error && activeTab === 'formulas' && (
           <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -228,7 +249,7 @@ function InksPageContent() {
                   {filteredFormulas.map(f => (
                     <tr key={f.code + f.revision} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border} cursor-pointer`}>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{f.code}</td>
-                      <td className="px-4 py-3 text-white">{f.product}</td>
+                      <td className="px-4 py-3 text-white">{f.productCode}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1.5 text-xs text-white">
                           <span className="w-4 h-4 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[f.color] || '#888' }} />
@@ -242,7 +263,7 @@ function InksPageContent() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-white font-mono text-xs">{f.viscosity}</td>
-                      <td className={`px-4 py-3 ${themeConfig.textSecondary} font-mono text-xs`}>{f.lab}</td>
+                      <td className={`px-4 py-3 ${themeConfig.textSecondary} font-mono text-xs`}>{f.labTarget}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[f.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[f.status]?.text || 'text-gray-400'}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[f.status]?.dot || 'bg-gray-400'}`} />
@@ -257,8 +278,7 @@ function InksPageContent() {
           </div>
         )}
 
-        {/* Tab Content 2. Batches */}
-        {activeTab === 'batch' && (
+        {!loading && !error && activeTab === 'batch' && (
           <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -275,7 +295,7 @@ function InksPageContent() {
                     return (
                       <tr key={b.id} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border}`}>
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{b.id}</td>
-                        <td className={`px-4 py-3 font-mono text-xs ${themeConfig.textSecondary}`}>{b.formula}</td>
+                        <td className={`px-4 py-3 font-mono text-xs ${themeConfig.textSecondary}`}>{b.formulaCode}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1.5 text-xs text-white">
                             <span className="w-4 h-4 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[b.color] || '#888' }} />
@@ -283,7 +303,7 @@ function InksPageContent() {
                           </span>
                         </td>
                         <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{b.mixDate}</td>
-                        <td className={`px-4 py-3 text-xs font-mono ${b.status === 'expired' ? 'text-rose-400' : b.status === 'nearExpiry' ? 'text-amber-400' : 'text-white'}`}>{b.expiry}</td>
+                        <td className={`px-4 py-3 text-xs font-mono ${b.status === 'expired' ? 'text-rose-400' : b.status === 'nearExpiry' ? 'text-amber-400' : 'text-white'}`}>{b.expiryDate}</td>
                         <td className="px-4 py-3 text-white font-mono text-xs">{b.weight} {t('unit.kg')}</td>
                         <td className="px-4 py-3 min-w-[120px]">
                           <div className="flex items-center gap-2">
@@ -310,7 +330,7 @@ function InksPageContent() {
         )}
 
         {/* Tab Content 3. Expiry FEFO */}
-        {activeTab === 'expiry' && (
+        {!loading && !error && activeTab === 'expiry' && (
           <div className="grid gap-6">
             {/* Expiry summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -345,7 +365,7 @@ function InksPageContent() {
               </div>
               <div className="space-y-2">
                 {sortedExpiry.map((b, i) => {
-                  const u = getUrgency(b.expiry);
+                  const u = getUrgency(b.expiryDate);
                   const isFirst = i === 0;
                   const urgColors: Record<string, string> = {
                     rose: 'border-rose-500/30 bg-rose-500/5',
@@ -363,10 +383,10 @@ function InksPageContent() {
                             <span>{b.color}</span>
                           </span>
                         </div>
-                        <p className={`text-xs ${themeConfig.textSecondary} mt-0.5`}>{b.formula !== '-' ? b.formula : b.operator} · {b.remaining} {t('unit.kg')}</p>
+                        <p className={`text-xs ${themeConfig.textSecondary} mt-0.5`}>{(b.formulaCode && b.formulaCode !== '-' ? b.formulaCode : b.operator)} · {b.remaining} {t('unit.kg')}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-mono ${u.color === 'rose' ? 'text-rose-400' : u.color === 'amber' ? 'text-amber-400' : 'text-white'}`}>{b.expiry}</p>
+                        <p className={`text-sm font-mono ${u.color === 'rose' ? 'text-rose-400' : u.color === 'amber' ? 'text-amber-400' : 'text-white'}`}>{b.expiryDate}</p>
                         <p className={`text-xs ${u.color === 'rose' ? 'text-rose-400' : u.color === 'amber' ? 'text-amber-400' : themeConfig.textSecondary}`}>
                           {u.days <= 0 ? u.label : `${u.days} ${t('unit.days')}`}
                         </p>
@@ -381,7 +401,7 @@ function InksPageContent() {
         )}
 
         {/* Tab Content 4. Shade */}
-        {activeTab === 'shade' && (
+        {!loading && !error && activeTab === 'shade' && (
           <div className="grid gap-6">
             {/* Shade Overview Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

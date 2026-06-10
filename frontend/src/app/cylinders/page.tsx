@@ -1,23 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
+import { listCylinders, createCylinder, updateCylinder } from '@/lib/services/cylinder';
+import type { CylinderDto } from '@shared/dto/cylinder/cylinder.dto';
 
-// Mock Data matching legacy components/config.jsx
-const initialCylinders = [
-  { id: 'CYL-BK-001', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', color: 'BK', colorName: 'Black', status: 'available', location: 'Rack A-03', meter: 125000, lastUsed: '2024-06-15', type: 'Dedicated', size: '800×250' },
-  { id: 'CYL-CY-001', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', color: 'CY', colorName: 'Cyan', status: 'inProduction', location: 'Machine M-03', meter: 98500, lastUsed: '2024-06-20', type: 'Dedicated', size: '800×250' },
-  { id: 'CYL-MG-001', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', color: 'MG', colorName: 'Magenta', status: 'inProduction', location: 'Machine M-03', meter: 101200, lastUsed: '2024-06-20', type: 'Dedicated', size: '800×250' },
-  { id: 'CYL-YL-001', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', color: 'YL', colorName: 'Yellow', status: 'reserved', location: 'Rack A-04', meter: 88000, lastUsed: '2024-06-10', type: 'Dedicated', size: '800×250' },
-  { id: 'CYL-WH-001', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', color: 'WH', colorName: 'White', status: 'available', location: 'Rack B-01', meter: 150000, lastUsed: '2024-06-18', type: 'Shared', size: '800×250' },
-  { id: 'CYL-BK-005', product: 'BKK-002', customer: 'บริษัท สยามแพ็ค', color: 'BK', colorName: 'Black', status: 'repair', location: 'Repair Shop', meter: 210000, lastUsed: '2024-06-12', type: 'Shared', size: '900×300' },
-  { id: 'CYL-VN-003', product: 'AGH-001', customer: 'บริษัท เอ็กซ์เซล ฟู้ดส์', color: 'VN', colorName: 'Varnish', status: 'inspection', location: 'QC Area', meter: 75000, lastUsed: '2024-06-20', type: 'Common', size: '800×250' },
-  { id: 'CYL-FL-010', product: 'BKK-003', customer: 'บริษัท ทีพีไอ โพลีน', color: 'FL', colorName: 'Flavor', status: 'available', location: 'Rack C-02', meter: 45000, lastUsed: '2024-06-05', type: 'Dedicated', size: '750×220' },
-];
+interface CylinderDisplay extends CylinderDto {
+  product?: string;
+  customer?: string;
+}
 
 const mockHistory = [
   { cyl: 'CYL-BK-001', product: 'AGH-001', job: 'J2024-045', date: '2024-06-20', machine: 'M-03', operator: 'สมชาย', meter: 15000, remark: '' },
@@ -74,7 +69,9 @@ function CylindersPageContent() {
     router.replace(`/cylinders?tab=${tab}`);
   };
 
-  const [cylinders, setCylinders] = useState(initialCylinders);
+  const [cylinders, setCylinders] = useState<CylinderDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Filter states
   const [view, setView] = useState<'table' | 'card'>('table');
@@ -82,19 +79,35 @@ function CylindersPageContent() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Dialog overlays
-  const [selectedCyl, setSelectedCyl] = useState<typeof initialCylinders[0] | null>(null);
+  const [selectedCyl, setSelectedCyl] = useState<CylinderDisplay | null>(null);
   const [showScan, setShowScan] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
   // Add Form state
   const [form, setForm] = useState({ id: '', product: '', customer: '', color: 'BK', type: 'Dedicated', size: '', location: '' });
 
+  const fetchCylinders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await listCylinders();
+      setCylinders(data);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load cylinders');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCylinders(); }, [fetchCylinders]);
+
   // Filter logic
   const filtered = cylinders.filter(c => {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
-    if (search && !c.id.toLowerCase().includes(search.toLowerCase()) &&
-        !c.product.toLowerCase().includes(search.toLowerCase()) &&
-        !c.customer.toLowerCase().includes(search.toLowerCase())) return false;
+    const q = search.toLowerCase();
+    if (q && !c.id.toLowerCase().includes(q) &&
+        !(c.product || c.productCode || '').toLowerCase().includes(q) &&
+        !(c.customer || '').toLowerCase().includes(q)) return false;
     return true;
   });
 
@@ -105,24 +118,34 @@ function CylindersPageContent() {
     return t(`status.${status}`) || status;
   };
 
-  const handleSaveCylinder = () => {
+  const handleSaveCylinder = async () => {
     const colorNameMap: Record<string, string> = { BK: 'Black', CY: 'Cyan', MG: 'Magenta', YL: 'Yellow', WH: 'White', VN: 'Varnish', FL: 'Flavor' };
-    const newCyl = {
-      id: form.id || `CYL-${form.color}-${Math.floor(100 + Math.random() * 900)}`,
-      product: form.product || 'UNKNOWN-001',
-      customer: form.customer || 'Standard Customer',
-      color: form.color,
-      colorName: colorNameMap[form.color] || form.color,
-      status: 'available',
-      location: form.location || 'Rack A-01',
-      meter: 0,
-      lastUsed: '-',
-      type: form.type,
-      size: form.size || '800×250',
-    };
-    setCylinders([newCyl, ...cylinders]);
-    setShowAdd(false);
-    setForm({ id: '', product: '', customer: '', color: 'BK', type: 'Dedicated', size: '', location: '' });
+    try {
+      const newCyl = await createCylinder({
+        id: form.id || `CYL-${form.color}-${Math.floor(100 + Math.random() * 900)}`,
+        productCode: form.product || 'UNKNOWN-001',
+        color: form.color,
+        colorName: colorNameMap[form.color] || form.color,
+        location: form.location || 'Rack A-01',
+        type: form.type,
+        size: form.size || '800×250',
+      });
+      setCylinders(prev => [newCyl, ...prev]);
+      setShowAdd(false);
+      setForm({ id: '', product: '', customer: '', color: 'BK', type: 'Dedicated', size: '', location: '' });
+    } catch (err: any) {
+      console.error('Failed to create cylinder:', err);
+    }
+  };
+
+  const handleStatusChange = async (cyl: CylinderDisplay, newStatus: string) => {
+    try {
+      await updateCylinder(cyl.id, { status: newStatus as any });
+      setCylinders(prev => prev.map(x => x.id === cyl.id ? { ...x, status: newStatus as any } : x));
+      setSelectedCyl(prev => prev ? { ...prev, status: newStatus as any } : null);
+    } catch (err: any) {
+      console.error('Failed to update cylinder status:', err);
+    }
   };
 
   return (
@@ -222,8 +245,26 @@ function CylindersPageContent() {
               </div>
             </div>
 
-            {/* List Table View */}
-            {view === 'table' ? (
+            {loading ? (
+              <div className={`flex items-center justify-center py-16 ${themeConfig.textSecondary}`}>
+                <RefreshCw size={20} className="animate-spin mr-2" />
+                {t('common.loading')}
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-16 text-rose-400 gap-2">
+                <AlertTriangle size={24} />
+                <p className="text-sm">{error}</p>
+                <button onClick={fetchCylinders} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
+                  {t('btn.retry')}
+                </button>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className={`flex flex-col items-center justify-center py-16 ${themeConfig.textSecondary}`}>
+                <p className="text-sm">{t('common.noData')}</p>
+              </div>
+            ) : null}
+
+            {!loading && !error && view === 'table' && (
               <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -244,8 +285,8 @@ function CylindersPageContent() {
                               <span>{c.colorName}</span>
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-white">{c.product}</td>
-                          <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.customer}</td>
+                          <td className="px-4 py-3 text-white">{c.product || c.productCode}</td>
+                          <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.customer || '—'}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[c.status]?.text || 'text-gray-400'}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[c.status]?.dot || 'bg-gray-400'}`} />
@@ -268,7 +309,9 @@ function CylindersPageContent() {
                   </table>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {!loading && !error && view === 'card' && (
               /* Card Grid View */
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filtered.map(c => (
@@ -287,8 +330,8 @@ function CylindersPageContent() {
                       </span>
                       <span className={`text-[9px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{c.type}</span>
                     </div>
-                    <p className="text-sm font-semibold text-white mb-0.5">{c.product}</p>
-                    <p className={`text-xs ${themeConfig.textSecondary} mb-3`}>{c.customer}</p>
+                    <p className="text-sm font-semibold text-white mb-0.5">{c.product || c.productCode}</p>
+                    <p className={`text-xs ${themeConfig.textSecondary} mb-3`}>{c.customer || '—'}</p>
                     <div className={`flex items-center justify-between pt-3 border-t ${themeConfig.border}`}>
                       <div className="flex items-center gap-1.5">
                         <MapPin size={12} className={themeConfig.textSecondary} />
@@ -403,7 +446,7 @@ function CylindersPageContent() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-mono font-semibold text-cyan-300">{c.id}</span>
-                      <p className={`text-xs ${themeConfig.textSecondary}`}>{c.product} · {c.customer}</p>
+                      <p className={`text-xs ${themeConfig.textSecondary}`}>{c.product || c.productCode} · {c.customer || '—'}</p>
                     </div>
                     <span className={`text-xs ${themeConfig.textSecondary} hidden sm:inline`}>{c.location}</span>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[c.status]?.text || 'text-gray-400'}`}>
@@ -455,8 +498,8 @@ function CylindersPageContent() {
                             <span>{c.colorName}</span>
                           </span>
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm font-mono text-cyan-300">{c.id}</span>
-                            <p className={`text-xs ${themeConfig.textSecondary}`}>{c.product}</p>
+                          <span className="text-sm font-mono text-cyan-300">{c.id}</span>
+                          <p className={`text-xs ${themeConfig.textSecondary}`}>{c.product || c.productCode}</p>
                           </div>
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_COLORS[c.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[c.status]?.text || 'text-gray-400'}`}>
                             <span className={`w-1 h-1 rounded-full mr-1 ${STATUS_COLORS[c.status]?.dot || 'bg-gray-400'}`} />
@@ -605,7 +648,7 @@ function CylindersPageContent() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-lg font-bold text-white">{selectedCyl.id}</h3>
-                <p className={`text-xs ${themeConfig.textSecondary}`}>{selectedCyl.product} · {selectedCyl.customer}</p>
+                <p className={`text-xs ${themeConfig.textSecondary}`}>{selectedCyl.product || selectedCyl.productCode} · {selectedCyl.customer || '—'}</p>
               </div>
               <button onClick={() => setSelectedCyl(null)} className={`p-1.5 rounded-lg ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
                 <X size={18} />
@@ -636,11 +679,7 @@ function CylindersPageContent() {
                   return (
                     <button
                       key={s}
-                      onClick={() => {
-                        const nextCyls = cylinders.map(x => x.id === selectedCyl.id ? { ...x, status: s } : x);
-                        setCylinders(nextCyls);
-                        setSelectedCyl({ ...selectedCyl, status: s });
-                      }}
+                      onClick={() => handleStatusChange(selectedCyl, s)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         active
                           ? `${themeConfig.primaryBg} text-white shadow`
