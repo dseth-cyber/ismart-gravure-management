@@ -4,6 +4,7 @@ import { ApiResponse } from '@shared/dto/auth/auth.dto';
 import { ProductionJobDto, JobVerificationDto } from '@shared/dto/job/job.dto';
 import { ProductionLogDto } from '@shared/dto/log/log.dto';
 import { AuditService } from '../audit/audit.service';
+import { emitEvent, emitToJob } from '../realtime/realtime';
 
 export class JobController {
   static async create(req: Request, res: Response, next: NextFunction): Promise<any> {
@@ -12,6 +13,8 @@ export class JobController {
       
       // Record audit log
       await AuditService.record(req, 'production_job.create', `Created Production Job ${result.jobNumber} for product ${result.productCode}`);
+
+      emitEvent('dashboard:refresh', { type: 'job:created', jobNumber: result.jobNumber });
 
       const response: ApiResponse<ProductionJobDto> = {
         status: 'success',
@@ -94,6 +97,9 @@ export class JobController {
       // Record audit log
       await AuditService.record(req, 'production_job.update_status', `Updated Production Job ${result.jobNumber} status to ${result.status}`);
 
+      emitEvent('job:status', { jobNumber: result.jobNumber, status: result.status });
+      emitToJob(result.jobNumber, 'job:status', { jobNumber: result.jobNumber, status: result.status });
+
       const response: ApiResponse<ProductionJobDto> = {
         status: 'success',
         statusCode: 200,
@@ -127,6 +133,8 @@ export class JobController {
         `Verified items for Job ${result.jobNumber}. Passed: ${result.isPassed}, Requires Override: ${result.requiresOverride}`
       );
 
+      emitEvent('dashboard:refresh', { type: 'job:verified', jobNumber: result.jobNumber });
+
       const response: ApiResponse<JobVerificationDto> = {
         status: 'success',
         statusCode: 200,
@@ -158,6 +166,8 @@ export class JobController {
         'production_job.override', 
         `Supervisor override applied for Job ${result.jobNumber} by ${result.overrideBy}`
       );
+
+      emitEvent('dashboard:refresh', { type: 'job:override', jobNumber: result.jobNumber });
 
       const response: ApiResponse<JobVerificationDto> = {
         status: 'success',
@@ -221,6 +231,8 @@ export class JobController {
         'production_job.log_run', 
         `Logged run for Job ${result.jobNumber}. Start: ${result.startMeter}, End: ${result.endMeter}, Total: ${result.totalPrinted}, Scrap: ${result.scrapQuantity}`
       );
+
+      emitEvent('dashboard:refresh', { type: 'job:log', jobNumber: result.jobNumber });
 
       const response: ApiResponse<ProductionLogDto> = {
         status: 'success',

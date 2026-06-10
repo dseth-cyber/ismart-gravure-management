@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CylinderService } from './cylinder.service';
 import { ApiResponse } from '@shared/dto/auth/auth.dto';
 import { CylinderDto, CylinderStatus } from '@shared/dto/cylinder/cylinder.dto';
+import { emitEvent } from '../realtime/realtime';
 
 export class CylinderController {
   static async create(req: Request, res: Response, next: NextFunction): Promise<any> {
@@ -25,6 +26,7 @@ export class CylinderController {
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      emitEvent('dashboard:refresh', { type: 'cylinder:created', id: result.id });
       return res.status(201).json(response);
     } catch (error) {
       next(error);
@@ -111,6 +113,7 @@ export class CylinderController {
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      emitEvent('dashboard:refresh', { type: 'cylinder:updated', id: result.id });
       return res.status(200).json(response);
     } catch (error) {
       next(error);

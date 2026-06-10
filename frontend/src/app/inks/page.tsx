@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode } from 'lucide-react';
+import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
+import { QrLabel } from '@/components/shared/qr-label';
 import { listFormulas, createFormula, listBatches, createBatch, updateBatch } from '@/lib/services/ink';
 import type { InkFormulaDto, InkBatchDto } from '@shared/dto/ink/ink.dto';
 
@@ -61,6 +62,7 @@ function InksPageContent() {
   const [search, setSearch] = useState('');
 
   // Add formula modal
+  const [printTarget, setPrintTarget] = useState<{ type: 'ink'; data: InkBatchDto } | null>(null);
   const [showAddFormula, setShowAddFormula] = useState(false);
   const [formulaForm, setFormulaForm] = useState({ code: '', product: '', color: 'Black', pantone: '', solvent: 'Ethyl Acetate', viscosity: '', labL: '', labA: '', labB: '' });
 
@@ -86,6 +88,12 @@ function InksPageContent() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    const handler = (e: Event) => setPrintTarget((e as CustomEvent).detail as any);
+    document.addEventListener('print-label', handler);
+    return () => document.removeEventListener('print-label', handler);
+  }, []);
 
   // Filtering lists
   const filteredFormulas = formulas.filter(f => 
@@ -284,7 +292,7 @@ function InksPageContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.batch'), t('col.formula'), t('col.color'), t('ink.mixDate'), t('col.expiry'), t('col.weight'), t('col.remaining'), t('col.operator'), t('col.status')].map(h => (
+                    {[t('col.batch'), t('col.formula'), t('col.color'), t('ink.mixDate'), t('col.expiry'), t('col.weight'), t('col.remaining'), t('col.operator'), t('col.status'), ''].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -319,6 +327,15 @@ function InksPageContent() {
                             <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[b.status]?.dot || 'bg-gray-400'}`} />
                             {t(`status.${b.status}`)}
                           </span>
+                        </td>
+                        <td className="px-2 py-3">
+                          <button
+                            onClick={() => document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'ink', data: b } }))}
+                            className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary} hover:text-cyan-400`}
+                            title="Print Label"
+                          >
+                            <Printer size={15} />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -679,6 +696,34 @@ function InksPageContent() {
                 {mixStep < 3 ? t('btn.next') : t('ink.printQr')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Label Dialog */}
+      {printTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPrintTarget(null)}>
+          <div className="p-6 rounded-xl bg-gray-900 border border-gray-700 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-gray-200">Print Label</h3>
+              <button onClick={() => setPrintTarget(null)} className="text-gray-400 hover:text-white transition">
+                <X size={18} />
+              </button>
+            </div>
+            <QrLabel
+              data={printTarget.data.id}
+              title={`Ink Batch - ${printTarget.data.id}`}
+              type="ink"
+              fields={[
+                { label: 'ID', value: printTarget.data.id },
+                { label: 'Formula', value: printTarget.data.formulaCode as string || '—' },
+                { label: 'Color', value: printTarget.data.color },
+                { label: 'Mix Date', value: printTarget.data.mixDate ? printTarget.data.mixDate as string : '—' },
+                { label: 'Expiry', value: printTarget.data.expiryDate },
+                { label: 'Weight', value: `${printTarget.data.weight} kg` },
+                { label: 'Operator', value: printTarget.data.operator },
+              ]}
+            />
           </div>
         </div>
       )}

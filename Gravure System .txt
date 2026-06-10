@@ -1,6 +1,6 @@
 https://github.com/dseth-cyber
 Username: ให้ใส่ชื่อ User GitHub ของคุณ (เช่น dseth-cyber)
-lohakij.lc.it@gmail.com
+dseth.sticon@gmail.com
 
 Password: "ห้ามใส่รหัสผ่านเมล์" ให้วาง Token (ghp_xxxx...) ที่ก๊อปปี้มาลงไปแทนครับ (ตอนวางมันจะไม่โชว์ตัวอักษร ให้กด Enter ได้เลย)
 Personal access tokens (classic)

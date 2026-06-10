@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X } from 'lucide-react';
+import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
+import { QrLabel } from '@/components/shared/qr-label';
 import { listCylinders, createCylinder, updateCylinder } from '@/lib/services/cylinder';
 import type { CylinderDto } from '@shared/dto/cylinder/cylinder.dto';
 
@@ -82,6 +83,7 @@ function CylindersPageContent() {
   const [selectedCyl, setSelectedCyl] = useState<CylinderDisplay | null>(null);
   const [showScan, setShowScan] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [printTarget, setPrintTarget] = useState<{ type: 'cylinder'; data: CylinderDisplay } | null>(null);
 
   // Add Form state
   const [form, setForm] = useState({ id: '', product: '', customer: '', color: 'BK', type: 'Dedicated', size: '', location: '' });
@@ -100,6 +102,12 @@ function CylindersPageContent() {
   }, []);
 
   useEffect(() => { fetchCylinders(); }, [fetchCylinders]);
+
+  useEffect(() => {
+    const handler = (e: Event) => setPrintTarget((e as CustomEvent).detail as any);
+    document.addEventListener('print-label', handler);
+    return () => document.removeEventListener('print-label', handler);
+  }, []);
 
   // Filter logic
   const filtered = cylinders.filter(c => {
@@ -299,9 +307,18 @@ function CylindersPageContent() {
                             <span className={`text-[10px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{c.type}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <button className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
-                              <Eye size={15} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
+                                <Eye size={15} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'cylinder', data: c } })); }}
+                                className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`}
+                                title="Print Label"
+                              >
+                                <Printer size={15} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -337,7 +354,16 @@ function CylindersPageContent() {
                         <MapPin size={12} className={themeConfig.textSecondary} />
                         <span className={`text-xs ${themeConfig.textSecondary}`}>{c.location}</span>
                       </div>
-                      <span className="text-xs font-mono text-white">{(c.meter/1000).toFixed(0)}K {t('unit.meter')}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'cylinder', data: c } })); }}
+                          className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary} hover:text-cyan-400`}
+                          title="Print Label"
+                        >
+                          <Printer size={13} />
+                        </button>
+                        <span className="text-xs font-mono text-white">{(c.meter/1000).toFixed(0)}K {t('unit.meter')}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -701,6 +727,33 @@ function CylindersPageContent() {
                 {t('btn.cancel')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Label Dialog */}
+      {printTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPrintTarget(null)}>
+          <div className="p-6 rounded-xl bg-gray-900 border border-gray-700 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-gray-200">Print Label</h3>
+              <button onClick={() => setPrintTarget(null)} className="text-gray-400 hover:text-white transition">
+                <X size={18} />
+              </button>
+            </div>
+            <QrLabel
+              data={printTarget.data.id}
+              title={`Cylinder - ${printTarget.data.id}`}
+              type="cylinder"
+              fields={[
+                { label: 'ID', value: printTarget.data.id },
+                { label: 'Product', value: printTarget.data.product || printTarget.data.productCode },
+                { label: 'Color', value: printTarget.data.colorName || printTarget.data.color },
+                { label: 'Status', value: printTarget.data.status },
+                { label: 'Meter', value: `${printTarget.data.meter.toLocaleString()} m` },
+                { label: 'Location', value: printTarget.data.location },
+              ]}
+            />
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import {
   InkFormulaDto, InkFormulaStatus,
   InkBatchDto, InkBatchStatus 
 } from '@shared/dto/ink/ink.dto';
+import { emitEvent } from '../realtime/realtime';
 
 export class InkController {
   // --- Ink Formulas ---
@@ -28,6 +29,7 @@ export class InkController {
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      emitEvent('dashboard:refresh', { type: 'formula:created', code: result.code });
       return res.status(201).json(response);
     } catch (error) {
       next(error);
@@ -110,6 +112,7 @@ export class InkController {
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      emitEvent('dashboard:refresh', { type: 'formula:updated', code: result.code });
       return res.status(200).json(response);
     } catch (error) {
       next(error);
@@ -124,6 +127,7 @@ export class InkController {
         statusCode: 200,
         message: 'Formula deleted successfully'
       };
+      emitEvent('dashboard:refresh', { type: 'formula:deleted', code: req.params.code });
       return res.status(200).json(response);
     } catch (error) {
       next(error);
@@ -152,6 +156,7 @@ export class InkController {
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      emitEvent('dashboard:refresh', { type: 'batch:created', id: result.id });
       return res.status(201).json(response);
     } catch (error) {
       next(error);
@@ -238,6 +243,7 @@ export class InkController {
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      emitEvent('dashboard:refresh', { type: 'batch:updated', id: result.id });
       return res.status(200).json(response);
     } catch (error) {
       next(error);
@@ -252,6 +258,7 @@ export class InkController {
         statusCode: 200,
         message: 'Batch deleted successfully'
       };
+      emitEvent('dashboard:refresh', { type: 'batch:deleted', id: req.params.id });
       return res.status(200).json(response);
     } catch (error) {
       next(error);

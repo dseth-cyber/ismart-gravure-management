@@ -18,6 +18,7 @@ import jobRoutes from './modules/job/job.routes';
 import qcRoutes from './modules/qc/qc.routes';
 import auditRoutes from './modules/audit/audit.routes';
 import queueRoutes from './modules/queue/queue.routes';
+import notificationRoutes from './modules/notification/notification.routes';
 import { initQueueWorker } from './modules/queue/queue.service';
 import { prisma } from './config/database';
 
@@ -134,6 +135,7 @@ app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/qc', qcRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/queue', queueRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // Initialize background worker
 initQueueWorker();

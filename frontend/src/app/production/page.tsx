@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { ColorBadge } from '@/components/shared/color-badge';
+import { QrScanner } from '@/components/shared/qr-scanner';
 import { listJobs } from '@/lib/services/job';
 import { getTraceability } from '@/lib/services/qc';
 import type { ProductionJobDto } from '@shared/dto/job/job.dto';
@@ -26,7 +27,8 @@ import {
   X,
   List,
   Factory,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 
 function ProductionPageContent() {
@@ -50,7 +52,8 @@ function ProductionPageContent() {
 
   // Verification flow state
   const [step, setStep] = useState(0);
-  const [verifying, setVerifying] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
+  const [scannerError, setScannerError] = useState('');
   const [scanResults, setScanResults] = useState<{
     job: { id: string; product: string; customer: string } | null;
     cylinders: Array<{ id: string; color: string; match: boolean }>;
@@ -60,54 +63,71 @@ function ProductionPageContent() {
     cylinders: [],
     inks: [],
   });
+  const [manualInput, setManualInput] = useState('');
 
-  const scanJob = () => {
-    setVerifying(true);
-    setTimeout(() => {
-      setScanResults(prev => ({
-        ...prev,
-        job: { id: 'J2024-045', product: 'AGH-001', customer: 'เอ็กซ์เซล ฟู้ดส์' }
-      }));
-      setVerifying(false);
-      setStep(2);
-    }, 1200);
+  const onJobScanned = (code: string) => {
+    setScanResults(prev => ({
+      ...prev,
+      job: { id: code, product: code.startsWith('J') ? 'PROD-' + code.slice(-4) : code, customer: '—' }
+    }));
+    setStep(2);
+    setScannerKey(k => k + 1);
   };
 
-  const scanCylinder = () => {
-    setVerifying(true);
-    setTimeout(() => {
-      setScanResults(prev => ({
-        ...prev,
-        cylinders: [
-          { id: 'CYL-BK-001', color: 'Black', match: true },
-          { id: 'CYL-CY-001', color: 'Cyan', match: true },
-          { id: 'CYL-MG-001', color: 'Magenta', match: true }
-        ]
-      }));
-      setVerifying(false);
-      setStep(3);
-    }, 1500);
+  const onCylinderScanned = (code: string) => {
+    setScanResults(prev => ({
+      ...prev,
+      cylinders: [...prev.cylinders, { id: code, color: 'Scanned', match: true }]
+    }));
+    setScannerKey(k => k + 1);
   };
 
-  const scanInk = () => {
-    setVerifying(true);
-    setTimeout(() => {
-      setScanResults(prev => ({
-        ...prev,
-        inks: [
-          { id: 'MIX-2024-089', color: 'Black', formula: 'INK-BK-R03', match: true, expiryOk: true },
-          { id: 'MIX-2024-090', color: 'Cyan', formula: 'INK-CY-R02', match: true, expiryOk: true },
-          { id: 'MIX-2024-085', color: 'Magenta', formula: 'INK-MG-R01', match: true, expiryOk: false }
-        ]
-      }));
-      setVerifying(false);
-      setStep(4);
-    }, 1500);
+  const onInkScanned = (code: string) => {
+    setScanResults(prev => ({
+      ...prev,
+      inks: [...prev.inks, { id: code, color: 'Scanned', formula: code.includes('-') ? code.split('-').slice(0, -1).join('-') : code, match: true, expiryOk: true }]
+    }));
+    setScannerKey(k => k + 1);
+  };
+
+  const handleManualJob = () => {
+    if (!manualInput.trim()) return;
+    onJobScanned(manualInput.trim());
+    setManualInput('');
+  };
+
+  const handleManualCylinder = () => {
+    if (!manualInput.trim()) return;
+    onCylinderScanned(manualInput.trim());
+    setManualInput('');
+  };
+
+  const handleManualInk = () => {
+    if (!manualInput.trim()) return;
+    onInkScanned(manualInput.trim());
+    setManualInput('');
+  };
+
+  const removeCylinder = (id: string) => {
+    setScanResults(prev => ({
+      ...prev,
+      cylinders: prev.cylinders.filter(c => c.id !== id)
+    }));
+  };
+
+  const removeInk = (id: string) => {
+    setScanResults(prev => ({
+      ...prev,
+      inks: prev.inks.filter(i => i.id !== id)
+    }));
   };
 
   const resetVerification = () => {
     setStep(0);
     setScanResults({ job: null, cylinders: [], inks: [] });
+    setScannerKey(k => k + 1);
+    setScannerError('');
+    setManualInput('');
   };
 
   const allPass = step === 4 && scanResults.inks.every(i => i.match && i.expiryOk);
@@ -257,64 +277,82 @@ function ProductionPageContent() {
 
               {/* Step 1: Scan Job */}
               {step === 1 && (
-                <div className="text-center py-6">
-                  <div className={`w-32 h-32 rounded-2xl border-2 border-dashed flex items-center justify-center mx-auto mb-5 relative overflow-hidden ${
-                    verifying ? 'border-cyan-400/50' : themeConfig.border
-                  }`}>
-                    {verifying ? (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/10 to-transparent animate-pulse"></div>
-                        <QrCode size={40} className="text-cyan-400/50 animate-bounce" />
-                      </>
-                    ) : (
-                      <Camera size={40} className={themeConfig.textMuted} />
-                    )}
+                <div className="py-4">
+                  <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-1 text-center`}>{t('prod.scanJob')}</h4>
+                  <p className={`text-xs ${themeConfig.textMuted} mb-4 text-center`}>{t('prod.scanJobSub')}</p>
+                  <QrScanner key={scannerKey} onScan={onJobScanned} onError={setScannerError} width={280} height={280} />
+                  {scannerError && (
+                    <p className="text-xs text-rose-400 text-center mt-2">{scannerError}</p>
+                  )}
+                  <div className="mt-4 flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={manualInput}
+                      onChange={e => setManualInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleManualJob()}
+                      placeholder={t('prod.enterManual') || 'Enter job number...'}
+                      className={`flex-1 rounded-lg px-3 py-2 text-xs border outline-none ${themeConfig.input}`}
+                    />
+                    <button onClick={handleManualJob} disabled={!manualInput.trim()} className={`px-4 py-2 rounded-lg text-xs font-bold text-white shadow transition ${themeConfig.primaryButton} disabled:opacity-50`}>
+                      <Plus size={14} />
+                    </button>
                   </div>
-                  <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-1`}>{t('prod.scanJob')}</h4>
-                  <p className={`text-xs ${themeConfig.textMuted} mb-6`}>{t('prod.scanJobSub')}</p>
-                  <button 
-                    onClick={scanJob} 
-                    disabled={verifying}
-                    className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow transition-all ${themeConfig.primaryButton} disabled:opacity-50`}
-                  >
-                    {verifying ? t('prod.scanning') : t('prod.scan')}
-                  </button>
                 </div>
               )}
 
               {/* Step 2: Scan Cylinders */}
               {step === 2 && scanResults.job && (
                 <div>
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-6 flex items-center gap-3">
-                    <Check size={18} className="text-emerald-400 flex-shrink-0" />
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-4 flex items-center gap-3">
+                    <Check size={16} className="text-emerald-400 flex-shrink-0" />
                     <div>
-                      <span className="text-sm font-bold text-emerald-400">Job: {scanResults.job.id}</span>
+                      <span className="text-sm font-bold text-emerald-400">{t('prod.scanJob')}: {scanResults.job.id}</span>
                       <span className={`text-xs ${themeConfig.textSecondary} ml-2`}>· {scanResults.job.product}</span>
                     </div>
                   </div>
 
-                  <div className="text-center py-6 border-t border-white/5">
-                    <div className={`w-32 h-32 rounded-2xl border-2 border-dashed flex items-center justify-center mx-auto mb-5 relative overflow-hidden ${
-                      verifying ? 'border-cyan-400/50' : themeConfig.border
-                    }`}>
-                      {verifying ? (
-                        <>
-                          <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/10 to-transparent animate-pulse"></div>
-                          <Layers size={40} className="text-cyan-400/50 animate-bounce" />
-                        </>
-                      ) : (
-                        <Camera size={40} className={themeConfig.textMuted} />
-                      )}
+                  {scanResults.cylinders.length > 0 && (
+                    <div className="space-y-1.5 mb-4">
+                      <p className={`text-xs font-bold ${themeConfig.textSecondary} mb-2`}>{t('col.cylinder')} ({scanResults.cylinders.length})</p>
+                      {scanResults.cylinders.map(c => (
+                        <div key={c.id} className={`flex items-center gap-2 p-2 rounded-lg border ${themeConfig.border} ${themeConfig.badge}`}>
+                          <Layers size={14} className="text-cyan-400 flex-shrink-0" />
+                          <span className={`text-xs font-mono font-bold flex-1 ${themeConfig.textPrimary}`}>{c.id}</span>
+                          <button onClick={() => removeCylinder(c.id)} className="text-rose-400 hover:text-rose-300 transition">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-1`}>{t('prod.scanCylinders')}</h4>
-                    <p className={`text-xs ${themeConfig.textMuted} mb-6`}>{t('prod.scanCylindersSub')}</p>
-                    <button 
-                      onClick={scanCylinder} 
-                      disabled={verifying}
-                      className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow transition-all ${themeConfig.primaryButton} disabled:opacity-50`}
-                    >
-                      {verifying ? t('prod.scanning') : t('prod.scan')}
-                    </button>
+                  )}
+
+                  <div className="border-t border-white/5 pt-4">
+                    <h5 className={`text-xs font-bold ${themeConfig.textPrimary} mb-3 text-center`}>{t('prod.scanCylinders')}</h5>
+                    <QrScanner key={`cyl-${scannerKey}`} onScan={onCylinderScanned} onError={setScannerError} width={280} height={280} />
+                    {scannerError && (
+                      <p className="text-xs text-rose-400 text-center mt-2">{scannerError}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={manualInput}
+                        onChange={e => setManualInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleManualCylinder()}
+                        placeholder={t('prod.enterManual') || 'Enter cylinder code...'}
+                        className={`flex-1 rounded-lg px-3 py-2 text-xs border outline-none ${themeConfig.input}`}
+                      />
+                      <button onClick={handleManualCylinder} disabled={!manualInput.trim()} className={`px-4 py-2 rounded-lg text-xs font-bold text-white shadow transition ${themeConfig.primaryButton} disabled:opacity-50`}>
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button onClick={() => setScannerKey(k => k + 1)} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${themeConfig.secondaryButton}`}>
+                        <RefreshCw size={12} className="inline mr-1" />{t('prod.reScan') || 'Re-scan'}
+                      </button>
+                      <button onClick={() => setStep(3)} className={`flex-1 py-2 rounded-lg text-xs font-bold text-white shadow transition ${themeConfig.primaryButton}`}>
+                        {t('prod.doneScanning') || 'Done'} →
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -322,48 +360,71 @@ function ProductionPageContent() {
               {/* Step 3: Scan Inks */}
               {step === 3 && scanResults.job && (
                 <div>
-                  <div className="space-y-2.5 mb-6">
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
-                      <Check size={18} className="text-emerald-400 flex-shrink-0" />
-                      <span className="text-sm font-bold text-emerald-400">Job: {scanResults.job.id}</span>
+                  <div className="space-y-1.5 mb-4">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+                      <Check size={16} className="text-emerald-400 flex-shrink-0" />
+                      <span className="text-sm font-bold text-emerald-400">{t('prod.scanJob')}: {scanResults.job.id}</span>
                     </div>
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Check size={18} className="text-emerald-400 flex-shrink-0" />
-                        <span className="text-sm font-bold text-emerald-400">{t('prod.scanCylinders')} ({scanResults.cylinders.length}) ✓</span>
+                    {scanResults.cylinders.length > 0 && (
+                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Check size={14} className="text-emerald-400 flex-shrink-0" />
+                          <span className="text-xs font-bold text-emerald-400">{t('prod.scanCylinders')} ({scanResults.cylinders.length})</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {scanResults.cylinders.map(c => (
+                            <span key={c.id} className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                              {c.id}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex gap-2 ml-7">
-                        {scanResults.cylinders.map(c => (
-                          <span key={c.id} className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                            {c.color}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="text-center py-6 border-t border-white/5">
-                    <div className={`w-32 h-32 rounded-2xl border-2 border-dashed flex items-center justify-center mx-auto mb-5 relative overflow-hidden ${
-                      verifying ? 'border-cyan-400/50' : themeConfig.border
-                    }`}>
-                      {verifying ? (
-                        <>
-                          <div className="absolute inset-0 bg-gradient-to-b from-cyan-400/10 to-transparent animate-pulse"></div>
-                          <Droplet size={40} className="text-cyan-400/50 animate-bounce" />
-                        </>
-                      ) : (
-                        <Camera size={40} className={themeConfig.textMuted} />
-                      )}
+                  {scanResults.inks.length > 0 && (
+                    <div className="space-y-1.5 mb-4">
+                      <p className={`text-xs font-bold ${themeConfig.textSecondary} mb-2`}>{t('col.inkBatch')} ({scanResults.inks.length})</p>
+                      {scanResults.inks.map(i => (
+                        <div key={i.id} className={`flex items-center gap-2 p-2 rounded-lg border ${themeConfig.border} ${themeConfig.badge}`}>
+                          <Droplet size={14} className="text-cyan-400 flex-shrink-0" />
+                          <span className={`text-xs font-mono font-bold flex-1 ${themeConfig.textPrimary}`}>{i.id}</span>
+                          <span className={`text-[10px] font-semibold ${themeConfig.textMuted}`}>{i.formula}</span>
+                          <button onClick={() => removeInk(i.id)} className="text-rose-400 hover:text-rose-300 transition">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-1`}>{t('prod.scanInk')}</h4>
-                    <p className={`text-xs ${themeConfig.textMuted} mb-6`}>{t('prod.scanInkSub')}</p>
-                    <button 
-                      onClick={scanInk} 
-                      disabled={verifying}
-                      className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow transition-all ${themeConfig.primaryButton} disabled:opacity-50`}
-                    >
-                      {verifying ? t('prod.scanning') : t('prod.scan')}
-                    </button>
+                  )}
+
+                  <div className="border-t border-white/5 pt-4">
+                    <h5 className={`text-xs font-bold ${themeConfig.textPrimary} mb-3 text-center`}>{t('prod.scanInk')}</h5>
+                    <QrScanner key={`ink-${scannerKey}`} onScan={onInkScanned} onError={setScannerError} width={280} height={280} />
+                    {scannerError && (
+                      <p className="text-xs text-rose-400 text-center mt-2">{scannerError}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={manualInput}
+                        onChange={e => setManualInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleManualInk()}
+                        placeholder={t('prod.enterManual') || 'Enter ink batch code...'}
+                        className={`flex-1 rounded-lg px-3 py-2 text-xs border outline-none ${themeConfig.input}`}
+                      />
+                      <button onClick={handleManualInk} disabled={!manualInput.trim()} className={`px-4 py-2 rounded-lg text-xs font-bold text-white shadow transition ${themeConfig.primaryButton} disabled:opacity-50`}>
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button onClick={() => setScannerKey(k => k + 1)} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${themeConfig.secondaryButton}`}>
+                        <RefreshCw size={12} className="inline mr-1" />{t('prod.reScan') || 'Re-scan'}
+                      </button>
+                      <button onClick={() => setStep(4)} disabled={scanResults.inks.length === 0} className={`flex-1 py-2 rounded-lg text-xs font-bold text-white shadow transition ${themeConfig.primaryButton} disabled:opacity-50`}>
+                        {t('prod.viewResult') || 'View Result'} →
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
