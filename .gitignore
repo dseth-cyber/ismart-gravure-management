@@ -42,6 +42,9 @@ uploads/*
 # Coverage
 coverage/
 
+# TypeScript
+*.tsbuildinfo
+
 # Prisma
 backend/prisma/*.db
 backend/prisma/*.db-journal
