@@ -4,10 +4,12 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { QrLabel } from '@/components/shared/qr-label';
 import { listCylinders, createCylinder, updateCylinder } from '@/lib/services/cylinder';
+
+const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import type { CylinderDto } from '@shared/dto/cylinder/cylinder.dto';
 
 interface CylinderDisplay extends CylinderDto {

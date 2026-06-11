@@ -4,6 +4,7 @@ import { env } from './config/env';
 import { prisma } from './config/database';
 import { initRealtime } from './modules/realtime/realtime';
 import { NotificationService } from './modules/notification/notification.service';
+import { CleanupService } from './modules/cleanup/cleanup.service';
 
 const server = http.createServer(app);
 initRealtime(server);
@@ -29,6 +30,18 @@ setTimeout(() => {
     console.error('[Notifications] Initial check failed:', err);
   });
 }, 3000);
+
+// Daily data retention cleanup
+setInterval(async () => {
+  try {
+    const result = await CleanupService.runAll();
+    if (result.auditLogs > 0 || result.refreshTokens > 0) {
+      console.log(`[Cleanup] Purged ${result.auditLogs} audit logs, ${result.refreshTokens} expired refresh tokens`);
+    }
+  } catch (err) {
+    console.error('[Cleanup] Failed:', err);
+  }
+}, 24 * 60 * 60 * 1000);
 
 const gracefulShutdown = async (): Promise<void> => {
   console.log('Received kill signal, shutting down gracefully...');

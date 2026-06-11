@@ -4,10 +4,12 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { QrLabel } from '@/components/shared/qr-label';
 import { listFormulas, createFormula, listBatches, createBatch, updateBatch } from '@/lib/services/ink';
+
+const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import type { InkFormulaDto, InkBatchDto } from '@shared/dto/ink/ink.dto';
 
 const initialShadeHistory = [

@@ -3,12 +3,14 @@
 import { useState, Fragment, useEffect, Suspense, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { ColorBadge } from '@/components/shared/color-badge';
-import { QrScanner } from '@/components/shared/qr-scanner';
+
+const QrScanner = dynamic(() => import('@/components/shared/qr-scanner').then(m => ({ default: m.QrScanner })), { ssr: false });
 import { listJobs } from '@/lib/services/job';
 import { getTraceability } from '@/lib/services/qc';
 import type { ProductionJobDto } from '@shared/dto/job/job.dto';

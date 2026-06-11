@@ -7,6 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import net from 'net';
 import { correlationMiddleware } from './middleware/correlation';
 import { loggerMiddleware } from './middleware/logger';
+import { rateLimiter } from './middleware/rate-limiter';
 import { errorHandler } from './middleware/error';
 import authRoutes from './modules/auth/auth.routes';
 import customerRoutes from './modules/customer/customer.routes';
@@ -33,6 +34,7 @@ app.use(cors({
 app.use(express.json());
 app.use(correlationMiddleware); // Set correlation ID on every request
 app.use(loggerMiddleware);
+app.use(rateLimiter); // Rate limiting (token bucket via Redis)
 
 // Swagger API Documentation
 const openapiPath = path.join(__dirname, 'docs', 'openapi.yaml');
