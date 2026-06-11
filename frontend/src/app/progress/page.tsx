@@ -26,10 +26,10 @@ const phases: Array<{ id: number; nameKey: string; outputKey: string; status: St
   { id: 11, nameKey: 'phase.11.name', outputKey: 'phase.11.output', status: 'done' },
   { id: 12, nameKey: 'phase.12.name', outputKey: 'phase.12.output', status: 'done' },
   { id: 13, nameKey: 'phase.13.name', outputKey: 'phase.13.output', status: 'done' },
-  { id: 14, nameKey: 'phase.14.name', outputKey: 'phase.14.output', status: 'progress' },
-  { id: 15, nameKey: 'phase.15.name', outputKey: 'phase.15.output', status: 'pending' },
-  { id: 16, nameKey: 'phase.16.name', outputKey: 'phase.16.output', status: 'pending' },
-  { id: 17, nameKey: 'phase.17.name', outputKey: 'phase.17.output', status: 'pending' },
+  { id: 14, nameKey: 'phase.14.name', outputKey: 'phase.14.output', status: 'done' },
+  { id: 15, nameKey: 'phase.15.name', outputKey: 'phase.15.output', status: 'done' },
+  { id: 16, nameKey: 'phase.16.name', outputKey: 'phase.16.output', status: 'done' },
+  { id: 17, nameKey: 'phase.17.name', outputKey: 'phase.17.output', status: 'done' },
 ];
 
 const rules = [
