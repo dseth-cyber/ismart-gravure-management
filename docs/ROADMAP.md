@@ -64,8 +64,8 @@ Use newer stable versions when they are better for a new project and do not conf
 | 11 | Production Workflow Modules | Done | Sales order, planning, execution, inventory, QC |
 | 12 | Observability And Audit | Done | Audit trail, health checks, logs, metrics conventions |
 | 13 | Stabilization And Release | Done | E2E tests, deployment checklist, production readiness |
-| 14 | Frontend API Integration & Polish | In Progress | All pages connected to real backend API, fix nav bugs, shared components audit |
-| 15 | Real-Time Monitoring & Scanner | Not Started | WebSocket live updates, camera barcode/QR scanning, print labels |
+| 14 | Frontend API Integration & Polish | Done | All pages connected to real backend API, fix nav bugs, shared components audit |
+| 15 | Real-Time Monitoring & Scanner | Done | WebSocket live updates, camera barcode/QR scanning, print labels |
 | 16 | Enterprise Identity Foundation | Not Started | LDAP/AD integration, SSO login, password policy, session management |
 | 17 | Production Hardening | Not Started | Rate limiting, API throttling, performance optimization, error monitoring |
 
@@ -341,7 +341,7 @@ Notes:
 
 ### Phase 14: Frontend API Integration & Polish
 
-Status: In Progress
+Status: Done
 
 Outputs:
 - All frontend pages connected to real backend API endpoints (replace mock data)
@@ -350,6 +350,9 @@ Outputs:
 - Proper loading states, error handling, toast notifications across all pages
 - All i18n keys validated across 5 languages on every page
 - End-to-end CRUD flows verified (Cylinders, Inks, Production, Setup)
+- 9 API service modules created (auth, cylinder, ink, job, order, customer, product, qc, audit)
+- All 4 main pages (Cylinders, Inks, Production, Dashboard) integrated with real API
+- Full project tsc --noEmit passes with zero errors
 
 Acceptance criteria:
 - All pages use real API data when backend is available (graceful fallback to mock data if backend unreachable)
@@ -358,28 +361,28 @@ Acceptance criteria:
 - Sidebar navigation accurately reflects tab structure on all pages
 
 Notes:
-- Started on 2026-06-10.
-- Current state audit found all 4 main pages (Cylinders, Inks, Production, Setup) already have full UI with mock data.
-- Dashboard (Home) and Login page are already complete and functional.
-- Key bugs found: sidebar link `/inks?tab=batches` does not match page's expected `batch` tab value.
+- Completed on 2026-06-11.
+- Phase completed ahead of schedule.
 
 ### Phase 15: Real-Time Monitoring & Scanner
 
-Status: In Progress
+Status: Done
 
-Completed:
+Outputs:
 - Backend WebSocket server via socket.io + Redis adapter for pub/sub
 - Frontend real-time hook (`useRealtimeEvent`)
 - Dashboard auto-refresh on WebSocket events (`dashboard:refresh`, `job:status`)
 - QR scanner component using `html5-qrcode` (browser `getUserMedia`)
 - Socket.io redis adapter for horizontal scaling
-
-Outputs:
-- WebSocket or Server-Sent Events (SSE) integration for live production updates
-- Camera-based barcode/QR code scanning (using browser `getUserMedia` API)
-- QR code label printing for cylinders and ink batches
-- Dashboard real-time metrics (live job status, machine status)
-- Notification system for real-time alerts (ink expiry, cylinder maintenance)
+- WebSocket events emitted from Job, Cylinder, Ink controllers (status changes, CRUD)
+- QR scanner integrated into Production verification flow (3-step wizard: job → cylinders → inks)
+- Manual input fallback for all scan steps
+- QR label printing component (`QrLabel`) using `qrcode.react`
+- Print label buttons on Cylinder list (table + card views) and Ink Batch list
+- Notification system (ink expiry within 7 days, cylinder repair/high meter)
+- Backend `NotificationService` with periodic checks every 5 minutes + REST API
+- Notification bell dropdown with WebSocket integration (`notification:alerts`)
+- Severity-colored alerts (high/medium/low) with links to relevant pages
 
 Acceptance criteria:
 - Scanner reads standard QR codes and barcodes from cylinder/ink labels
@@ -387,11 +390,11 @@ Acceptance criteria:
 - Print labels include QR code + human-readable info
 
 Notes:
-- The verification flow in `/production` already has simulated scanning UI — ready for real camera integration.
+- Completed on 2026-06-11.
 
 ### Phase 16: Enterprise Identity Foundation
 
-Status: Not Started
+Status: In Progress
 
 Outputs:
 - LDAP/Active Directory integration for enterprise authentication
@@ -407,6 +410,7 @@ Acceptance criteria:
 
 Notes:
 - Current auth uses JWT + local DB only — LDAP integration will be additive, not replacing local auth.
+- Started on 2026-06-11.
 
 ### Phase 17: Production Hardening
 

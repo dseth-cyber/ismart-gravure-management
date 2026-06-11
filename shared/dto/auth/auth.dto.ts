@@ -12,8 +12,16 @@ export interface LoginRequestDto {
 }
 
 export interface LoginResponseDto {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
   user: UserProfileDto;
+}
+
+export interface RefreshResponseDto {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 export interface ApiResponse<T = any> {

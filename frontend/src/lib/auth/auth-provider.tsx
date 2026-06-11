@@ -3,108 +3,107 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { apiClient } from '../api/client';
-import { LoginRequestDto, LoginResponseDto, UserProfileDto, ApiResponse } from '@shared/dto/auth/auth.dto';
-
-type UserProfile = UserProfileDto;
+import { UserProfileDto, ApiResponse } from '@shared/dto/auth/auth.dto';
 
 type AuthContextType = {
-  user: UserProfile | null;
-  token: string | null;
+  user: UserProfileDto | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<UserProfileDto | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem('gm_refresh_token');
+    if (refreshToken) {
+      try {
+        await apiClient.post('/api/v1/auth/logout', { refreshToken });
+      } catch { /* ignore */ }
+    }
     localStorage.removeItem('gm_access_token');
-    setToken(null);
+    localStorage.removeItem('gm_refresh_token');
+    setAccessToken(null);
     setUser(null);
     setLoading(false);
     router.push('/login');
   };
 
-  // Load token and fetch user on mount
   useEffect(() => {
     async function loadUser() {
       const storedToken = localStorage.getItem('gm_access_token');
       if (storedToken) {
-        setToken(storedToken);
+        setAccessToken(storedToken);
         try {
           const res = await apiClient.get<ApiResponse<UserProfileDto>>('/api/v1/auth/me');
-          if (res.data && res.data.status === 'success' && res.data.data) {
+          if (res.data?.status === 'success' && res.data.data) {
             setUser(res.data.data);
           } else {
-            handleLogout();
+            await handleLogout();
           }
-        } catch (err) {
-          console.error('Failed to load user profile', err);
-          handleLogout();
+        } catch {
+          await handleLogout();
         }
-      } else {
-        setLoading(false);
       }
+      setLoading(false);
     }
     loadUser();
   }, []);
 
-  // Update loading state once user is resolved or no token is found
-  useEffect(() => {
-    if (token && user) {
-      setLoading(false);
-    } else if (!token) {
-      setLoading(false);
-    }
-  }, [token, user]);
-
-  // Handle automatic redirection
   useEffect(() => {
     if (loading) return;
-
     const isLoginPage = pathname === '/login';
-    if (!token && !isLoginPage) {
+    if (!accessToken && !isLoginPage) {
       router.push('/login');
-    } else if (token && user && isLoginPage) {
+    } else if (accessToken && user && isLoginPage) {
       router.push('/');
     }
-  }, [token, user, loading, pathname, router]);
+  }, [accessToken, user, loading, pathname, router]);
 
   const handleLogin = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const res = await apiClient.post<ApiResponse<LoginResponseDto>>('/api/v1/auth/login', { username, password } as LoginRequestDto);
-      if (res.data && res.data.status === 'success' && res.data.data) {
-        const { token: nextToken, user: nextUser } = res.data.data;
-        localStorage.setItem('gm_access_token', nextToken);
-        setToken(nextToken);
-        setUser(nextUser);
-      } else {
-        throw new Error('Login failed');
-      }
+      const res = await apiClient.post('/api/v1/auth/login', { username, password });
+      const { accessToken: at, refreshToken: rt, user: u } = res.data.data;
+      localStorage.setItem('gm_access_token', at);
+      localStorage.setItem('gm_refresh_token', rt);
+      setAccessToken(at);
+      setUser(u);
     } catch (err) {
       setLoading(false);
       throw err;
     }
   };
 
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    await apiClient.post('/api/v1/auth/change-password', { currentPassword, newPassword });
+    localStorage.removeItem('gm_access_token');
+    localStorage.removeItem('gm_refresh_token');
+    setAccessToken(null);
+    setUser(null);
+    router.push('/login');
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!token && !!user,
+        accessToken,
+        isAuthenticated: !!accessToken && !!user,
         loading,
         login: handleLogin,
         logout: handleLogout,
+        changePassword: handleChangePassword,
       }}
     >
       {children}
@@ -114,8 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }

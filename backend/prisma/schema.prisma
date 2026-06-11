@@ -18,14 +18,31 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  passwordHash String
-  role         Role
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(uuid())
+  username          String   @unique
+  passwordHash      String
+  passwordHistory   String[]
+  lastPasswordChange DateTime? @default(now())
+  failedLoginAttempts Int     @default(0)
+  lockedUntil       DateTime?
+  role              Role
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
+  sessions   RefreshToken[]
   @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  @@map("refresh_tokens")
 }
 
 model Customer {
