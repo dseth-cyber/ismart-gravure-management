@@ -555,5 +555,89 @@
   "login.submit": "登录",
   "login.error.invalid": "用户名或密码错误",
   "login.error.generic": "服务器连接失败",
-  "btn.logout": "退出登录"
+  "btn.logout": "退出登录",
+  "phase.18.name": "安全与身份验证",
+  "phase.18.output": "MFA (TOTP), 增强LDAP组映射, Docker Secrets",
+  "phase.19.name": "运维与可观测性",
+  "phase.19.output": "自动备份脚本, 增强健康监控",
+  "phase.20.name": "高级RBAC和工作流",
+  "phase.20.output": "细粒度权限, 审批工作流引擎",
+  "phase.21.name": "集成与存储",
+  "phase.21.output": "通知网关, MinIO文件存储, SSO基础",
+  "phase.22.name": "数据库Schema隔离",
+  "phase.22.output": "领域Schema（auth, inventory, production, sales, workflow, audit）",
+  "phase.23.name": "API安全加固",
+  "phase.23.output": "Helmet, CORS白名单, Zod验证, API密钥",
+  "phase.24.name": "可观测性栈",
+  "phase.24.output": "Grafana, Loki, Prometheus, 告警规则",
+  "phase.25.name": "通知网关",
+  "phase.25.output": "LINE, Telegram, Email, 模板引擎",
+  "phase.26.name": "文件存储层",
+  "phase.26.output": "MinIO, 抽象层, 缩略图, 文件选择器",
+  "phase.27.name": "AI网关与IoT",
+  "phase.27.output": "多供应商AI, MQTT桥, 设备注册表",
+  "phase.28.name": "生产部署与灾备",
+  "phase.28.output": "Cloudflare Tunnel, 灾备计划, 负载测试, 安全审计",
+  "phase.22.details": {
+    "outputs": ["21张表迁移到领域Schema", "Prisma multiSchema + @@schema注解", "迁移脚本（ALTER TABLE ... SET SCHEMA）"],
+    "criteria": ["8个Schema在Prisma multiSchema列表中", "每个模型有正确的@@schema注解", "迁移脚本可在Schema间移动表"],
+    "notes": ["完成于 2026-06-11.", "使用 auth, inventory, production, sales, workflow, audit, notify, storage Schema"]
+  },
+  "phase.23.details": {
+    "outputs": ["Helmet安全头", "CORS白名单", "Zod验证Schema", "API密钥中间件", "速率限制器"],
+    "criteria": ["8个安全E2E测试通过", "所有响应包含Helmet头", "/permissions/* 和 /workflows/* 需要API密钥"],
+    "notes": ["完成于 2026-06-11.", "Zod v4使用.issues而非.errors", "开发API密钥: test-api-key-123"]
+  },
+  "phase.24.details": {
+    "outputs": ["Prometheus指标端点", "Grafana仪表盘", "Loki日志聚合", "AlertManager 6条规则"],
+    "criteria": ["指标端点返回Prometheus格式", "仪表盘显示请求率、错误率、延迟"],
+    "notes": ["完成于 2026-06-11.", "Grafana: http://localhost:3001 (admin/admin)"]
+  },
+  "phase.25.details": {
+    "outputs": ["NotificationProvider接口", "模板引擎(Handlebars)", "用户偏好 + 静音时段", "投递追踪 + 重试", "MailHog开发邮件"],
+    "criteria": ["5个预置模板", "邮件通过MailHog验证", "告警Webhook处理AlertManager"],
+    "notes": ["完成于 2026-06-11.", "MailHog UI: http://localhost:8025"]
+  },
+  "phase.26.details": {
+    "outputs": ["MinIO服务", "StorageProvider抽象(Minio + Local)", "FileMetadata模型", "Sharp缩略图", "文件上传/下载/删除/列表/签名URL API"],
+    "criteria": ["上传返回201", "下载内容正确", "签名URL可用", "删除清理存储和DB"],
+    "notes": ["完成于 2026-06-11.", "MinIO控制台: http://localhost:9001 (minioadmin/minioadmin)"]
+  },
+  "phase.27.details": {
+    "outputs": ["AI供应商模型", "多供应商AI抽象", "提示词模板引擎", "成本追踪", "设备注册表", "遥测采集", "MQTT桥"],
+    "criteria": ["AI供应商CRUD", "模板创建和渲染", "设备注册和遥测", "遥测查询"],
+    "notes": ["完成于 2026-06-11.", "供应商不可用时返回500(正常)", "MQTT桥需要Mosquitto"]
+  },
+  "phase.28.details": {
+    "outputs": ["Cloudflare Tunnel(生产配置)", "灾备备份脚本", "k6负载测试脚本", "安全审计脚本", "Secrets目录"],
+    "criteria": ["docker-compose config验证通过", "备份脚本正常工作", "负载测试无错误", "安全审计输出报告"],
+    "notes": ["完成于 2026-06-11.", "Cloudflared需要CF_TUNNEL_TOKEN环境变量", "Secrets为占位符"]
+  },
+  "phase.23.status": "done",
+  "phase.24.status": "done",
+  "phase.25.status": "done",
+  "phase.26.status": "done",
+  "phase.27.status": "done",
+  "phase.28.status": "done",
+  "mfa.title": "双因素认证",
+  "mfa.subtitle": "请输入验证器应用中的验证码, {{username}}",
+  "mfa.code": "验证码",
+  "mfa.verify": "验证",
+  "mfa.error.invalid": "验证码无效，请重试",
+  "mfa.settings.title": "MFA 设置",
+  "mfa.notEnabled": "MFA 未启用",
+  "mfa.notEnabledDesc": "使用 Google Authenticator 或 Microsoft Authenticator 保护您的账户",
+  "mfa.setup": "设置 MFA",
+  "mfa.scanQr": "扫描二维码",
+  "mfa.scanQrDesc": "使用验证器应用扫描此二维码，然后输入下方的6位验证码",
+  "mfa.manualEntry": "无法扫描？使用手动输入",
+  "mfa.enterCode": "输入应用中的6位验证码",
+  "mfa.enabled": "MFA 已启用",
+  "mfa.enabledDesc": "您的账户已受到双因素认证保护",
+  "mfa.saveCodes": "请妥善保存这些备用验证码：",
+  "mfa.backupWarning": "每个备用码只能使用一次。请妥善保管。",
+  "mfa.disable": "禁用 MFA",
+  "mfa.disabled": "MFA 已成功禁用",
+  "common.copied": "已复制！",
+  "common.copy": "复制"
 }

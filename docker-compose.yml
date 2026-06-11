@@ -12,6 +12,7 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
@@ -20,7 +21,6 @@ services:
       - postgres
       - redis
 
-  # Future consolidated backend service
   backend:
     build:
       context: ./backend
@@ -30,9 +30,31 @@ services:
       - "5000:5000"
     environment:
       PORT: 5000
+      NODE_ENV: development
+      LOG_FORMAT: text
+      # Secret env vars read /run/secrets/* as fallback; these are dev defaults
       DATABASE_URL: postgresql://gravure_user:gravure_password@postgres:5432/gravure_db?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: super_secret_jwt_key
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_production
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5000
+      API_KEY_ENABLED: "true"
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@ismart-gravure.com
+      STORAGE_PROVIDER: minio
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: gravure-files
+      UPLOAD_MAX_SIZE: "10485760"
+    secrets:
+      - db_url
+      - redis_url
+      - jwt_secret
+      - jwt_refresh_secret
+      - api_keys
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
@@ -52,6 +74,13 @@ services:
       POSTGRES_PASSWORD: gravure_password
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gravure_user -d gravure_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    secrets:
+      - db_password
 
   redis:
     image: redis:8-alpine
@@ -60,9 +89,197 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gravure-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - backend
+
+  loki:
+    image: grafana/loki:latest
+    container_name: gravure-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki:/etc/loki
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gravure-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: gravure-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: gravure-mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  minio:
+    image: minio/minio:latest
+    container_name: gravure-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: gravure-node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: gravure-promtail
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: gravure-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_URI: "postgres:5432/gravure_db?sslmode=disable"
+      DATA_SOURCE_USER: gravure_user
+      DATA_SOURCE_PASS: gravure_password
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: gravure-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: gravure-cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: gravure-blackbox-exporter
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./monitoring/prometheus/blackbox.yml:/etc/blackbox_exporter/blackbox.yml
+    command: '--config.file=/etc/blackbox_exporter/blackbox.yml'
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gravure-cloudflared
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN:-}
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+      - TUNNEL_METRICS=localhost:43679
+    restart: unless-stopped
+    profiles:
+      - production
+    depends_on:
+      - backend
+
+secrets:
+  db_url:
+    file: ./secrets/db_url.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  redis_url:
+    file: ./secrets/redis_url.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret.txt
+  api_keys:
+    file: ./secrets/api_keys.txt
 
 volumes:
   frontend_node_modules:
   backend_node_modules:
   postgres_data:
   redis_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+  minio_data:

@@ -558,5 +558,89 @@
   "login.submit": "ဆိုင်းအင်ဝင်ရန်",
   "login.error.invalid": "အသုံးပြုသူအမည် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
   "login.error.generic": "ဆာဗာချိတ်ဆက်မှု မအောင်မြင်ပါ",
-  "btn.logout": "ထွက်ရန်"
+  "btn.logout": "ထွက်ရန်",
+  "phase.18.name": "လုံခြုံရေးနှင့် မည်သူမည်ဝါထောက်ခံခြင်း",
+  "phase.18.output": "MFA (TOTP), မြှင့်တင်ထားသော LDAP အုပ်စုမြေပုံဆွဲခြင်း, Docker Secrets",
+  "phase.19.name": "လည်ပတ်မှုနှင့် စောင့်ကြည့်လေ့လာနိုင်မှု",
+  "phase.19.output": "အလိုအလျောက် backup script, ကျန်းမာရေးစောင့်ကြည့်ခြင်း",
+  "phase.20.name": "အဆင့်မြင့် RBAC နှင့် လုပ်ငန်းအသွားအလာ",
+  "phase.20.output": "အသေးစိတ်ခွင့်ပြုချက်များ, အတည်ပြုလုပ်ငန်းအသွားအလာအင်ဂျင်",
+  "phase.21.name": "ပေါင်းစည်းမှုနှင့် သိုလှောင်မှု",
+  "phase.21.output": "အကြောင်းကြားချက်တံခါးပေါက်, MinIO, SSO အခြေခံ",
+  "phase.22.name": "Database Schema ခွဲခြားခြင်း",
+  "phase.22.output": "Domain-based schemas (auth, inventory, production, sales, workflow, audit)",
+  "phase.23.name": "API လုံခြုံရေးအားဖြည့်ခြင်း",
+  "phase.23.output": "Helmet, CORS whitelist, Zod validation, API keys",
+  "phase.24.name": "စောင့်ကြည့်လေ့လာနိုင်မှုစနစ်",
+  "phase.24.output": "Grafana, Loki, Prometheus, alert rules",
+  "phase.25.name": "အကြောင်းကြားချက်တံခါးပေါက်",
+  "phase.25.output": "LINE, Telegram, Email, template engine",
+  "phase.26.name": "ဖိုင်သိုလှောင်မှုအလွှာ",
+  "phase.26.output": "MinIO, abstraction, thumbnails, file picker",
+  "phase.27.name": "AI Gateway နှင့် IoT",
+  "phase.27.output": "Multi-provider AI, MQTT bridge, device registry",
+  "phase.28.name": "Production Deploy နှင့် DR",
+  "phase.28.output": "Cloudflare Tunnel, DR plan, load testing, security audit",
+  "phase.22.details": {
+    "outputs": ["21 tables ကို domain schemas သို့ပြောင်းရွှေ့", "Prisma multiSchema + @@schema", "Migration script (ALTER TABLE ... SET SCHEMA)"],
+    "criteria": ["8 schemas ကို Prisma multiSchema list တွင် သတ်မှတ်ထား", "Model တိုင်းတွင် @@schema မှန်ကန်စွာပါရှိ", "Migration script က schemas ကြား tables ကိုရွှေ့နိုင်"],
+    "notes": ["ပြီးစီး 2026-06-11.", "auth, inventory, production, sales, workflow, audit, notify, storage schemas ကိုသုံးထား"]
+  },
+  "phase.23.details": {
+    "outputs": ["Helmet security headers", "CORS whitelist", "Zod validation schemas", "API key middleware", "Rate limiter"],
+    "criteria": ["8 ခုသော security E2E tests အောင်မြင်", "Response တိုင်းတွင် Helmet headers ပါရှိ", "/permissions/* နှင့် /workflows/* တွင် API key လိုအပ်"],
+    "notes": ["ပြီးစီး 2026-06-11.", "Zod v4 သည် .issues ကိုသုံး (..errors မဟုတ်)", "Dev API key: test-api-key-123"]
+  },
+  "phase.24.details": {
+    "outputs": ["Prometheus metrics endpoint", "Grafana dashboard (API Performance)", "Loki log aggregation", "AlertManager (6 rules)"],
+    "criteria": ["Metrics endpoint က prometheus format ကိုပြန်", "Grafana dashboard က request rate, error rate, latency ကိုပြ"],
+    "notes": ["ပြီးစီး 2026-06-11.", "Grafana: http://localhost:3001 (admin/admin)"]
+  },
+  "phase.25.details": {
+    "outputs": ["NotificationProvider (WebSocket, SMTP, LINE, Telegram)", "Template engine (Handlebars)", "User prefs + quiet hours", "Delivery tracking + retry", "MailHog"],
+    "criteria": ["5 templates (ink_expiry, cylinder_maintenance, workflow_approval, alert, test)", "Email ကို MailHog ဖြင့်စစ်ဆေး", "Alert webhook က AlertManager ကိုကိုင်တွယ်"],
+    "notes": ["ပြီးစီး 2026-06-11.", "MailHog UI: http://localhost:8025"]
+  },
+  "phase.26.details": {
+    "outputs": ["MinIO service (ports 9000 API, 9001 console)", "StorageProvider interface (Minio + Local)", "FileMetadata model (schema: storage)", "Sharp thumbnails", "File upload/download/delete/list/signed-url API"],
+    "criteria": ["Upload 201 ပြန်", "Download content မှန်", "Signed URL ရနိုင်", "Delete က storage နှင့် DB ကို clean"],
+    "notes": ["ပြီးစီး 2026-06-11.", "MinIO console: http://localhost:9001 (minioadmin/minioadmin)"]
+  },
+  "phase.27.details": {
+    "outputs": ["AI provider models", "Multi-provider AI abstraction", "Prompt template engine", "Cost tracking", "Device registry", "Telemetry ingestion", "MQTT bridge"],
+    "criteria": ["AI provider CRUD", "Template create + render", "Device register + telemetry", "Telemetry query"],
+    "notes": ["ပြီးစီး 2026-06-11.", "Provider မရှိပါက 500 ပြန် (ပုံမှန်)", "MQTT bridge အတွက် Mosquitto လိုအပ်"]
+  },
+  "phase.28.details": {
+    "outputs": ["Cloudflare Tunnel (production profile)", "DR backup script", "k6 load test script", "Security audit script", "Secrets directory"],
+    "criteria": ["docker-compose config အတည်ပြုချက်အောင်မြင်", "Backup script အလုပ်လုပ်", "Load test error မရှိ", "Security audit report ထွက်"],
+    "notes": ["ပြီးစီး 2026-06-11.", "Cloudflared အတွက် CF_TUNNEL_TOKEN env လိုအပ်", "Secrets က placeholder"]
+  },
+  "phase.23.status": "done",
+  "phase.24.status": "done",
+  "phase.25.status": "done",
+  "phase.26.status": "done",
+  "phase.27.status": "done",
+  "phase.28.status": "done",
+  "mfa.title": "အချက်နှစ်ချက်အတည်ပြုခြင်း",
+  "mfa.subtitle": "သင့် authenticator အက်ပ်မှ ကုဒ်ကို ထည့်ပါ, {{username}}",
+  "mfa.code": "အတည်ပြုကုဒ်",
+  "mfa.verify": "အတည်ပြုပါ",
+  "mfa.error.invalid": "ကုဒ်မမှန်ပါ။ ထပ်ကြိုးစားပါ",
+  "mfa.settings.title": "MFA ဆက်တင်များ",
+  "mfa.notEnabled": "MFA ကိုဖွင့်မထားပါ",
+  "mfa.notEnabledDesc": "Google Authenticator သို့မဟုတ် Microsoft Authenticator ဖြင့် သင့်အကောင့်ကိုကာကွယ်ပါ",
+  "mfa.setup": "MFA ကိုသတ်မှတ်ပါ",
+  "mfa.scanQr": "QR ကုဒ်ကိုစကင်ဖတ်ပါ",
+  "mfa.scanQrDesc": "သင့် authenticator အက်ပ်ဖြင့် QR ကုဒ်ကိုစကင်ဖတ်ပြီး အောက်ရှိ ဂဏန်း ၆ လုံးကုဒ်ကိုထည့်ပါ",
+  "mfa.manualEntry": "စကင်မဖတ်နိုင်ဘူးလား? ကိုယ်တိုင်ထည့်ပါ",
+  "mfa.enterCode": "သင့်အက်ပ်မှ ဂဏန်း ၆ လုံးကုဒ်ကိုထည့်ပါ",
+  "mfa.enabled": "MFA ကိုဖွင့်ထားသည်",
+  "mfa.enabledDesc": "သင့်အကောင့်ကို အချက်နှစ်ချက်အတည်ပြုခြင်းဖြင့် ကာကွယ်ထားသည်",
+  "mfa.saveCodes": "ဤအရန်ကုဒ်များကို လုံခြုံသောနေရာတွင် သိမ်းဆည်းပါ-",
+  "mfa.backupWarning": "အရန်ကုဒ်တစ်ခုစီကို တစ်ကြိမ်သာ သုံးနိုင်သည်။ လုံခြုံစွာထားပါ။",
+  "mfa.disable": "MFA ကိုပိတ်ပါ",
+  "mfa.disabled": "MFA ကိုအောင်မြင်စွာပိတ်ပြီးပါပြီ",
+  "common.copied": "ကော်ပီကူးပြီးပါပြီ",
+  "common.copy": "ကော်ပီကူးပါ"
 }

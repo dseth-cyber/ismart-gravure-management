@@ -555,5 +555,89 @@
   "login.submit": "เข้าสู่ระบบ",
   "login.error.invalid": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
   "login.error.generic": "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์",
-  "btn.logout": "ออกจากระบบ"
+  "btn.logout": "ออกจากระบบ",
+  "phase.18.name": "ความปลอดภัยและระบบพิสูจน์ตัวตน",
+  "phase.18.output": "MFA (TOTP), LDAP แบบกลุ่ม, Docker Secrets",
+  "phase.19.name": "การปฏิบัติการและการตรวจสอบ",
+  "phase.19.output": "สคริปต์สำรองข้อมูลอัตโนมัติ, การตรวจสอบสุขภาพระบบ",
+  "phase.20.name": "RBAC ขั้นสูงและระบบอนุมัติ",
+  "phase.20.output": "สิทธิ์แบบละเอียด, ระบบอนุมัติงาน",
+  "phase.21.name": "การเชื่อมต่อและพื้นที่จัดเก็บ",
+  "phase.21.output": "ระบบแจ้งเตือน, MinIO, SSO",
+  "phase.22.name": "Database Schema Isolation",
+  "phase.22.output": "แยก schema ตามโดเมน (auth, inventory, production, sales, workflow, audit)",
+  "phase.23.name": "API Security Hardening",
+  "phase.23.output": "Helmet, CORS whitelist, Zod validation, API keys",
+  "phase.24.name": "Observability Stack",
+  "phase.24.output": "Grafana, Loki, Prometheus, alert rules",
+  "phase.25.name": "Notification Gateway",
+  "phase.25.output": "LINE, Telegram, Email, template engine",
+  "phase.26.name": "File Storage Layer",
+  "phase.26.output": "MinIO, abstraction, thumbnails, file picker",
+  "phase.27.name": "AI Gateway & IoT",
+  "phase.27.output": "Multi-provider AI, MQTT bridge, device registry",
+  "phase.28.name": "Production Deploy & DR",
+  "phase.28.output": "Cloudflare Tunnel, DR plan, load testing, security audit",
+  "phase.22.details": {
+    "outputs": ["21 ตารางย้ายไป schema โดเมน", "Prisma multiSchema + @@schema directive", "Migration script (ALTER TABLE ... SET SCHEMA)"],
+    "criteria": ["8 schemas ใน Prisma multiSchema list", "แต่ละ model มี @@schema ถูกต้อง", "Migration script ย้ายตารางระหว่าง schemas ได้"],
+    "notes": ["สำเร็จ 2026-06-11.", "ใช้ auth, inventory, production, sales, workflow, audit, notify, storage schemas."]
+  },
+  "phase.23.details": {
+    "outputs": ["Helmet headers (CSP, HSTS, frameguard)", "CORS whitelist จาก CORS_ORIGINS env", "Zod validation schemas", "API key middleware", "Auth rate limiter"],
+    "criteria": ["8 security E2E tests ผ่าน", "Helmet headers มีในทุก response", "API key จำเป็นที่ /permissions/* และ /workflows/*"],
+    "notes": ["สำเร็จ 2026-06-11.", "Zod v4 ใช้ .issues ไม่ใช่ .errors", "API key dev: test-api-key-123"]
+  },
+  "phase.24.details": {
+    "outputs": ["Prometheus metrics endpoint", "Grafana dashboard (API Performance)", "Loki log aggregation", "AlertManager 6 rules"],
+    "criteria": ["Metrics endpoint คืนค่า prometheus format", "Grafana แสดง request rate, error rate, latency P50/P95/P99"],
+    "notes": ["สำเร็จ 2026-06-11.", "Grafana ที่ http://localhost:3001 (admin/admin)"]
+  },
+  "phase.25.details": {
+    "outputs": ["NotificationProvider interface (WebSocket, SMTP, LINE, Telegram)", "Template engine (Handlebars)", "User prefs พร้อม quiet hours", "Delivery tracking + retry", "MailHog สำหรับ dev email"],
+    "criteria": ["5 templates (ink_expiry, cylinder_maintenance, workflow_approval, alert, test)", "Email ผ่าน MailHog", "Alert webhook รองรับ AlertManager"],
+    "notes": ["สำเร็จ 2026-06-11.", "MailHog UI ที่ http://localhost:8025"]
+  },
+  "phase.26.details": {
+    "outputs": ["MinIO service (ports 9000 API, 9001 console)", "StorageProvider interface (Minio + Local)", "FileMetadata model (schema: storage)", "Sharp thumbnails", "File upload/download/delete/list/signed-url API"],
+    "criteria": ["Upload ได้ 201", "Download เนื้อหาถูกต้อง", "Signed URL ใช้ได้", "ลบ cleanup ทั้ง storage และ DB"],
+    "notes": ["สำเร็จ 2026-06-11.", "MinIO console http://localhost:9001 (minioadmin/minioadmin)"]
+  },
+  "phase.27.details": {
+    "outputs": ["AiProvider, AiPromptTemplate, AiChatLog models (schema: ai)", "Multi-provider AI (OpenAI, Anthropic, Ollama)", "Prompt template engine", "Cost tracking", "Device, DeviceTelemetry models (schema: iot)", "MQTT bridge stub", "Device registry + telemetry API"],
+    "criteria": ["AI provider CRUD ใช้ได้", "Template สร้างและ render ได้", "Device register + telemetry ใช้ได้", "Query telemetry พร้อม filter"],
+    "notes": ["สำเร็จ 2026-06-11.", "Chat คืน 500 ถ้า provider ไม่พร้อม (ปกติ)", "MQTT bridge log action ต้องใช้ Mosquitto จริง"]
+  },
+  "phase.28.details": {
+    "outputs": ["Cloudflare Tunnel service (production profile)", "DR backup script (PostgreSQL, Redis, MinIO, config)", "k6 load test script", "Security audit script (7 checks)", "Secrets directory (7 files)"],
+    "criteria": ["docker-compose config ตรวจสอบผ่าน", "Backup script รองรับ PostgreSQL dump, Redis RDB, MinIO mirror", "Load test ทำงานไม่มี error", "Security audit รายงาน pass/fail"],
+    "notes": ["สำเร็จ 2026-06-11.", "Cloudflared ต้องใช้ CF_TUNNEL_TOKEN env", "Secrets เป็น placeholder — เปลี่ยนก่อน production"]
+  },
+  "phase.23.status": "done",
+  "phase.24.status": "done",
+  "phase.25.status": "done",
+  "phase.26.status": "done",
+  "phase.27.status": "done",
+  "phase.28.status": "done",
+  "mfa.title": "การยืนยันตัวตนสองปัจจัย",
+  "mfa.subtitle": "กรุณาใส่รหัสจากแอปยืนยันตัวตนของคุณ, {{username}}",
+  "mfa.code": "รหัสยืนยันตัวตน",
+  "mfa.verify": "ยืนยัน",
+  "mfa.error.invalid": "รหัสไม่ถูกต้อง กรุณาลองอีกครั้ง",
+  "mfa.settings.title": "ตั้งค่า MFA",
+  "mfa.notEnabled": "MFA ยังไม่ได้เปิดใช้งาน",
+  "mfa.notEnabledDesc": "ปกป้องบัญชีของคุณด้วยการยืนยันตัวตนสองปัจจัยโดยใช้ Google Authenticator หรือ Microsoft Authenticator",
+  "mfa.setup": "ตั้งค่า MFA",
+  "mfa.scanQr": "สแกน QR Code",
+  "mfa.scanQrDesc": "สแกน QR Code นี้ด้วยแอปยืนยันตัวตนของคุณ แล้วใส่รหัส 6 หลักด้านล่าง",
+  "mfa.manualEntry": "สแกนไม่ได้? ใช้การป้อนด้วยตนเอง",
+  "mfa.enterCode": "ใส่รหัส 6 หลักจากแอปของคุณ",
+  "mfa.enabled": "เปิดใช้ MFA แล้ว",
+  "mfa.enabledDesc": "บัญชีของคุณได้รับการปกป้องด้วยการยืนยันตัวตนสองปัจจัย",
+  "mfa.saveCodes": "บันทึกรหัสสำรองเหล่านี้ในที่ปลอดภัย:",
+  "mfa.backupWarning": "รหัสสำรองแต่ละรหัสใช้ได้ครั้งเดียวเท่านั้น เก็บไว้ให้ปลอดภัย",
+  "mfa.disable": "ปิดการใช้งาน MFA",
+  "mfa.disabled": "ปิดการใช้งาน MFA สำเร็จแล้ว",
+  "common.copied": "คัดลอกแล้ว!",
+  "common.copy": "คัดลอก"
 }

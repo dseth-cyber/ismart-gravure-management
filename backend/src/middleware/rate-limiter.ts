@@ -57,3 +57,38 @@ export function rateLimiter(req: Request, res: Response, next: NextFunction): vo
       next();
     });
 }
+
+export function authRateLimiter(req: Request, res: Response, next: NextFunction): void {
+  const config = { windowMs: 60 * 1000, maxRequests: 10 };
+  const key = `ratelimit:${getClientKey(req)}:auth:${req.path}`;
+  const redis = getRedis();
+
+  redis.multi()
+    .incr(key)
+    .pttl(key)
+    .exec((err: any, results: any) => {
+      if (err) return next();
+
+      const count = results?.[0]?.[1] as number | undefined;
+      const ttl = results?.[1]?.[1] as number | undefined;
+
+      if (count === 1 && (ttl === -1 || ttl === null)) {
+        redis.pexpire(key, config.windowMs).catch(() => {});
+      }
+
+      res.setHeader('X-RateLimit-Limit', config.maxRequests);
+      res.setHeader('X-RateLimit-Remaining', Math.max(0, config.maxRequests - (count || 0)));
+
+      if (count && count > config.maxRequests) {
+        res.setHeader('Retry-After', Math.ceil((ttl || config.windowMs) / 1000));
+        res.status(429).json({
+          status: 'error',
+          statusCode: 429,
+          message: `Too many auth requests. Try again in ${Math.ceil((ttl || config.windowMs) / 1000)} seconds.`,
+        });
+        return;
+      }
+
+      next();
+    });
+}

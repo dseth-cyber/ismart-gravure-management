@@ -1,9 +1,11 @@
 datasource db {
   provider = "postgresql"
+  schemas  = ["auth", "inventory", "production", "sales", "workflow", "audit", "notify", "storage", "ai", "iot"]
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 enum Role {
@@ -15,6 +17,8 @@ enum Role {
   warehouse
   inkroom
   viewer
+
+  @@schema("auth")
 }
 
 model User {
@@ -26,11 +30,84 @@ model User {
   failedLoginAttempts Int     @default(0)
   lockedUntil       DateTime?
   role              Role
+  mfaSecret         String?
+  mfaEnabled        Boolean  @default(false)
+  mfaBackupCodes    String[]
+  ldapDn            String?
+  ldapGroups        String[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  sessions   RefreshToken[]
+  sessions        RefreshToken[]
+  userPermissions UserPermission[]
+  userScopes      UserScope[]
+  @@schema("auth")
   @@map("users")
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  module    String
+  action    String
+  description String?
+  createdAt DateTime @default(now())
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+  @@schema("auth")
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         Role
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@schema("auth")
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  effect       String     @default("grant") // "grant" or "deny"
+
+  @@unique([userId, permissionId])
+  @@schema("auth")
+  @@map("user_permissions")
+}
+
+model Scope {
+  id        String   @id @default(uuid())
+  type      String   // "company" | "factory" | "department" | "warehouse"
+  name      String
+  parentId  String?
+  parent    Scope?   @relation("ScopeHierarchy", fields: [parentId], references: [id])
+  children  Scope[]  @relation("ScopeHierarchy")
+  createdAt DateTime @default(now())
+
+  userScopes UserScope[]
+  @@unique([type, name])
+  @@schema("auth")
+  @@map("scopes")
+}
+
+model UserScope {
+  id      String @id @default(uuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scopeId String
+  scope   Scope  @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scopeId])
+  @@schema("auth")
+  @@map("user_scopes")
 }
 
 model RefreshToken {
@@ -42,6 +119,7 @@ model RefreshToken {
   createdAt DateTime @default(now())
   revoked   Boolean  @default(false)
 
+  @@schema("auth")
   @@map("refresh_tokens")
 }
 
@@ -53,6 +131,7 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@schema("inventory")
   @@map("customers")
 }
 
@@ -64,6 +143,7 @@ model Product {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@schema("inventory")
   @@map("products")
 }
 
@@ -74,6 +154,8 @@ enum CylinderStatus {
   repair
   inspection
   hold
+
+  @@schema("inventory")
 }
 
 model Cylinder {
@@ -90,12 +172,15 @@ model Cylinder {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  @@schema("inventory")
   @@map("cylinders")
 }
 
 enum InkFormulaStatus {
   active
   superseded
+
+  @@schema("inventory")
 }
 
 model InkFormula {
@@ -111,6 +196,7 @@ model InkFormula {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
+  @@schema("inventory")
   @@map("ink_formulas")
 }
 
@@ -118,6 +204,8 @@ enum InkBatchStatus {
   active
   nearExpiry
   expired
+
+  @@schema("inventory")
 }
 
 model InkBatch {
@@ -134,6 +222,7 @@ model InkBatch {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  @@schema("inventory")
   @@map("ink_batches")
 }
 
@@ -144,6 +233,8 @@ enum JobStatus {
   completed
   hold
   cancelled
+
+  @@schema("production")
 }
 
 model SalesOrder {
@@ -158,6 +249,7 @@ model SalesOrder {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@schema("sales")
   @@map("sales_orders")
 }
 
@@ -173,6 +265,7 @@ model ProductionJob {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  @@schema("production")
   @@map("production_jobs")
 }
 
@@ -187,6 +280,7 @@ model JobVerification {
   overrideBy        String?
   createdAt         DateTime @default(now())
 
+  @@schema("production")
   @@map("job_verifications")
 }
 
@@ -203,6 +297,7 @@ model ProductionLog {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@schema("production")
   @@map("production_logs")
 }
 
@@ -210,6 +305,8 @@ enum QcStatus {
   pass
   fail
   hold
+
+  @@schema("production")
 }
 
 model QcInspection {
@@ -224,7 +321,62 @@ model QcInspection {
   remarks             String?
   createdAt           DateTime @default(now())
 
+  @@schema("production")
   @@map("qc_inspections")
+}
+
+model WorkflowDefinition {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  config      String   // JSON: steps[], conditions, escalations
+  version     Int      @default(1)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  instances WorkflowInstance[]
+  @@schema("workflow")
+  @@map("workflow_definitions")
+}
+
+model WorkflowInstance {
+  id         String   @id @default(uuid())
+  defId      String
+  definition WorkflowDefinition @relation(fields: [defId], references: [id])
+  title      String
+  refType    String   // "leave_request" | "purchase_order" | "inventory_adjust"
+  refId      String   // ID of the referenced record
+  status     String   @default("pending") // "pending" | "in_progress" | "approved" | "rejected" | "cancelled"
+  initiator  String   // username who started this
+  metadata   String?  // JSON: additional context
+  currentStep Int     @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  steps WorkflowStep[]
+  @@schema("workflow")
+  @@map("workflow_instances")
+}
+
+model WorkflowStep {
+  id         String   @id @default(uuid())
+  instanceId String
+  instance   WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stepIndex  Int
+  label      String
+  approverRole String? // e.g. "manager"
+  approverUser String? // specific username
+  status     String   @default("pending") // "pending" | "approved" | "rejected" | "escalated"
+  comment    String?
+  actedBy    String?
+  actedAt    DateTime?
+  escalatedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([instanceId, stepIndex])
+  @@schema("workflow")
+  @@map("workflow_steps")
 }
 
 model AuditLog {
@@ -238,6 +390,179 @@ model AuditLog {
   correlationId String?
   createdAt     DateTime @default(now())
 
+  @@schema("audit")
   @@map("audit_logs")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  type      String   @unique // "ink_expiry" | "cylinder_maintenance" | "workflow_approval" | "alert"
+  subject   String   // Handlebars template for subject
+  body      String   // Handlebars template for body (HTML or text)
+  channels  String[] // ["email", "websocket", "line", "telegram"]
+  language  String   @default("en")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("notify")
+  @@map("notification_templates")
+}
+
+model UserNotificationPref {
+  id         String   @id @default(uuid())
+  userId     String
+  channel    String   // "email" | "websocket" | "line" | "telegram"
+  enabled    Boolean  @default(true)
+  address    String?  // email address, LINE userId, telegram chatId
+  quietStart String?  // HH:mm - quiet hours start
+  quietEnd   String?  // HH:mm - quiet hours end
+  digest     Boolean  @default(false) // batch notifications
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, channel])
+  @@schema("notify")
+  @@map("user_notification_prefs")
+}
+
+model NotificationLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  channel      String   // "email" | "websocket" | "line" | "telegram"
+  type         String   // notification type
+  subject      String
+  body         String
+  status       String   @default("pending") // "pending" | "sent" | "failed"
+  error        String?
+  retryCount   Int      @default(0)
+  maxRetries   Int      @default(3)
+  nextRetryAt  DateTime?
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@schema("notify")
+  @@map("notification_logs")
+}
+
+model FileMetadata {
+  id            String   @id @default(uuid())
+  originalName  String
+  storagePath   String   // path within bucket
+  bucket        String   @default("gravure-files")
+  mimeType      String
+  size          Int
+  thumbnailPath String?
+  uploadedBy    String?
+  entityType    String?  // "cylinder" | "job" | "product" | "general"
+  entityId      String?  // ID of associated record
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@schema("storage")
+  @@map("file_metadata")
+}
+
+// ─── AI Gateway ────────────────────────────────────────────────────
+
+model AiProvider {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  providerType String   // "openai" | "anthropic" | "ollama"
+  modelName    String   // e.g. "gpt-4", "claude-3-opus", "llama3"
+  apiKey       String?
+  baseUrl      String?
+  isActive     Boolean  @default(true)
+  costPer1kInput  Float  @default(0)
+  costPer1kOutput Float  @default(0)
+  rateLimit    Int      @default(60) // requests per minute
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  chatLogs AiChatLog[]
+  @@schema("ai")
+  @@map("ai_providers")
+}
+
+model AiPromptTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  prompt    String   // Handlebars-style template
+  variables String[] // ["entityType", "language", ...]
+  language  String   @default("en")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("ai")
+  @@map("ai_prompt_templates")
+}
+
+model AiChatLog {
+  id         String   @id @default(uuid())
+  providerId String
+  provider   AiProvider @relation(fields: [providerId], references: [id])
+  modelName  String
+  prompt     String
+  response   String?
+  inputTokens  Int     @default(0)
+  outputTokens Int    @default(0)
+  cost       Float    @default(0)
+  durationMs Int      @default(0)
+  userId     String?
+  success    Boolean  @default(true)
+  errorMsg   String?
+  createdAt  DateTime @default(now())
+
+  @@schema("ai")
+  @@map("ai_chat_logs")
+}
+
+model AiApiKey {
+  id        String   @id @default(uuid())
+  keyHash   String   @unique
+  name      String
+  role      String   @default("user") // "user" | "admin"
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@schema("ai")
+  @@map("ai_api_keys")
+}
+
+// ─── IoT Architecture ──────────────────────────────────────────────
+
+model Device {
+  id         String   @id @default(uuid())
+  deviceId   String   @unique
+  name       String
+  type       String   // "sensor" | "actuator" | "gateway" | "printer"
+  metadata   String?  // JSON
+  location   String?
+  isActive   Boolean  @default(true)
+  lastSeen   DateTime?
+  firmwareVer String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  telemetry  DeviceTelemetry[]
+  @@schema("iot")
+  @@map("devices")
+}
+
+model DeviceTelemetry {
+  id        String   @id @default(uuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  key       String   // e.g. "temperature", "pressure", "speed"
+  value     String   // stored as string for flexibility
+  unit      String?  // "celsius", "rpm", "bar"
+  timestamp DateTime @default(now())
+
+  @@index([deviceId, key, timestamp])
+  @@schema("iot")
+  @@map("device_telemetry")
 }
 

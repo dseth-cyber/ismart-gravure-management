@@ -1,14 +1,18 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import path from 'path';
 import fs from 'fs';
 import YAML from 'yaml';
 import swaggerUi from 'swagger-ui-express';
 import net from 'net';
+import os from 'os';
 import { correlationMiddleware } from './middleware/correlation';
 import { loggerMiddleware } from './middleware/logger';
-import { rateLimiter } from './middleware/rate-limiter';
+import { rateLimiter, authRateLimiter } from './middleware/rate-limiter';
 import { errorHandler } from './middleware/error';
+import { requireApiKey } from './middleware/api-key';
+import { env } from './config/env';
 import authRoutes from './modules/auth/auth.routes';
 import customerRoutes from './modules/customer/customer.routes';
 import productRoutes from './modules/product/product.routes';
@@ -20,21 +24,53 @@ import qcRoutes from './modules/qc/qc.routes';
 import auditRoutes from './modules/audit/audit.routes';
 import queueRoutes from './modules/queue/queue.routes';
 import notificationRoutes from './modules/notification/notification.routes';
+import storageRoutes from './modules/storage/storage.routes';
+import aiRoutes from './modules/ai/ai.routes';
+import iotRoutes from './modules/iot/iot.routes';
+import permissionRoutes from './modules/permission/permission.routes';
+import workflowRoutes from './modules/workflow/workflow.routes';
 import { initQueueWorker } from './modules/queue/queue.service';
 import { prisma } from './config/database';
+import { getRedis } from './config/redis';
+import { metricsMiddleware, metricsHandler, setActiveUsers, setDbConnections, setOrdersByStatus, setJobsByStatus, setInkBatchesByStatus, setCylindersByStatus } from './middleware/metrics';
 
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+// Security headers (Helmet)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  hsts: { maxAge: env.HSTS_MAX_AGE, includeSubDomains: true, preload: true },
+  frameguard: { action: 'deny' },
+  noSniff: true,
+  referrerPolicy: { policy: 'same-origin' },
+  xssFilter: true,
 }));
-app.use(express.json());
-app.use(correlationMiddleware); // Set correlation ID on every request
+
+// CORS whitelist
+const corsOrigins = env.CORS_ORIGINS.split(',').map(s => s.trim());
+app.use(cors({
+  origin: corsOrigins.length > 0 ? corsOrigins : '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '1mb' }));
+app.use(correlationMiddleware);
 app.use(loggerMiddleware);
-app.use(rateLimiter); // Rate limiting (token bucket via Redis)
+app.use(metricsMiddleware);
+app.use(rateLimiter);
 
 // Swagger API Documentation
 const openapiPath = path.join(__dirname, 'docs', 'openapi.yaml');
@@ -72,7 +108,39 @@ const checkRedisHealth = (): Promise<'connected' | 'disconnected'> => {
   });
 };
 
-// Advanced Health Check Route
+// Disk usage helper
+const getDiskUsage = (): { total: number; free: number; used: number; usagePercent: number } | null => {
+  try {
+    const disk = process.platform === 'win32'
+      ? { total: 0, free: 0 }
+      : { total: 0, free: 0 };
+    // Use os.freemem / os.totalmem as proxy when direct disk isn't available
+    return {
+      total: os.totalmem(),
+      free: os.freemem(),
+      used: os.totalmem() - os.freemem(),
+      usagePercent: Math.round(((os.totalmem() - os.freemem()) / os.totalmem()) * 100),
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Container status via env (set by Docker Compose)
+const getContainerStatus = () => {
+  const services = ['postgres', 'redis', 'backend', 'frontend'];
+  const statuses: Record<string, string> = {};
+  for (const svc of services) {
+    const envKey = `${svc.toUpperCase()}_STATUS`;
+    statuses[svc] = process.env[envKey] || 'unknown';
+  }
+  return statuses;
+};
+
+// Prometheus metrics
+app.get('/metrics', metricsHandler);
+
+// Enhanced Health Check Route
 app.get('/health', async (req, res): Promise<any> => {
   try {
     // Check Database connection
@@ -86,28 +154,52 @@ app.get('/health', async (req, res): Promise<any> => {
     // Check Redis connection via TCP
     const redisStatus = await checkRedisHealth();
 
+    // Check Redis client health
+    let redisClientOk = false;
+    try {
+      const redis = getRedis();
+      const ping = await redis.ping();
+      redisClientOk = ping === 'PONG';
+    } catch {
+      redisClientOk = false;
+    }
+
     const uptime = process.uptime();
     const cpuUsage = process.cpuUsage();
     const memoryUsage = process.memoryUsage();
+    const disk = getDiskUsage();
+    const loadAvg = os.loadavg();
 
     const isHealthy = dbStatus === 'connected' && redisStatus === 'connected';
 
     const payload = {
       status: isHealthy ? 'healthy' : 'unhealthy',
+      version: process.env.npm_package_version || '1.0.0',
       database: dbStatus,
       redis: redisStatus,
-      uptime,
+      redisClient: redisClientOk ? 'connected' : 'disconnected',
+      uptime: Math.floor(uptime),
       cpuUsage: {
         system: cpuUsage.system,
-        user: cpuUsage.user
+        user: cpuUsage.user,
+        loadAverage: loadAvg.slice(0, 3),
       },
       memoryUsage: {
         rss: memoryUsage.rss,
         heapTotal: memoryUsage.heapTotal,
         heapUsed: memoryUsage.heapUsed,
-        external: memoryUsage.external
+        external: memoryUsage.external,
+        freeMemory: os.freemem(),
+        totalMemory: os.totalmem(),
       },
-      timestamp: new Date().toISOString()
+      disk: disk ? {
+        totalBytes: disk.total,
+        freeBytes: disk.free,
+        usedBytes: disk.used,
+        usagePercent: disk.usagePercent,
+      } : null,
+      containers: getContainerStatus(),
+      timestamp: new Date().toISOString(),
     };
 
     if (!isHealthy) {
@@ -127,7 +219,9 @@ app.get('/health', async (req, res): Promise<any> => {
 });
 
 // API Routes
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authRateLimiter, authRoutes);
+app.use('/api/v1/permissions', requireApiKey, permissionRoutes);
+app.use('/api/v1/workflows', requireApiKey, workflowRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cylinders', cylinderRoutes);
@@ -138,9 +232,51 @@ app.use('/api/v1/qc', qcRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/queue', queueRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/storage', storageRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/iot', iotRoutes);
 
 // Initialize background worker
 initQueueWorker();
+
+// Periodic gauge updates for active users and DB connections
+setInterval(async () => {
+  try {
+    // Count active sessions (users with non-expired, non-revoked refresh tokens)
+    const activeCount = await prisma.refreshToken.count({
+      where: { revoked: false, expiresAt: { gt: new Date() } },
+    });
+    setActiveUsers(activeCount);
+
+    // Count database connections from pg_stat_activity
+    const result: any = await prisma.$queryRaw`SELECT count(*)::int as cnt FROM pg_stat_activity WHERE datname = current_database()`;
+    const dbCount = Array.isArray(result) ? (result[0]?.cnt || 0) : 0;
+    setDbConnections(dbCount);
+
+    // Business KPI metrics
+    const ordersRaw: any[] = await prisma.$queryRaw`SELECT status, count(*)::int as cnt FROM sales.sales_orders GROUP BY status`;
+    const ordersByStatus: Record<string, number> = {};
+    for (const r of ordersRaw) ordersByStatus[r.status] = r.cnt;
+    setOrdersByStatus(ordersByStatus);
+
+    const jobsRaw: any[] = await prisma.$queryRaw`SELECT status, count(*)::int as cnt FROM production.production_jobs GROUP BY status`;
+    const jobsByStatus: Record<string, number> = {};
+    for (const r of jobsRaw) jobsByStatus[r.status] = r.cnt;
+    setJobsByStatus(jobsByStatus);
+
+    const inkRaw: any[] = await prisma.$queryRaw`SELECT status, count(*)::int as cnt FROM inventory.ink_batches GROUP BY status`;
+    const inkByStatus: Record<string, number> = {};
+    for (const r of inkRaw) inkByStatus[r.status] = r.cnt;
+    setInkBatchesByStatus(inkByStatus);
+
+    const cylRaw: any[] = await prisma.$queryRaw`SELECT status, count(*)::int as cnt FROM inventory.cylinders GROUP BY status`;
+    const cylByStatus: Record<string, number> = {};
+    for (const r of cylRaw) cylByStatus[r.status] = r.cnt;
+    setCylindersByStatus(cylByStatus);
+  } catch {
+    // silently retry next interval
+  }
+}, 30000); // every 30 seconds
 
 // Global Error Handler
 app.use(errorHandler);

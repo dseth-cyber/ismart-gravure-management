@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const qc_controller_1 = require("./qc.controller");
+const auth_1 = require("../../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.requireAuth);
+router.get('/inspections', qc_controller_1.QcController.listInspections);
+router.get('/inspections/:id', qc_controller_1.QcController.getInspectionById);
+router.delete('/inspections/:id', qc_controller_1.QcController.deleteInspection);
+router.post('/inspections/:jobNumber', qc_controller_1.QcController.createInspection);
+router.get('/inspections/job/:jobNumber', qc_controller_1.QcController.listInspectionsByJobNumber);
+router.get('/traceability', qc_controller_1.QcController.getTraceability);
+exports.default = router;

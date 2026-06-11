@@ -10,7 +10,10 @@ type AuthContextType = {
   accessToken: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  mfaPending: boolean;
+  mfaTempToken: string | null;
+  login: (username: string, password: string) => Promise<{ mfaRequired?: boolean }>;
+  verifyMfa: (totpCode: string) => Promise<void>;
   logout: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 };
@@ -21,6 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfileDto | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mfaPending, setMfaPending] = useState(false);
+  const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -35,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('gm_refresh_token');
     setAccessToken(null);
     setUser(null);
+    setMfaPending(false);
+    setMfaTempToken(null);
     setLoading(false);
     router.push('/login');
   };
@@ -63,22 +70,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
     const isLoginPage = pathname === '/login';
-    if (!accessToken && !isLoginPage) {
+    const isMfaPage = pathname === '/login/mfa';
+    if (mfaPending && !isMfaPage) {
+      router.push('/login/mfa');
+    } else if (!accessToken && !isLoginPage && !isMfaPage) {
       router.push('/login');
-    } else if (accessToken && user && isLoginPage) {
+    } else if (accessToken && user && (isLoginPage || isMfaPage)) {
       router.push('/');
     }
-  }, [accessToken, user, loading, pathname, router]);
+  }, [accessToken, user, loading, pathname, router, mfaPending]);
 
   const handleLogin = async (username: string, password: string) => {
     setLoading(true);
     try {
       const res = await apiClient.post('/api/v1/auth/login', { username, password });
+      const data = res.data.data;
+
+      if (data.mfaRequired) {
+        setMfaPending(true);
+        setMfaTempToken(data.tempToken);
+        setUser(data.user);
+        setLoading(false);
+        return { mfaRequired: true };
+      }
+
+      const { accessToken: at, refreshToken: rt, user: u } = data;
+      localStorage.setItem('gm_access_token', at);
+      localStorage.setItem('gm_refresh_token', rt);
+      setAccessToken(at);
+      setUser(u);
+      setLoading(false);
+      return {};
+    } catch (err) {
+      setLoading(false);
+      throw err;
+    }
+  };
+
+  const handleVerifyMfa = async (totpCode: string) => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post('/api/v1/auth/mfa/verify', {
+        tempToken: mfaTempToken,
+        totpCode,
+      });
       const { accessToken: at, refreshToken: rt, user: u } = res.data.data;
       localStorage.setItem('gm_access_token', at);
       localStorage.setItem('gm_refresh_token', rt);
       setAccessToken(at);
       setUser(u);
+      setMfaPending(false);
+      setMfaTempToken(null);
+      setLoading(false);
     } catch (err) {
       setLoading(false);
       throw err;
@@ -101,7 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accessToken,
         isAuthenticated: !!accessToken && !!user,
         loading,
+        mfaPending,
+        mfaTempToken,
         login: handleLogin,
+        verifyMfa: handleVerifyMfa,
         logout: handleLogout,
         changePassword: handleChangePassword,
       }}

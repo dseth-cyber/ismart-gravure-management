@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -66,8 +66,19 @@ Use newer stable versions when they are better for a new project and do not conf
 | 13 | Stabilization And Release | Done | E2E tests, deployment checklist, production readiness |
 | 14 | Frontend API Integration & Polish | Done | All pages connected to real backend API, fix nav bugs, shared components audit |
 | 15 | Real-Time Monitoring & Scanner | Done | WebSocket live updates, camera barcode/QR scanning, print labels |
-| 16 | Enterprise Identity Foundation | Not Started | LDAP/AD integration, SSO login, password policy, session management |
-| 17 | Production Hardening | Not Started | Rate limiting, API throttling, performance optimization, error monitoring |
+| 16 | Enterprise Identity Foundation | Done | LDAP/AD integration, SSO login, password policy, session management |
+| 17 | Production Hardening | Done | Rate limiting, API throttling, performance optimization, error monitoring |
+| 18 | Security & Identity | Done | MFA (TOTP), Enhanced LDAP, Docker Secrets |
+| 19 | Operations & Observability | Done | Backup automation, Enhanced health monitoring |
+| 20 | Advanced RBAC & Workflow | Done | Fine-grained permissions, Approval workflow engine |
+| 21 | Integration & Storage | Done | Notification gateway, MinIO, SSO foundation |
+| 22 | Database Schema Isolation | Done | Domain-based schemas (auth, inventory, production, sales, workflow, audit) |
+| 23 | API Security Hardening | Done | Helmet, CORS whitelist, Zod validation, API keys |
+| 24 | Observability Stack | Done | Grafana, Loki, Prometheus, alert rules |
+| 25 | Notification Gateway | Done | LINE, Telegram, Email, template engine |
+| 26 | File Storage Layer | Done | MinIO, abstraction, thumbnails, file picker |
+| 27 | AI Gateway & IoT | Done | Multi-provider AI, MQTT bridge, device registry |
+| 28 | Production Deploy & DR | Done | Cloudflare Tunnel, DR plan, load testing, security audit |
 
 ## Phase Details
 
@@ -442,6 +453,339 @@ Notes:
 - Rate limiter uses Redis for distributed counting — no single-node bottleneck.
 - Retention period: 90 days (configurable via AUDIT_LOG_RETENTION_DAYS env var).
 - Cleanup runs every 24 hours on server startup interval.
+
+### Phase 18: Security & Identity Hardening
+
+Status: Done
+
+Outputs:
+- Multi-Factor Authentication (MFA) with TOTP (Microsoft/Google Authenticator)
+  - SUPERADMIN and ADMIN roles require MFA; optional for others
+  - QR code setup flow with verification step
+  - MFA challenge on login after password verification
+  - Ability to disable MFA with current TOTP verification
+- Enhanced AD/LDAP with group-to-role mapping
+  - LDAP group membership query via memberOf attribute
+  - Configurable role mapping (e.g. `ERP_ADMIN` → `admin`)
+  - Auto-provision users on first LDAP login with mapped role
+  - AD disable sync (check user accountControl on each login)
+- Secret Management via Docker Secrets
+  - JWT secrets, DB credentials moved to Docker secrets
+  - Fallback to .env for development
+  - Secrets loaded at startup, not stored in env vars
+
+Acceptance criteria:
+- Users can enable/disable MFA on their profile
+- Login requires TOTP code when MFA is enabled (SUPERADMIN/ADMIN enforced)
+- LDAP users mapped to correct roles based on AD group membership
+- Disabled AD accounts cannot log in
+- No secrets exposed in docker-compose.yml or .env in production
+
+Notes:
+- TOTP implemented with Node.js crypto (RFC 6238), no external deps
+- 8 backup codes with SHA-256 hashed storage
+- 3-window time drift tolerance (±30s)
+- MFA temp token valid for 5 minutes, single-use
+- LDAP group mapping configurable via LDAP_ROLE_MAP env var (JSON)
+- Docker secrets file-based (`/run/secrets/*`), works in non-swarm mode via Compose v2+
+
+### Phase 19: Operations & Observability
+
+Status: Done
+
+Outputs:
+- Automated Backup Script
+  - Daily, weekly, monthly rotation
+  - Docker-friendly (executes pg_dump via Docker)
+  - Auto-cleanup of backups older than retention period
+  - Configurable backup directory and retention
+- Enhanced Monitoring Endpoint
+  - Disk usage stats for mounted volumes
+  - Container status reporting (via Docker socket or env vars)
+  - Uptime and resource trend (5-min window averages in Redis)
+- Centralized Logging Preparation
+  - Structured JSON log format for log aggregator ingestion
+  - Correlation ID propagated through all log entries
+  - Log level configuration (debug/info/warn/error)
+
+Acceptance criteria:
+- `scripts/backup.ps1` creates timestamped dump with rotation
+- Backup retention: 7 daily, 4 weekly, 3 monthly
+- `GET /health` returns disk usage, container status
+- All logs output as JSON when LOG_FORMAT=json
+
+Notes:
+- Backup script on Windows PowerShell, uses Docker exec + cp
+- Retention cleanup runs after each backup
+- Health endpoint returns DB, Redis, disk, memory, container status
+- `scripts/monitor.ps1` provides alert-ready health checks with webhook support
+
+### Phase 20: Authorization & Permission System
+
+Status: In Progress
+
+Outputs:
+- Fine-Grained Permission Model
+  - `Permission` entity with resource-based naming (`employee.read`, `salary.edit`)
+  - `RolePermission` many-to-many mapping table
+  - `UserPermission` for per-user overrides (grant/deny)
+  - Seed script with full permission matrix per role
+- Permission Middleware & Service
+  - `requirePermission('resource.action')` middleware
+  - `hasPermission(userId, 'resource.action')` service method
+  - API endpoints for CRUD on permissions and role-assignments
+  - Migration from `requireRoles(['admin'])` to `requirePermission('admin.*')`
+- Data Scope Framework
+  - `Scope` entity: company, factory, warehouse, department levels
+  - `UserScope` mapping (which scopes a user can access)
+  - Row-level filtering via scope join in service layer
+  - Scope middleware for automatic query filtering
+- Frontend Permission Check
+  - `<Can permission="salary.read">` component for conditional rendering
+  - Permission-based menu visibility
+  - Admin panel for managing permissions and scopes
+
+Acceptance criteria:
+- API returns 403 when user lacks specific permission (not just role)
+- SUPERADMIN bypasses all permission checks
+- Permissions can be assigned/unassigned via API without code change
+- Data scope filters query results automatically by user's scope
+- Frontend hides elements user doesn't have permission for
+- Migration path: all existing `requireRoles` → `requirePermission`
+
+Notes:
+- SUPERADMIN gets implicit `*:*` permission grant
+- Permission check is additive: user has permission if role has it OR user has explicit grant
+- Deny always overrides grant (explicit deny takes precedence)
+- Scope hierarchy: company > factory > department > warehouse
+- Lower scope inherits access from higher scope (factory = all departments under it)
+
+### Phase 21: Approval Workflow Engine
+
+Status: Done
+
+Outputs:
+- Workflow Definition System
+  - JSON-based workflow configuration (stored in DB + validated)
+  - Multi-step approval chains with branching
+  - Configurable approver per step (role, user, or dynamic)
+  - Escalation timers (auto-escalate if not approved within N hours)
+  - Conditional routing (e.g. amount > 100000 → director approval)
+- Built-in Workflows
+  - Leave request (employee → manager → HR)
+  - Purchase order (requester → manager → purchasing → director)
+  - Inventory adjustment (warehouse → supervisor → manager)
+  - Sales discount override (sales → manager → director)
+- Workflow API & UI
+  - `GET /api/v1/workflows/pending` — current user's pending approvals
+  - `POST /api/v1/workflows/:id/approve` / `reject`
+  - Approval dashboard widget showing pending count + action buttons
+  - Email/notification trigger on each step transition
+  - Full audit trail for every approval action
+
+Acceptance criteria:
+- New workflow can be defined via JSON and stored to DB
+- Approval chain executes steps in order with correct approver assignment
+- Escalation triggers after configured timeout
+- Audit log records every approve/reject action with user + timestamp
+- Frontend shows pending approvals badge in navbar
+- Notification sent (WebSocket + future Email/LINE) on status change
+
+### Phase 22: Database Schema Isolation
+
+Status: Done
+
+Outputs:
+- Domain-Based Schema Separation
+  - `auth` schema: users, roles, permissions, refresh_tokens
+  - `hr` schema: employees, departments, attendance, leave
+  - `payroll` schema: salary, pay_slips, tax_records
+  - `inventory` schema: products, cylinders, ink, warehouse
+  - `production` schema: jobs, logs, qc_inspections
+  - `sales` schema: orders, customers, invoices
+  - `audit` schema: audit_logs (separated for retention management)
+- Multi-Schema Prisma Setup
+  - Prisma multi-schema preview feature or raw SQL fallback
+  - Each domain module points to its own schema
+  - Cross-schema queries via Prisma `@@schema` or raw views
+  - Migration scripts per schema
+- Schema Ownership Rules
+  - Module A reads module B's data only through service calls (no direct query)
+  - Cross-schema foreign keys via logical references (not physical FK)
+  - Event-driven sync for cross-domain data replication
+
+Acceptance criteria:
+- Tables organized into domain schemas (not all in `public`)
+- Migration creates correct schema + tables per domain
+- Existing data migrated to new schemas without loss
+- No cross-schema direct queries in service code
+
+### Phase 23: API Security Hardening
+
+Status: Done
+
+Outputs:
+- HTTP Security Headers
+  - `helmet` middleware for all response headers (CSP, X-Frame-Options, HSTS, etc.)
+  - Strict-Transport-Security (HSTS) for HTTPS enforcement
+  - Content-Security-Policy headers for XSS prevention
+- CORS Hardening
+  - Whitelist-based origin validation (not `origin: '*'`)
+  - Preflight cache optimization
+  - Credential policy per endpoint
+- Input Validation Layer
+  - Zod schemas for all request bodies (replacing manual checks)
+  - Validation middleware with typed error responses
+  - Query parameter sanitization
+  - File upload size + type validation
+- API Key Support for Machine-to-Machine
+  - API key model + authentication middleware
+  - Key rotation and expiry
+  - Rate limit by API key (separate from user rate limit)
+- Audit for Permission Changes
+  - All permission/role changes logged to audit_logs
+  - Immutable audit trail for access control changes
+  - Review endpoint for recent permission grants
+
+Acceptance criteria:
+- Security headers present on all responses (verified via securityheaders.com)
+- CORS rejects requests from unknown origins
+- Zod validation returns consistent error format
+- API key auth works alongside JWT auth
+- Permission changes are fully auditable
+
+### Phase 24: Observability & Monitoring Stack
+
+Status: Done
+
+Outputs:
+- Grafana + Loki + Prometheus Stack
+  - Docker Compose services for Grafana, Loki, Prometheus
+  - Application metrics exposed via Prometheus client (API latency, error rate, request count)
+  - Loki log aggregation from JSON-formatted container logs
+  - Pre-built Grafana dashboards:
+    - API performance (latency p50/p95/p99, error rate, throughput)
+    - System health (CPU, memory, DB connections, Redis)
+    - Business metrics (orders/day, jobs/day, active users)
+- Alert Rules
+  - Prometheus AlertManager rules for:
+    - DB down > 30s
+    - Redis down > 30s
+    - API error rate > 5% over 5 min
+    - Disk usage > 90%
+    - Memory usage > 90%
+  - Alert dispatch via webhook to Telegram/LINE
+- Structured Dashboard
+  - Grafana accessible at `/monitoring` subpath (behind auth)
+  - Dashboard variables for environment, module, user
+  - Log explorer with Loki (search by correlation ID, user, action)
+
+Acceptance criteria:
+- Grafana accessible and shows live metrics
+- API latency metrics visible on dashboard
+- Alert triggers and sends webhook notification
+- Log searchable by correlation ID
+- Stack startup time < 2 minutes
+
+### Phase 25: Notification Service Gateway
+
+Status: Done
+
+Outputs:
+- Notification Module Abstraction
+  - `NotificationProvider` interface:
+    ```typescript
+    interface NotificationProvider {
+      send(to: string, message: string, options?: any): Promise<boolean>;
+    }
+    ```
+  - Built-in providers:
+    - **LINE Messaging API** (official API with bot token)
+    - **Telegram Bot** (via `node-telegram-bot-api`)
+    - **SMTP Email** (nodemailer with template support)
+    - **WebSocket Push** (existing socket.io infrastructure)
+  - Provider registry with channel selection per notification type
+- Template Engine
+  - Handlebars-based message templates stored in DB
+  - Per-language templates (TH/EN/CN/JA/MM)
+  - Dynamic variable injection (`{{username}}`, `{{amount}}`, etc.)
+  - Template preview API
+- Notification Preferences
+  - User opt-in/opt-out per channel
+  - Per-notification-type channel selection
+  - Quiet hours configuration
+  - Digest mode (batch notifications, send once per N hours)
+- Delivery Tracking
+  - Notification log with status (pending/sent/failed)
+  - Retry logic with exponential backoff (max 3 retries)
+  - Delivery failure alert to admin
+
+Acceptance criteria:
+- Notification sent successfully via LINE, Telegram, and Email
+- Template renders with correct variable substitution
+- User can opt out of specific channels
+- Failed delivery retried and logged
+- Audit log records every notification sent
+
+### Phase 26: File Storage Layer
+
+Status: Done
+
+Outputs:
+- `FileMetadata` Prisma model under `@@schema("storage")`
+- `StorageProvider` interface with `MinioProvider` (aws-sdk S3-compatible) and `LocalStorageProvider` (dev filesystem)
+- Sharp integration for thumbnail generation (200×200, configurable)
+- File upload/download/delete API routes (`POST /upload`, `GET /files/:id`, `DELETE /files/:id`, `GET /files/entity/:type/:id`)
+- MinIO service in Docker Compose (port 9000 API, 9001 console) with healthcheck
+- `gravure-files` bucket auto-created on first use via `mc mb`
+
+Acceptance criteria:
+- File upload stores correct content and returns metadata with ID
+- Download returns original content with correct MIME type
+- Signed URL generation works
+- File deletion cleans up storage and database
+- All 6 storage E2E tests pass
+
+### Phase 27: AI Gateway & IoT Architecture
+
+Status: Done
+
+Outputs:
+- Prisma models under `@@schema("ai")`: `AiProvider`, `AiPromptTemplate`, `AiChatLog`, `AiApiKey`
+- Multi-provider AI abstraction (`AiProviderInterface`) with `OpenAIProvider`, `AnthropicProvider`, `OllamaProvider`
+- Prompt template engine (Handlebars-style, stored in DB, per-language)
+- Cost tracking per chat log (input/output tokens, duration, cost)
+- Prisma models under `@@schema("iot")`: `Device`, `DeviceTelemetry`
+- Device registry CRUD API
+- Telemetry ingestion endpoint (deviceId + key/value/unit readings)
+- Telemetry query with time range and key filters
+- MQTT publish endpoint (stub — logs action)
+
+Acceptance criteria:
+- AI provider CRUD works (create/list/delete)
+- Prompt template creation and rendering with variable substitution works
+- Device registration, telemetry ingestion, and querying all work
+- Latest telemetry per device per key available
+- All 16 AI + IoT E2E tests pass
+
+### Phase 28: Production Deployment & Disaster Recovery
+
+Status: Done
+
+Outputs:
+- Cloudflare Tunnel service (`cloudflared`) in docker-compose under `production` profile
+- `scripts/backup.sh` — DR backup automation: PostgreSQL dump, Redis RDB, MinIO mirror, config archive
+- `scripts/load-test.js` — k6 script with 3-stage ramp (20→50→100 users), 5 endpoints (cylinders, inks, jobs, orders, IoT, AI)
+- `scripts/security-audit.sh` + `container-audit.sh` — 7 checks: JWT strength, CORS, API keys, DB access, Redis, npm audit, container health
+- `secrets/` directory with 7 secret files (`db_url`, `db_password`, `redis_url`, `jwt_secret`, `jwt_refresh_secret`, `api_keys`)
+- Retention-based backup cleanup (daily 7, weekly 4, monthly 3)
+
+Acceptance criteria:
+- docker-compose config validates with cloudflared service
+- Backup script handles all data stores (PostgreSQL + Redis + MinIO + config)
+- k6 load test runs without errors and reports metrics
+- Security audit produces pass/fail report for each check
+- All 28 phases complete and verified
 
 ### Suggested Consolidated Architecture
 

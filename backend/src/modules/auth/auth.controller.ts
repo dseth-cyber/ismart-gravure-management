@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
+import { MfaService } from './mfa.service';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { AuditService } from '../audit/audit.service';
+import { prisma } from '../../config/database';
 import { ApiResponse } from '@shared/dto/auth/auth.dto';
 
 export class AuthController {
@@ -13,7 +15,7 @@ export class AuthController {
       }
 
       const result = await AuthService.login(username, password);
-      await AuditService.record(req, 'auth.login', `User ${username} logged in successfully`, result.user.id, result.user.username);
+      await AuditService.record(req, 'auth.login', `User ${username} logged in successfully`, result.user?.id, result.user?.username);
 
       return res.status(200).json({ status: 'success', statusCode: 200, data: result } as ApiResponse);
     } catch (error) {
@@ -21,6 +23,22 @@ export class AuthController {
       if (username) {
         await AuditService.record(req, 'auth.login.failed', `Failed login attempt for username: ${username}`);
       }
+      next(error);
+    }
+  }
+
+  static async verifyMfa(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { tempToken, totpCode } = req.body;
+      if (!tempToken || !totpCode) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'Temp token and TOTP code are required' } as ApiResponse);
+      }
+
+      const result = await AuthService.verifyMfa(tempToken, totpCode);
+      await AuditService.record(req, 'auth.mfa.verify', `User ${result.user.username} completed MFA verification`, result.user.id, result.user.username);
+
+      return res.status(200).json({ status: 'success', statusCode: 200, data: result } as ApiResponse);
+    } catch (error) {
       next(error);
     }
   }
@@ -80,6 +98,98 @@ export class AuthController {
 
       const profile = await AuthService.getUserProfile(req.user.userId);
       return res.status(200).json({ status: 'success', statusCode: 200, data: profile } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ── MFA Management ──
+  static async mfaGenerate(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ status: 'error', statusCode: 401, message: 'Unauthorized' } as ApiResponse);
+      }
+
+      const { secret, uri } = MfaService.generateSecret();
+
+      await prisma.user.update({
+        where: { id: req.user.userId },
+        data: { mfaSecret: secret },
+      });
+
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        data: { secret, uri },
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async mfaEnable(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ status: 'error', statusCode: 401, message: 'Unauthorized' } as ApiResponse);
+      }
+
+      const { totpCode } = req.body;
+      if (!totpCode) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'TOTP code is required' } as ApiResponse);
+      }
+
+      const result = await MfaService.enable(req.user.userId, totpCode);
+      await AuditService.record(req, 'auth.mfa.enable', `User ${req.user.username} enabled MFA`, req.user.userId, req.user.username);
+
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        data: result,
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async mfaDisable(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ status: 'error', statusCode: 401, message: 'Unauthorized' } as ApiResponse);
+      }
+
+      const { totpCode } = req.body;
+      if (!totpCode) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'TOTP code or backup code is required' } as ApiResponse);
+      }
+
+      await MfaService.disable(req.user.userId, totpCode);
+      await AuditService.record(req, 'auth.mfa.disable', `User ${req.user.username} disabled MFA`, req.user.userId, req.user.username);
+
+      return res.status(200).json({ status: 'success', statusCode: 200, message: 'MFA disabled successfully' } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async mfaStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ status: 'error', statusCode: 401, message: 'Unauthorized' } as ApiResponse);
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { mfaEnabled: true, mfaSecret: true },
+      });
+
+      return res.status(200).json({
+        status: 'success',
+        statusCode: 200,
+        data: {
+          mfaEnabled: user?.mfaEnabled || false,
+          hasSecret: !!user?.mfaSecret,
+        },
+      } as ApiResponse);
     } catch (error) {
       next(error);
     }

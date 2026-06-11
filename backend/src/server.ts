@@ -19,14 +19,14 @@ server.listen(env.PORT, () => {
 
 // Periodic notification emission every 5 minutes
 setInterval(() => {
-  NotificationService.emitNotifications().catch(err => {
+  NotificationService.checkAndEmit().catch(err => {
     console.error('[Notifications] Periodic check failed:', err);
   });
 }, 5 * 60 * 1000);
 
 // Also emit on startup after a short delay
 setTimeout(() => {
-  NotificationService.emitNotifications().catch(err => {
+  NotificationService.checkAndEmit().catch(err => {
     console.error('[Notifications] Initial check failed:', err);
   });
 }, 3000);

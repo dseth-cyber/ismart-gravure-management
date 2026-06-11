@@ -45,6 +45,14 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# Secrets (Docker secrets for production)
+secrets/*.txt
+!secrets/.gitkeep
+
+# Backup files
+backups/
+*.dump
+
 # Prisma
 backend/prisma/*.db
 backend/prisma/*.db-journal

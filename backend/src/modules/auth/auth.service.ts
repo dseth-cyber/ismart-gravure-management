@@ -5,6 +5,8 @@ import { prisma } from '../../config/database';
 import { getRedis } from '../../config/redis';
 import { env } from '../../config/env';
 import { AppError } from '../../middleware/error';
+import { MfaService } from './mfa.service';
+import { LdapService } from './ldap.service';
 
 interface TokenPair {
   accessToken: string;
@@ -33,6 +35,14 @@ export class AuthService {
     );
   }
 
+  static generateTempToken(userId: string): string {
+    return jwt.sign(
+      { userId, purpose: 'mfa' },
+      env.JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+  }
+
   static async generateRefreshToken(userId: string): Promise<string> {
     const token = crypto.randomBytes(40).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -45,6 +55,14 @@ export class AuthService {
   }
 
   static decodeAccessToken(token: string): { userId: string; username: string; role: string } | null {
+    try {
+      return jwt.verify(token, env.JWT_SECRET) as any;
+    } catch {
+      return null;
+    }
+  }
+
+  static decodeTempToken(token: string): { userId: string; purpose: string } | null {
     try {
       return jwt.verify(token, env.JWT_SECRET) as any;
     } catch {
@@ -67,7 +85,11 @@ export class AuthService {
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
+
+    // Fallback: try LDAP if local password fails
+    const ldapResult = !isMatch ? await LdapService.authenticate(username, password) : null;
+
+    if (!isMatch && (!ldapResult || !ldapResult.authenticated)) {
       const attempts = user.failedLoginAttempts + 1;
       const updates: any = { failedLoginAttempts: attempts };
       if (attempts >= env.MAX_LOGIN_ATTEMPTS) {
@@ -77,13 +99,56 @@ export class AuthService {
       throw new AppError('Invalid username or password', 400);
     }
 
+    // Sync LDAP user info on successful LDAP auth
+    if (ldapResult && ldapResult.authenticated) {
+      await LdapService.syncUser(username, ldapResult);
+    }
+
     // Reset failed attempts on success
     await prisma.user.update({
       where: { id: user.id },
       data: { failedLoginAttempts: 0, lockedUntil: null },
     });
 
+    // Check MFA requirement
+    if (user.mfaEnabled) {
+      const tempToken = this.generateTempToken(user.id);
+      return {
+        mfaRequired: true,
+        tempToken,
+        user: { id: user.id, username: user.username, role: user.role },
+      };
+    }
+
     // Enforce max concurrent sessions
+    await this.enforceSessionLimit(user.id);
+
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = await this.generateRefreshToken(user.id);
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: 15 * 60,
+      user: { id: user.id, username: user.username, role: user.role },
+    };
+  }
+
+  // ── MFA Login (second factor) ──
+  static async verifyMfa(tempToken: string, totpCode: string) {
+    const payload = this.decodeTempToken(tempToken);
+    if (!payload || payload.purpose !== 'mfa') {
+      throw new AppError('Invalid or expired MFA token', 401);
+    }
+
+    const valid = await MfaService.verify(payload.userId, totpCode);
+    if (!valid) {
+      throw new AppError('Invalid TOTP code', 400);
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user) throw new AppError('User not found', 404);
+
     await this.enforceSessionLimit(user.id);
 
     const accessToken = this.generateAccessToken(user);
@@ -197,28 +262,8 @@ export class AuthService {
 
   // ── LDAP Authentication ──
   static async ldapAuthenticate(username: string, password: string): Promise<boolean> {
-    if (!env.LDAP_URL) return false;
-    try {
-      const ldapjs = require('ldapjs');
-      const client = ldapjs.createClient({ url: env.LDAP_URL });
-      return new Promise((resolve) => {
-        client.bind(`${env.LDAP_BIND_DN}`, env.LDAP_BIND_CREDENTIALS, (bindErr: any) => {
-          if (bindErr) { client.destroy(); resolve(false); return; }
-          const searchDn = env.LDAP_BASE_DN;
-          client.search(searchDn, { scope: 'sub', filter: `(uid=${username})` }, (searchErr: any, res: any) => {
-            if (searchErr) { client.destroy(); resolve(false); return; }
-            let found = false;
-            res.on('searchEntry', () => { found = true; });
-            res.on('end', () => {
-              client.destroy();
-              resolve(found);
-            });
-          });
-        });
-      });
-    } catch {
-      return false;
-    }
+    const result = await LdapService.authenticate(username, password);
+    return result.authenticated;
   }
 
   static async getUserProfile(userId: string) {
@@ -228,6 +273,7 @@ export class AuthService {
         id: true,
         username: true,
         role: true,
+        mfaEnabled: true,
         createdAt: true,
         updatedAt: true,
         lastPasswordChange: true,

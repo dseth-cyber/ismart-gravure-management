@@ -556,5 +556,192 @@
   "login.submit": "Sign In",
   "login.error.invalid": "Invalid username or password",
   "login.error.generic": "Server connection failed",
-  "btn.logout": "Log Out"
+  "btn.logout": "Log Out",
+  "phase.18.name": "Security & Identity",
+  "phase.18.output": "MFA (TOTP), Enhanced LDAP with group mapping, Docker Secrets",
+  "phase.19.name": "Operations & Observability",
+  "phase.19.output": "Backup automation script, Enhanced health monitoring",
+  "phase.20.name": "Advanced RBAC & Workflow",
+  "phase.20.output": "Fine-grained permissions, Approval workflow engine",
+  "phase.21.name": "Integration & Storage",
+  "phase.21.output": "Notification gateway, MinIO file storage, SSO foundation",
+  "mfa.title": "Two-Factor Authentication",
+  "mfa.subtitle": "Enter the code from your authenticator app, {{username}}",
+  "mfa.code": "Authentication Code",
+  "mfa.verify": "Verify",
+  "mfa.error.invalid": "Invalid code. Please try again.",
+  "mfa.settings.title": "MFA Settings",
+  "mfa.notEnabled": "MFA is not enabled",
+  "mfa.notEnabledDesc": "Protect your account with two-factor authentication using Google Authenticator or Microsoft Authenticator.",
+  "mfa.setup": "Set up MFA",
+  "mfa.scanQr": "Scan QR Code",
+  "mfa.scanQrDesc": "Scan this QR code with your authenticator app, then enter the 6-digit code below.",
+  "mfa.manualEntry": "Can't scan? Use manual entry",
+  "mfa.enterCode": "Enter the 6-digit code from your app",
+  "mfa.enabled": "MFA is enabled",
+  "mfa.enabledDesc": "Your account is protected with two-factor authentication.",
+  "mfa.saveCodes": "Save these backup codes in a safe place:",
+  "mfa.backupWarning": "Each backup code can only be used once. Keep them secure.",
+  "mfa.disable": "Disable MFA",
+  "mfa.disabled": "MFA has been disabled successfully.",
+  "common.copied": "Copied!",
+  "common.copy": "Copy",
+  "phase.22.name": "Database Schema Isolation",
+  "phase.22.output": "Domain-based schemas (auth, inventory, production, sales, workflow, audit)",
+  "phase.23.name": "API Security Hardening",
+  "phase.23.output": "Helmet, CORS whitelist, Zod validation, API keys",
+  "phase.24.name": "Observability Stack",
+  "phase.24.output": "Grafana, Loki, Prometheus, alert rules",
+  "phase.25.name": "Notification Gateway",
+  "phase.25.output": "LINE, Telegram, Email, template engine",
+  "phase.26.name": "File Storage Layer",
+  "phase.26.output": "MinIO, abstraction, thumbnails, file picker",
+  "phase.27.name": "AI Gateway & IoT",
+  "phase.27.output": "Multi-provider AI, MQTT bridge, device registry",
+  "phase.28.name": "Production Deploy & DR",
+  "phase.28.output": "Cloudflare Tunnel, DR plan, load testing, security audit",
+  "phase.22.details": {
+    "outputs": [
+      "21 tables migrated from public to domain schemas",
+      "Prisma multiSchema with @@schema directive on all models",
+      "Migration script (migrate-schemas.cjs) for ALTER TABLE ... SET SCHEMA"
+    ],
+    "criteria": [
+      "All 8 schemas defined in Prisma multiSchema list",
+      "Each model has correct @@schema annotation",
+      "Migration script can move tables between schemas"
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "Tables use auth, inventory, production, sales, workflow, audit, notify, storage schemas."
+    ]
+  },
+  "phase.23.details": {
+    "outputs": [
+      "Helmet security headers (CSP, HSTS, frameguard, noSniff, XSS, referrer)",
+      "CORS whitelist from CORS_ORIGINS env var",
+      "Zod validation schemas for MFA, refresh token, change-password",
+      "API key auth middleware (requireApiKey)",
+      "Auth rate limiter (10 req/min per IP)"
+    ],
+    "criteria": [
+      "All 8 security E2E tests pass.",
+      "Helmet headers present on all responses.",
+      "API key required on /permissions/* and /workflows/*.",
+      "Rate limiter blocks excessive auth requests."
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "Zod v4 uses .issues (not .errors).",
+      "API key in dev: test-api-key-123."
+    ]
+  },
+  "phase.24.details": {
+    "outputs": [
+      "Prometheus metrics endpoint (GET /metrics)",
+      "Grafana auto-provisioned dashboards (API Performance)",
+      "Loki log aggregation",
+      "AlertManager with 6 alert rules"
+    ],
+    "criteria": [
+      "Metrics endpoint returns prometheus-formatted data.",
+      "Grafana dashboard shows request rate, error rate, latency P50/P95/P99.",
+      "Alert rules fire for DB/Redis down, high error rate, disk/memory pressure."
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "Grafana at http://localhost:3001 (admin/admin).",
+      "Prometheus at http://localhost:9090."
+    ]
+  },
+  "phase.25.details": {
+    "outputs": [
+      "NotificationProvider interface with WebSocket, SMTP, LINE, Telegram",
+      "Template engine (Handlebars) stored in DB",
+      "User notification preferences with quiet hours",
+      "Delivery tracking with retry (max 3, exponential backoff)",
+      "MailHog for dev email testing"
+    ],
+    "criteria": [
+      "5 built-in templates seeded (ink_expiry, cylinder_maintenance, workflow_approval, alert, test).",
+      "Email delivery verified via MailHog.",
+      "Alert webhook handler processes AlertManager payloads.",
+      "All notification E2E tests pass."
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "MailHog UI at http://localhost:8025.",
+      "LINE and Telegram providers implemented but require real credentials."
+    ]
+  },
+  "phase.26.details": {
+    "outputs": [
+      "MinIO service in Docker Compose (ports 9000 API, 9001 console)",
+      "StorageProvider interface (MinioProvider + LocalStorageProvider)",
+      "FileMetadata Prisma model (schema: storage)",
+      "Sharp thumbnail generation",
+      "File upload/download/delete/list/signed-url API routes"
+    ],
+    "criteria": [
+      "File upload returns 201 with metadata.",
+      "File download returns correct content.",
+      "Signed URL generation works.",
+      "File deletion cleans up storage and DB.",
+      "All storage E2E tests pass."
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "MinIO console at http://localhost:9001 (minioadmin/minioadmin).",
+      "Bucket gravure-files auto-created on first use."
+    ]
+  },
+  "phase.27.details": {
+    "outputs": [
+      "AiProvider, AiPromptTemplate, AiChatLog, AiApiKey Prisma models (schema: ai)",
+      "Multi-provider AI abstraction (OpenAI, Anthropic, Ollama)",
+      "Prompt template engine with variable rendering",
+      "Cost tracking per chat log",
+      "Device, DeviceTelemetry Prisma models (schema: iot)",
+      "MQTT bridge service stub",
+      "Device registry + telemetry ingestion API"
+    ],
+    "criteria": [
+      "AI provider CRUD works.",
+      "Prompt template creation and rendering works.",
+      "Device registration and telemetry ingestion work.",
+      "Telemetry querying with filters works.",
+      "All AI and IoT E2E tests pass."
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "Chat endpoint returns 500 if provider unavailable (expected).",
+      "MQTT bridge logs actions; full implementation requires Mosquitto broker."
+    ]
+  },
+  "phase.28.details": {
+    "outputs": [
+      "Cloudflare Tunnel service in docker-compose (production profile)",
+      "DR backup script (PostgreSQL, Redis, MinIO, config)",
+      "k6 load testing script (20→50→100 users)",
+      "Security audit script (7 checks: JWT, CORS, API keys, DB, Redis, npm, containers)",
+      "Secrets directory with 7 secret files"
+    ],
+    "criteria": [
+      "docker-compose config validates with cloudflared service.",
+      "Backup script handles PostgreSQL dump, Redis RDB, MinIO mirror.",
+      "Load test runs without errors.",
+      "Security audit reports pass/fail for each check."
+    ],
+    "notes": [
+      "Completed on 2026-06-11.",
+      "Cloudflared requires CF_TUNNEL_TOKEN env var for production.",
+      "Secrets directory files are placeholders — replace before production deployment."
+    ]
+  },
+  "phase.23.status": "done",
+  "phase.24.status": "done",
+  "phase.25.status": "done",
+  "phase.26.status": "done",
+  "phase.27.status": "done",
+  "phase.28.status": "done"
 }

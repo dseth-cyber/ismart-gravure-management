@@ -556,5 +556,89 @@
   "login.submit": "ログイン",
   "login.error.invalid": "ユーザー名またはパスワードが正しくありません",
   "login.error.generic": "サーバー接続に失敗しました",
-  "btn.logout": "ログアウト"
+  "btn.logout": "ログアウト",
+  "phase.18.name": "セキュリティと本人確認",
+  "phase.18.output": "MFA (TOTP), LDAPグループマッピング, Docker Secrets",
+  "phase.19.name": "運用と可観測性",
+  "phase.19.output": "自動バックアップスクリプト, ヘルスモニタリング",
+  "phase.20.name": "高度なRBACとワークフロー",
+  "phase.20.output": "きめ細かい権限, 承認ワークフローエンジン",
+  "phase.21.name": "統合とストレージ",
+  "phase.21.output": "通知ゲートウェイ, MinIO, SSO基盤",
+  "phase.22.name": "データベーススキーマ分離",
+  "phase.22.output": "ドメイン別スキーマ (auth, inventory, production, sales, workflow, audit)",
+  "phase.23.name": "APIセキュリティ強化",
+  "phase.23.output": "Helmet, CORSホワイトリスト, Zodバリデーション, APIキー",
+  "phase.24.name": "可観測性スタック",
+  "phase.24.output": "Grafana, Loki, Prometheus, アラートルール",
+  "phase.25.name": "通知ゲートウェイ",
+  "phase.25.output": "LINE, Telegram, Email, テンプレートエンジン",
+  "phase.26.name": "ファイルストレージ層",
+  "phase.26.output": "MinIO, 抽象化, サムネイル, ファイルピッカー",
+  "phase.27.name": "AIゲートウェイとIoT",
+  "phase.27.output": "マルチプロバイダーAI, MQTTブリッジ, デバイスレジストリ",
+  "phase.28.name": "本番展開とDR",
+  "phase.28.output": "Cloudflare Tunnel, DR計画, 負荷テスト, セキュリティ監査",
+  "phase.22.details": {
+    "outputs": ["21テーブルをドメインスキーマに移行", "Prisma multiSchema + @@schema", "移行スクリプト (ALTER TABLE ... SET SCHEMA)"],
+    "criteria": ["8スキーマがPrisma multiSchemaリストに定義", "各モデルに正しい@@schema", "移行スクリプトでテーブル移動可能"],
+    "notes": ["完了 2026-06-11.", "auth, inventory, production, sales, workflow, audit, notify, storage スキーマを使用"]
+  },
+  "phase.23.details": {
+    "outputs": ["Helmetセキュリティヘッダー", "CORSホワイトリスト", "Zodバリデーションスキーマ", "APIキー認証", "レート制限"],
+    "criteria": ["8つのセキュリティE2Eテスト合格", "全レスポンスにHelmetヘッダー", "/permissions/* と /workflows/* にAPIキー必須"],
+    "notes": ["完了 2026-06-11.", "Zod v4は.issuesを使用(.errorsではない)", "開発用APIキー: test-api-key-123"]
+  },
+  "phase.24.details": {
+    "outputs": ["Prometheusメトリクスエンドポイント", "Grafanaダッシュボード (API Performance)", "Lokiログ集約", "AlertManager 6ルール"],
+    "criteria": ["メトリクスエンドポイントがPrometheus形式を返す", "ダッシュボードにリクエスト数、エラー率、レイテンシを表示"],
+    "notes": ["完了 2026-06-11.", "Grafana: http://localhost:3001 (admin/admin)"]
+  },
+  "phase.25.details": {
+    "outputs": ["NotificationProvider (WebSocket, SMTP, LINE, Telegram)", "テンプレートエンジン (Handlebars)", "ユーザー設定 と 静音時間", "配信追跡 + リトライ", "MailHog"],
+    "criteria": ["5テンプレート作成済み", "メール配信をMailHogで確認", "Alert webhookがAlertManagerを処理"],
+    "notes": ["完了 2026-06-11.", "MailHog UI: http://localhost:8025"]
+  },
+  "phase.26.details": {
+    "outputs": ["MinIOサービス", "StorageProvider (Minio + Local)", "FileMetadataモデル", "Sharpサムネイル生成", "ファイルAPI"],
+    "criteria": ["アップロード201", "ダウンロード正常", "署名付きURL生成", "削除でストレージとDBをクリーンアップ"],
+    "notes": ["完了 2026-06-11.", "MinIOコンソール: http://localhost:9001 (minioadmin/minioadmin)"]
+  },
+  "phase.27.details": {
+    "outputs": ["AIプロバイダーモデル", "マルチプロバイダーAI抽象化", "プロンプトテンプレートエンジン", "コスト追跡", "デバイスレジストリ", "テレメトリー取得", "MQTTブリッジ"],
+    "criteria": ["AIプロバイダーCRUD", "テンプレート作成・レンダリング", "デバイス登録とテレメトリー", "テレメトリークエリ"],
+    "notes": ["完了 2026-06-11.", "プロバイダー不在時は500を返す", "MQTTブリッジはMosquittoが必要"]
+  },
+  "phase.28.details": {
+    "outputs": ["Cloudflare Tunnel (production profile)", "DRバックアップスクリプト", "k6負荷テストスクリプト", "セキュリティ監査スクリプト", "Secretsディレクトリ"],
+    "criteria": ["docker-compose configが有効", "バックアップスクリプト正常動作", "負荷テストエラーなし", "セキュリティ監査レポート出力"],
+    "notes": ["完了 2026-06-11.", "CloudflaredにはCF_TUNNEL_TOKENが必要", "Secretsはプレースホルダー"]
+  },
+  "phase.23.status": "done",
+  "phase.24.status": "done",
+  "phase.25.status": "done",
+  "phase.26.status": "done",
+  "phase.27.status": "done",
+  "phase.28.status": "done",
+  "mfa.title": "二要素認証",
+  "mfa.subtitle": "認証アプリのコードを入力してください, {{username}}",
+  "mfa.code": "認証コード",
+  "mfa.verify": "確認",
+  "mfa.error.invalid": "コードが無効です。もう一度お試しください",
+  "mfa.settings.title": "MFA設定",
+  "mfa.notEnabled": "MFAが有効になっていません",
+  "mfa.notEnabledDesc": "Google AuthenticatorまたはMicrosoft Authenticatorを使用してアカウントを保護します",
+  "mfa.setup": "MFAを設定",
+  "mfa.scanQr": "QRコードをスキャン",
+  "mfa.scanQrDesc": "認証アプリでQRコードをスキャンし、下の6桁のコードを入力してください",
+  "mfa.manualEntry": "スキャンできない場合：手動入力",
+  "mfa.enterCode": "アプリの6桁のコードを入力",
+  "mfa.enabled": "MFAが有効です",
+  "mfa.enabledDesc": "アカウントは二要素認証で保護されています",
+  "mfa.saveCodes": "これらのバックアップコードを安全な場所に保存してください：",
+  "mfa.backupWarning": "各バックアップコードは一度のみ使用できます。安全に保管してください。",
+  "mfa.disable": "MFAを無効にする",
+  "mfa.disabled": "MFAが正常に無効化されました",
+  "common.copied": "コピーしました！",
+  "common.copy": "コピー"
 }

@@ -1,0 +1,57 @@
+groups:
+  - name: backend_alerts
+    interval: 30s
+    rules:
+      - alert: DatabaseDown
+        expr: probe_success{job="backend"} == 0 or absent(probe_success{job="backend"})
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database is down"
+          description: "Database has been unreachable for more than 30 seconds."
+
+      - alert: RedisDown
+        expr: probe_success{job="backend"} == 0 or absent(probe_success{job="backend"})
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been unreachable for more than 30 seconds."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }} over the last 5 minutes (threshold: 5%)."
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage > 90%"
+          description: "Disk usage is {{ $value | humanizePercentage }} free (threshold: < 10% free)."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage > 90%"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: > 90%)."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_ms_bucket[5m])) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency (P95 > 1s)"
+          description: "P95 latency is {{ $value }}ms over the last 5 minutes (threshold: 1000ms)."

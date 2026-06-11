@@ -1,0 +1,226 @@
+{
+  "title": "Business Intelligence",
+  "uid": "business-intelligence",
+  "version": 1,
+  "tags": ["business", "kpi"],
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "title": "Active Users",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "active_users", "legendFormat": "users" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "DB Connections",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 3, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "db_connections", "legendFormat": "connections" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Total Orders",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(orders_total)", "legendFormat": "total" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Total Jobs",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 9, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(jobs_total)", "legendFormat": "total" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Total Ink Batches",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(ink_batches_total)", "legendFormat": "total" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Total Cylinders",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 15, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(cylinders_total)", "legendFormat": "total" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Total Queue Jobs",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(queue_jobs_total)", "legendFormat": "total" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Request Rate",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 3, "x": 21, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "sum(rate(http_requests_total[5m]))", "legendFormat": "req/s" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "none" },
+          "thresholds": { "steps": [{ "value": null, "color": "green" }] }
+        }
+      }
+    },
+    {
+      "title": "Orders Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "orders_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "title": "Jobs Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "jobs_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "title": "Ink Batches Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "ink_batches_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "title": "Cylinders Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "cylinders_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "title": "Active Users Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "active_users", "legendFormat": "active" }],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "title": "DB Connections Trend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "db_connections", "legendFormat": "connections" }],
+      "fieldConfig": { "defaults": { "unit": "none" } }
+    },
+    {
+      "title": "Orders by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "orders_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "pie",
+        "displayLabels": ["name", "percent"],
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "title": "Jobs by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "jobs_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "pie",
+        "displayLabels": ["name", "percent"],
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "title": "Ink Batches by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "ink_batches_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "pie",
+        "displayLabels": ["name", "percent"],
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "title": "Cylinders by Status",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [{ "expr": "cylinders_total", "legendFormat": "{{status}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "pie",
+        "displayLabels": ["name", "percent"],
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"] }
+      }
+    }
+  ]
+}

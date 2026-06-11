@@ -3,7 +3,7 @@ import { env } from '../config/env';
 export class Logger {
   private static format(level: string, message: string, correlationId?: string, meta?: any) {
     const timestamp = new Date().toISOString();
-    if (env.NODE_ENV === 'production') {
+    if (env.NODE_ENV === 'production' || env.LOG_FORMAT === 'json') {
       return JSON.stringify({
         timestamp,
         level,

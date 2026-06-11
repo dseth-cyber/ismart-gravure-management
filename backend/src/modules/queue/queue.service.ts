@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { Logger } from '../../utils/logger';
 import { AuditService } from '../audit/audit.service';
 import { Request } from 'express';
+import { incrementQueueJobs } from '../../middleware/metrics';
 
 const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
 
@@ -96,10 +97,12 @@ export const initQueueWorker = () => {
   );
 
   worker.on('completed', (job) => {
+    incrementQueueJobs('completed');
     Logger.info(`[Worker] Job ${job.id} completed successfully`);
   });
 
   worker.on('failed', (job, err) => {
+    incrementQueueJobs('failed');
     Logger.error(`[Worker] Job ${job?.id} failed: ${err.message}`);
   });
 };

@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const cylinder_controller_1 = require("./cylinder.controller");
+const auth_1 = require("../../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.requireAuth);
+router.post('/', cylinder_controller_1.CylinderController.create);
+router.get('/', cylinder_controller_1.CylinderController.list);
+router.get('/:id', cylinder_controller_1.CylinderController.getById);
+router.put('/:id', cylinder_controller_1.CylinderController.update);
+router.delete('/:id', cylinder_controller_1.CylinderController.delete);
+exports.default = router;
