@@ -394,7 +394,7 @@ Notes:
 
 ### Phase 16: Enterprise Identity Foundation
 
-Status: In Progress
+Status: Done
 
 Outputs:
 - LDAP/Active Directory integration for enterprise authentication
@@ -411,6 +411,13 @@ Acceptance criteria:
 Notes:
 - Current auth uses JWT + local DB only — LDAP integration will be additive, not replacing local auth.
 - Started on 2026-06-11.
+- Completed on 2026-06-11.
+- Token refresh: 15m access token + 7d refresh token with rotation (old token revoked on refresh).
+- Password policy: 8+ chars, uppercase, lowercase, digit, special char required. Last 5 hashes remembered.
+- Session limit: max 5 concurrent sessions per user (oldest revoked when limit exceeded).
+- Account lockout: 5 failed attempts → 15 min lockout.
+- LDAP: fallback auth with ldapjs, first successful LDAP login auto-provisions user.
+- Frontend: axios interceptor queues pending requests during token refresh, auto-retries after refresh.
 
 ### Phase 17: Production Hardening
 
