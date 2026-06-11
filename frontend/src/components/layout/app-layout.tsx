@@ -38,6 +38,8 @@ import type { ThemeName } from '@/lib/theme/theme-config';
 import { persistLanguage } from '@/lib/i18n/i18n-provider';
 import { languages, type Language } from '@/lib/i18n/settings';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { useRealtimeEvent } from '@/lib/realtime/use-realtime';
+import { listNotifications, type AlertNotification } from '@/lib/services/notification';
 
 const LANG_META = [
   { code: 'th', label: 'ไทย', flag: '🇹🇭', short: 'TH' },
@@ -169,6 +171,19 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // Map production role key to role.production for localization compatibility
   const userRole = user?.role === 'production' ? 'operator' : (user?.role || 'viewer');
 
+  // Notifications
+  const [notifications, setNotifications] = useState<AlertNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listNotifications().then(setNotifications).catch(() => {});
+  }, []);
+
+  useRealtimeEvent('notification:alerts', (data: AlertNotification[]) => {
+    setNotifications(data);
+  });
+
   // Refs for click outside
   const roleRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
@@ -179,6 +194,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       if (roleRef.current && !roleRef.current.contains(e.target as Node)) setShowRoleMenu(false);
       if (themeRef.current && !themeRef.current.contains(e.target as Node)) setShowThemeMenu(false);
       if (langRef.current && !langRef.current.contains(e.target as Node)) setShowLangMenu(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -312,10 +328,46 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Right tools and settings */}
         <div className="flex items-center gap-2">
           {/* Notifications bell */}
-          <button className={`relative p-2 rounded-lg transition ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
-            <Bell size={16} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
-          </button>
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className={`relative p-2 rounded-lg transition ${themeConfig.panelHover} ${themeConfig.textSecondary}`}
+            >
+              <Bell size={16} />
+              {notifications.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className={`absolute right-0 top-full mt-1.5 rounded-xl py-1 min-w-[320px] max-h-[400px] overflow-y-auto z-50 border shadow-2xl ${themeConfig.dialog}`}>
+                <div className="px-3 py-2 border-b border-white/10">
+                  <p className="text-xs font-bold text-white">Notifications</p>
+                  <p className="text-[10px] text-gray-400">{notifications.length} alert{notifications.length !== 1 ? 's' : ''}</p>
+                </div>
+                {notifications.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs text-gray-500">No alerts</div>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} className="px-3 py-2.5 border-b border-white/5 hover:bg-white/5 transition flex items-start gap-2.5">
+                      <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${
+                        n.severity === 'high' ? 'bg-rose-500' : n.severity === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-white">{n.title}</p>
+                        <p className={`text-[10px] ${themeConfig.textSecondary} mt-0.5`}>{n.message}</p>
+                      </div>
+                      <a
+                        href={n.type === 'ink_expiry' ? '/inks?tab=expiry' : '/cylinders?tab=status'}
+                        className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex-shrink-0 mt-0.5"
+                      >
+                        View
+                      </a>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Languages Selector */}
           <div className="relative" ref={langRef}>

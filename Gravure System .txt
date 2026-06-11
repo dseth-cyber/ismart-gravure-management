@@ -1,10 +1,36 @@
 https://github.com/dseth-cyber
 Username: ให้ใส่ชื่อ User GitHub ของคุณ (เช่น dseth-cyber)
-dseth.sticon@gmail.com
+
+
+
+Bash
+git remote add origin https://github.com/dseth-cyber/ismart-gravure-management
+3. สั่ง Push อีกครั้ง
+Bash
+git push -u origin main
+🔑 สิ่งที่จะเกิดขึ้นหลังจากกด Enter คำสั่ง Push:
+หากมีหน้าต่าง Pop-up เด้งขึ้นมา ให้เลือกล็อกอินผ่านเบราว์เซอร์ หรือกดเลือกใส่ Token ได้เลยครับ
+
+หากไม่มีหน้าต่างเด้ง แต่ระบบหยุดรอใน Terminal:
+
+จะมีคำว่า Password for 'https://dseth-cyber@github.com': ปรากฏขึ้นมา
+
+ให้คุณคัดลอก Personal Access Token (ghp_...) ของคุณมา คลิกขวาเพื่อวางลงไป (ย้ำอีกครั้งว่าตอนวางตัวอักษรจะไม่ขยับและไม่ขึ้นเครื่องหมายใด ๆ) จากนั้นกด Enter ได้เลยครับ
 
 Password: "ห้ามใส่รหัสผ่านเมล์" ให้วาง Token (ghp_xxxx...) ที่ก๊อปปี้มาลงไปแทนครับ (ตอนวางมันจะไม่โชว์ตัวอักษร ให้กด Enter ได้เลย)
+https://github.com/dseth-cyber/ismart-gravure-management
+user = dseth.sticon@gmail.com
 Personal access tokens (classic)
 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
+
+
+
+git add .
+git commit -m  "10-6-2569"
+git push
+
+ถ้าไม่อยากวาง Token ทุกครั้งที่สำรองข้อมูล ให้พิมพ์คำสั่งนี้ใน VM1 หนึ่งครั้งครับ:
+git config --global credential.helper store
 
 
 "แต่ละบริการ/โดเมนจะต้องถูกสร้างขึ้นมาในฐานะ Microservice แยกต่างหาก หรือเป็น Module ภายใน Modular Monolith ที่แยกกันอย่างเด็ดขาด (Strict Isolation) ทั้งในระดับของโค้ดและการเชื่อมข้อมูลผ่านฐานข้อมูล (ห้ามทำการ Join ข้ามโมดูลหรือใช้ Foreign Key ในระดับ DB) เพื่อให้สามารถดึงแยกออกไปรันเป็น Microservice เดี่ยวได้ทันทีเมื่อมีความต้องการในการ Scale โดยไม่ต้องแก้ไขโค้ดการทำงานหลักใดๆ"
