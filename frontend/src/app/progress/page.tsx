@@ -4,11 +4,9 @@ import { useState } from 'react';
 import { Server, ShieldCheck, Workflow, Boxes, Database, RadioTower, FileText, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
-import { AppButton } from '@/components/shared/app-button';
 import { AppDialog } from '@/components/shared/app-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
-import { DataTable } from '@/components/shared/data-table';
 import { useTheme } from '@/lib/theme/theme-provider';
 
 const phases: Array<{ id: number; nameKey: string; outputKey: string; status: StatusKind }> = [
@@ -41,7 +39,7 @@ const phases: Array<{ id: number; nameKey: string; outputKey: string; status: St
   { id: 26, nameKey: 'phase.26.name', outputKey: 'phase.26.output', status: 'done' },
   { id: 27, nameKey: 'phase.27.name', outputKey: 'phase.27.output', status: 'done' },
   { id: 28, nameKey: 'phase.28.name', outputKey: 'phase.28.output', status: 'done' },
-  { id: 29, nameKey: 'phase.29.name', outputKey: 'phase.29.output', status: 'progress' },
+  { id: 29, nameKey: 'phase.29.name', outputKey: 'phase.29.output', status: 'done' },
 ];
 
 const rules = [
@@ -71,7 +69,6 @@ const docs = [
 export default function ProgressPage() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPhaseId, setSelectedPhaseId] = useState<number | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -120,11 +117,6 @@ export default function ProgressPage() {
         <PageHeader
           titleKey="page.title"
           subtitleKey="page.subtitle"
-          actions={
-            <AppButton variant="primary" onClick={() => setDialogOpen(true)}>
-              {t('common.viewDetails')}
-            </AppButton>
-          }
         />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('summary.label')}>
@@ -167,7 +159,7 @@ export default function ProgressPage() {
             </div>
           </div>
 
-          <div className="grid gap-4" id="rules">
+          <div className="grid gap-4 self-start" id="rules">
             <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
               <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('rule.sectionTitle')}</h2>
               <ul className="mt-4 grid gap-3">
@@ -194,49 +186,26 @@ export default function ProgressPage() {
                 ))}
               </div>
             </section>
+
+            <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`} id="architecture">
+              <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('architecture.sectionTitle')}</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {architecture.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <article className={`rounded-lg border p-4 ${themeConfig.border}`} key={item.labelKey}>
+                      <Icon className={themeConfig.primaryText} size={20} />
+                      <h3 className={`mt-3 text-sm font-bold ${themeConfig.textPrimary}`}>{t(item.labelKey)}</h3>
+                      <p className={`mt-2 text-sm leading-6 ${themeConfig.textSecondary}`}>{t(item.valueKey)}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           </div>
         </section>
 
-        <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`} id="architecture">
-          <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('architecture.sectionTitle')}</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {architecture.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article className={`rounded-lg border p-4 ${themeConfig.border}`} key={item.labelKey}>
-                  <Icon className={themeConfig.primaryText} size={20} />
-                  <h3 className={`mt-3 text-sm font-bold ${themeConfig.textPrimary}`}>{t(item.labelKey)}</h3>
-                  <p className={`mt-2 text-sm leading-6 ${themeConfig.textSecondary}`}>{t(item.valueKey)}</p>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
-          <h2 className={`mb-4 text-lg font-bold ${themeConfig.textPrimary}`}>{t('table.sectionTitle')}</h2>
-          <DataTable
-            columns={[
-              { key: 'name', headerKey: 'table.phase' },
-              { key: 'status', headerKey: 'table.status', render: (row) => <StatusBadge status={row.status as StatusKind} /> },
-              { key: 'output', headerKey: 'table.output' },
-            ]}
-            rows={phases.slice(0, 5).map((phase) => ({
-              id: phase.id,
-              name: t(phase.nameKey),
-              status: phase.status,
-              output: t(phase.outputKey),
-            }))}
-          />
-        </section>
       </div>
-
-      <AppDialog
-        open={dialogOpen}
-        titleKey="dialog.title"
-        descriptionKey="dialog.description"
-        onClose={() => setDialogOpen(false)}
-      />
 
       <AppDialog
         open={isDetailsOpen}

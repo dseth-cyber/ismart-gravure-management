@@ -79,7 +79,7 @@ Use newer stable versions when they are better for a new project and do not conf
 | 26 | File Storage Layer | Done | MinIO, abstraction, thumbnails, file picker |
 | 27 | AI Gateway & IoT | Done | Multi-provider AI, MQTT bridge, device registry |
 | 28 | Production Deploy & DR | Done | Cloudflare Tunnel, DR plan, load testing, security audit |
-| 29 | Permission Management | In Progress | Seed permissions, Role-Permission mapping, Permission UI, PermissionProvider wiring |
+| 29 | Permission Management | Done | Seed permissions, Role-Permission mapping, Permission UI, PermissionProvider wiring |
 
 ## Phase Details
 
@@ -564,7 +564,7 @@ Notes:
 
 ### Phase 29: Permission Management
 
-Status: In Progress
+Status: Done
 
 Outputs:
 - 50 permissions seeded across 6 modules (auth, customers, products, cylinders, inks, orders, jobs, qc, audit, permissions, inventory, reports)
@@ -591,6 +591,7 @@ Notes:
 - Permission naming convention: `module:action` (e.g., `user:create`, `order:read`).
 - Wildcard `*:*` for superadmin, `module:*` for any action in a module.
 - Permission middleware, routes, and schema were already in place from Phase 20 — Phase 29 adds seed data, UI, and provider wiring.
+- Completed on 2026-06-12.
 - `requireApiKey` moved from app-level to individual permission routes; read routes do not require it (frontend compatibility).
 - `requirePermission` middleware available for granular route protection.
 
@@ -883,3 +884,4 @@ If event-based decoupling is implemented internally:
 | 2026-06-11 | 22-28 | All Phases 22-28 completed: Schema Isolation, API Security, Observability, Notifications, File Storage, AI/IoT, Production Deploy & DR |
 | 2026-06-12 | 20 | Marked Phase 20 Done — seed script, permission routes, and frontend provider all finalized |
 | 2026-06-12 | 29 | Started Phase 29 — 50 permissions seeded, PermissionProvider wired, /settings/permissions UI with 4 tabs, navigation updated |
+| 2026-06-12 | 29 | Completed Phase 29 — all permission management backend + frontend finalized |

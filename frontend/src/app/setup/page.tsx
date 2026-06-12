@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
+import { ROLES } from '@/lib/constants/roles';
 import { 
   BarChart3, 
   Layers, 
@@ -30,15 +31,28 @@ function SetupPageContent() {
   const router = useRouter();
 
   // Active sub-page tab state
-  const tabParam = searchParams.get('tab') || 'master';
+  const tabParamRaw = searchParams.get('tab') || 'master';
+  const isLegacyTab = tabParamRaw === 'rules' || tabParamRaw === 'approvals';
+  const tabParam = isLegacyTab ? 'workflows' : tabParamRaw;
   const [activeTab, setActiveTab] = useState(tabParam);
+  const [workflowSubTab, setWorkflowSubTab] = useState<'all' | 'rules' | 'approvals'>(
+    isLegacyTab ? tabParamRaw as 'rules' | 'approvals' : 'all'
+  );
 
   useEffect(() => {
-    setActiveTab(tabParam);
-  }, [tabParam]);
+    const raw = searchParams.get('tab') || 'master';
+    if (raw === 'rules' || raw === 'approvals') {
+      setActiveTab('workflows');
+      setWorkflowSubTab(raw);
+    } else {
+      setActiveTab(raw);
+      setWorkflowSubTab('all');
+    }
+  }, [searchParams]);
 
   const changeTab = (tab: string) => {
     setActiveTab(tab);
+    setWorkflowSubTab('all');
     router.replace(`/setup?tab=${tab}`);
   };
 
@@ -154,6 +168,7 @@ function SetupPageContent() {
   ]);
 
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
+  const [ruleActionType, setRuleActionType] = useState('notify');
 
   const toggleRuleActive = (id: number) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
@@ -172,19 +187,32 @@ function SetupPageContent() {
   };
 
   const fieldOptions = ['ink.daysToExpiry', 'ink.remaining', 'cylinder.meterRun', 'cylinder.status', 'qc.result', 'formula.revision', 'production.delay'];
+  // Dynamic fields derived from master data categories — admin adds items in Master Data → auto appears here
+  const dynamicFieldOptions = Object.entries(masterData).flatMap(([cat, items]) =>
+    items.length > 0 ? Object.keys(items[0]).filter(k => k !== 'id' && k !== 'active' && k !== 'icon').map(k => `${cat}.${k}`) : []
+  );
   const opOptions = ['<', '>', '=', '!=', 'changed', 'contains'];
 
-  // 3. APPROVAL MATRIX STATE
+  // 3. APPROVAL MATRIX STATE — no hardcoded lists, admin configures everything via UI
   const [matrix, setMatrix] = useState<any[]>([
-    { id: 1, event: 'Formula Revision Change', approver: 'QA Manager', sla: '24h', active: true },
-    { id: 2, event: 'Override FEFO', approver: 'Supervisor', sla: '1h', active: true },
-    { id: 3, event: 'Expired Ink Override', approver: 'Plant Manager', sla: '30min', active: true },
-    { id: 4, event: 'Delete Formula', approver: 'Admin', sla: '48h', active: true },
-    { id: 5, event: 'Cylinder Scrap', approver: 'Production Manager', sla: '24h', active: true },
-    { id: 6, event: 'QC Hold Release', approver: 'QA Supervisor', sla: '2h', active: true },
+    { id: 1, event: 'Formula Revision Change', refType: 'formula_change', steps: [{ step: 1, role: 'qa_manager', sla: '24h', type: 'approve' }], visibleToRoles: ['admin', 'qa_manager', 'plant_manager'], active: true },
+    { id: 2, event: 'Override FEFO', refType: 'override_fefo', steps: [{ step: 1, role: 'supervisor', sla: '1h', type: 'approve' }], visibleToRoles: ['admin', 'supervisor'], active: true },
+    { id: 3, event: 'Expired Ink Override', refType: 'ink_override', steps: [{ step: 1, role: 'plant_manager', sla: '30min', type: 'approve' }], visibleToRoles: ['admin', 'plant_manager', 'qa_manager'], active: true },
+    { id: 4, event: 'Delete Formula', refType: 'delete_formula', steps: [{ step: 1, role: 'admin', sla: '48h', type: 'approve' }], visibleToRoles: ['admin'], active: true },
+    { id: 5, event: 'Cylinder Scrap', refType: 'cylinder_scrap', steps: [{ step: 1, role: 'production_manager', sla: '24h', type: 'approve' }], visibleToRoles: ['admin', 'production_manager', 'plant_manager'], active: true },
+    { id: 6, event: 'QC Hold Release', refType: 'qc_release', steps: [{ step: 1, role: 'qa_supervisor', sla: '2h', type: 'approve' }, { step: 2, role: 'qa_manager', sla: '8h', type: 'approve' }], visibleToRoles: ['admin', 'qa_manager', 'qa_supervisor'], active: true },
   ]);
 
   const [editApprovalRow, setEditApprovalRow] = useState<any | null>(null);
+  const [approvalSteps, setApprovalSteps] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (editApprovalRow && editApprovalRow !== 'new') {
+      setApprovalSteps(editApprovalRow.steps || []);
+    } else {
+      setApprovalSteps([{ step: 1, role: 'admin', sla: '24h', type: 'approve' }]);
+    }
+  }, [editApprovalRow]);
 
   const saveApprovalRow = (row: any) => {
     setMatrix(prev => {
@@ -203,6 +231,18 @@ function SetupPageContent() {
     setMatrix(prev => prev.map(x => x.id === id ? { ...x, active: !x.active } : x));
   };
 
+  const addApprovalStep = () => {
+    setApprovalSteps(prev => [...prev, { step: prev.length + 1, role: 'admin', sla: '24h', type: 'approve' }]);
+  };
+
+  const removeApprovalStep = (idx: number) => {
+    setApprovalSteps(prev => prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, step: i + 1 })));
+  };
+
+  const updateApprovalStep = (idx: number, field: string, value: string) => {
+    setApprovalSteps(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+  };
+
   return (
     <AppLayout>
       <div className="grid gap-6">
@@ -211,7 +251,7 @@ function SetupPageContent() {
           subtitleKey="setup.manageItems"
           actions={
             <div className="flex gap-2">
-              {['master', 'rules', 'approvals'].map(tKey => (
+              {['master', 'workflows'].map(tKey => (
                 <button
                   key={tKey}
                   onClick={() => changeTab(tKey)}
@@ -221,7 +261,7 @@ function SetupPageContent() {
                       : `${themeConfig.badge} ${themeConfig.panelHover} ${themeConfig.textSecondary}`
                   }`}
                 >
-                  {t(tKey === 'master' ? 'nav.masterSetup' : tKey === 'rules' ? 'setup.ruleEngine' : 'setup.approvalMatrix')}
+                  {t(tKey === 'master' ? 'nav.masterSetup' : 'setup.workflowEngine')}
                 </button>
               ))}
             </div>
@@ -341,177 +381,303 @@ function SetupPageContent() {
           </div>
         )}
 
-        {/* 2. Rule Engine Tab */}
-        {activeTab === 'rules' && (
+        {/* 2. Workflow Engine Tab (merged Rules + Approvals) */}
+        {activeTab === 'workflows' && (
           <div className="grid gap-6">
-            {/* Rule Engine summary */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: t('setup.totalRules'), value: rules.length, color: 'from-cyan-500 to-blue-500', icon: Layers },
-                { label: t('setup.activeRules'), value: rules.filter(r => r.active).length, color: 'from-emerald-500 to-teal-500', icon: Check },
-                { label: t('setup.notifications'), value: rules.reduce((s, r) => s + r.actions.filter((a: any) => a.type === 'notify').length, 0), color: 'from-amber-500 to-orange-500', icon: Bell },
-                { label: t('setup.automations'), value: rules.reduce((s, r) => s + r.actions.filter((a: any) => a.type !== 'notify').length, 0), color: 'from-purple-500 to-pink-500', icon: Settings },
-              ].map((s, idx) => {
-                const Icon = s.icon;
-                return (
-                  <article key={idx} className={`rounded-xl p-4 flex items-center gap-3 ${themeConfig.panel} ${themeConfig.shadow}`}>
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center shadow text-white`}>
-                      <Icon size={18} />
-                    </div>
-                    <div>
-                      <span className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
-                      <p className={`text-xs ${themeConfig.textMuted}`}>{s.label}</p>
-                    </div>
-                  </article>
-                );
-              })}
+            {/* Sub-tab navigation */}
+            <div className="flex gap-2">
+              {(['all', 'rules', 'approvals'] as const).map(st => (
+                <button
+                  key={st}
+                  onClick={() => setWorkflowSubTab(st)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    workflowSubTab === st
+                      ? `${themeConfig.primaryBg} text-white`
+                      : `${themeConfig.badge} ${themeConfig.panelHover} ${themeConfig.textSecondary}`
+                  }`}
+                >
+                  {st === 'all' ? t('setup.workflowEngine') : st === 'rules' ? t('setup.ruleEngine') : t('setup.approvalMatrix')}
+                </button>
+              ))}
             </div>
 
-            {/* Rules panel */}
-            <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
-              <div className="flex items-center justify-between border-b pb-4 mb-4 border-white/10">
-                <div>
-                  <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.ruleEngine')}</h3>
-                  <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
+            {/* Combined Workflows view */}
+            {workflowSubTab === 'all' && (
+              <>
+                {/* Summary cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: t('setup.totalRules'), value: rules.length + matrix.length, color: 'from-cyan-500 to-blue-500', icon: Layers },
+                    { label: t('setup.activeRules'), value: rules.filter(r => r.active).length + matrix.filter(m => m.active).length, color: 'from-emerald-500 to-teal-500', icon: Check },
+                    { label: t('setup.notifications'), value: rules.reduce((s, r) => s + r.actions.filter((a: any) => a.type === 'notify').length, 0), color: 'from-amber-500 to-orange-500', icon: Bell },
+                    { label: t('setup.approvals'), value: matrix.length, color: 'from-purple-500 to-pink-500', icon: Settings },
+                  ].map((s, idx) => {
+                    const Icon = s.icon;
+                    return (
+                      <article key={idx} className={`rounded-xl p-4 flex items-center gap-3 ${themeConfig.panel} ${themeConfig.shadow}`}>
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center shadow text-white`}>
+                          <Icon size={18} />
+                        </div>
+                        <div>
+                          <span className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
+                          <p className={`text-xs ${themeConfig.textMuted}`}>{s.label}</p>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-                <button
-                  onClick={() => setShowAddRuleModal(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
-                >
-                  <Plus size={14} />
-                  {t('setup.addRule')}
-                </button>
-              </div>
 
-              <div className="space-y-4">
-                {rules.map(rule => (
-                  <div 
-                    key={rule.id} 
-                    className={`p-4 rounded-xl border border-white/5 transition bg-white/5 ${
-                      !rule.active ? 'opacity-40' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Toggle Slider */}
-                      <button 
-                        onClick={() => toggleRuleActive(rule.id)}
-                        className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${
-                          rule.active ? 'bg-emerald-500' : 'bg-gray-600'
-                        }`}
+                {/* Unified Workflow List (rules then approvals) */}
+                <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
+                  <div className="flex items-center justify-between border-b pb-4 mb-4 border-white/10">
+                    <div>
+                      <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.workflowEngine')}</h3>
+                      <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setWorkflowSubTab('rules'); setRuleActionType('notify'); setShowAddRuleModal(true); }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
                       >
-                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                          rule.active ? 'left-5' : 'left-0.5'
-                        }`}></div>
+                        <Plus size={14} />
+                        {t('setup.addRule')}
                       </button>
-
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-2.5`}>{rule.name}</h4>
-                        
-                        {/* IF condition block */}
-                        <div className={`flex items-center gap-2 p-2.5 rounded-lg mb-2.5 bg-black/20 border ${themeConfig.border}`}>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-cyan-500 to-blue-500 text-white">IF</span>
-                          <span className={`text-xs font-mono font-bold ${themeConfig.primaryText}`}>{rule.condition.field}</span>
-                          <span className={`text-xs font-black ${themeConfig.textPrimary}`}>{rule.condition.op}</span>
-                          {rule.condition.value && (
-                            <span className="text-xs font-mono font-bold text-amber-400">{rule.condition.value}</span>
-                          )}
-                        </div>
-
-                        {/* THEN action blocks */}
-                        <div className="flex flex-wrap gap-2 items-center">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white">THEN</span>
-                          {rule.actions.map((action: any, i: number) => {
-                            const ai = ruleActionIcons[action.type as keyof typeof ruleActionIcons] || ruleActionIcons.notify;
-                            const ActionIcon = ai.icon;
-                            return (
-                              <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${ai.color}`}>
-                                <ActionIcon size={12} />
-                                <span>{action.target || action.desc}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Delete button */}
-                      <button 
-                        onClick={() => deleteRule(rule.id)}
-                        className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"
+                      <button
+                        onClick={() => setEditApprovalRow('new')}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow ${themeConfig.secondaryButton}`}
                       >
-                        <X size={15} />
+                        <Plus size={14} />
+                        {t('btn.add')} {t('setup.approval')}
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* 3. Approval Matrix Tab */}
-        {activeTab === 'approvals' && (
-          <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
-            <div className="flex items-center justify-between border-b pb-4 mb-4 border-white/10">
-              <div>
-                <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.approvalMatrix')}</h3>
-                <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
-              </div>
-              <button
-                onClick={() => setEditApprovalRow('new')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
-              >
-                <Plus size={14} />
-                {t('btn.add')}
-              </button>
-            </div>
+                  {/* Rules section */}
+                  <div className="mb-6">
+                    <h4 className={`text-sm font-bold ${themeConfig.textSecondary} mb-3 flex items-center gap-2`}>
+                      <Layers size={14} />
+                      {t('setup.ruleEngine')}
+                    </h4>
+                    {rules.map(rule => (
+                      <div key={rule.id} className={`p-4 rounded-xl border border-white/5 transition bg-white/5 mb-2 ${!rule.active ? 'opacity-40' : ''}`}>
+                        <div className="flex items-start gap-4">
+                          <button onClick={() => toggleRuleActive(rule.id)}
+                            className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${rule.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${rule.active ? 'left-5' : 'left-0.5'}`}></div>
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-2.5`}>{rule.name}</h4>
+                            <div className={`flex items-center gap-2 p-2.5 rounded-lg mb-2.5 bg-black/20 border ${themeConfig.border}`}>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-cyan-500 to-blue-500 text-white">IF</span>
+                              <span className={`text-xs font-mono font-bold ${themeConfig.primaryText}`}>{rule.condition.field}</span>
+                              <span className={`text-xs font-black ${themeConfig.textPrimary}`}>{rule.condition.op}</span>
+                              {rule.condition.value && (<span className="text-xs font-mono font-bold text-amber-400">{rule.condition.value}</span>)}
+                            </div>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white">THEN</span>
+                              {rule.actions.map((action: any, i: number) => {
+                                const ai = ruleActionIcons[action.type as keyof typeof ruleActionIcons] || ruleActionIcons.notify;
+                                const ActionIcon = ai.icon;
+                                return (<div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${ai.color}`}><ActionIcon size={12} /><span>{action.target || action.desc}</span></div>);
+                              })}
+                            </div>
+                          </div>
+                          <button onClick={() => deleteRule(rule.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"><X size={15} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className={`border-b ${themeConfig.border} ${themeConfig.tableHead}`}>
-                    <th className="p-3 text-xs font-bold uppercase">{t('setup.event')}</th>
-                    <th className="p-3 text-xs font-bold uppercase">{t('setup.approver')}</th>
-                    <th className="p-3 text-xs font-bold uppercase">SLA</th>
-                    <th className="p-3 text-xs font-bold uppercase text-center">{t('col.status')}</th>
-                    <th className="p-3 text-xs font-bold uppercase text-right">{t('col.action')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matrix.map(m => (
-                    <tr key={m.id} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition ${!m.active ? 'opacity-45' : ''}`}>
-                      <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{m.event}</td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${themeConfig.badge}`}>
-                          <User size={12} className={themeConfig.primaryText} />
-                          {m.approver}
-                        </span>
-                      </td>
-                      <td className={`p-3 font-mono font-bold text-xs ${themeConfig.primaryText}`}>{m.sla}</td>
-                      <td className="p-3 text-center">
-                        <button 
-                          onClick={() => toggleApprovalActive(m.id)}
-                          className={`w-10 h-5 rounded-full transition-all relative inline-block ${
-                            m.active ? 'bg-emerald-500' : 'bg-gray-600'
-                          }`}
-                        >
-                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                            m.active ? 'left-5' : 'left-0.5'
-                          }`}></div>
-                        </button>
-                      </td>
-                      <td className="p-3 text-right">
-                        <button 
-                          onClick={() => setEditApprovalRow(m)}
-                          className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}
-                        >
-                          <Edit size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  {/* Approvals section */}
+                  <div>
+                    <h4 className={`text-sm font-bold ${themeConfig.textSecondary} mb-3 flex items-center gap-2`}>
+                      <Settings size={14} />
+                      {t('setup.approvalMatrix')}
+                    </h4>
+                    <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className={`border-b ${themeConfig.border} ${themeConfig.tableHead}`}>
+                          <th className="p-3 text-xs font-bold uppercase">{t('setup.event')}</th>
+                          <th className="p-3 text-xs font-bold uppercase">ประเภท</th>
+                          <th className="p-3 text-xs font-bold uppercase">Steps</th>
+                          <th className="p-3 text-xs font-bold uppercase">ผู้เห็น</th>
+                          <th className="p-3 text-xs font-bold uppercase text-center">{t('col.status')}</th>
+                          <th className="p-3 text-xs font-bold uppercase text-right">{t('col.action')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matrix.map(m => (
+                          <tr key={m.id} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition ${!m.active ? 'opacity-45' : ''}`}>
+                            <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{m.event}</td>
+                            <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-cyan-300">{m.refType}</span></td>
+                            <td className="p-3">
+                              <div className="flex flex-wrap gap-1">
+                                {(m.steps || []).map((s: any, i: number) => (
+                                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${s.type === 'notify' ? 'border-amber-500/30 text-amber-300' : 'border-emerald-500/30 text-emerald-300'} bg-white/5`}>
+                                    {i > 0 && <span className="text-gray-500 mr-0.5">→</span>}
+                                    {s.role}
+                                    {s.sla && <span className="text-gray-500 ml-0.5">({s.sla})</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex flex-wrap gap-1">
+                                {(m.visibleToRoles || []).map((r: string) => (
+                                  <span key={r} className="px-1.5 py-0.5 rounded text-[9px] font-mono border border-blue-500/20 text-blue-300 bg-blue-500/5">{r}</span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <button onClick={() => toggleApprovalActive(m.id)} className={`w-10 h-5 rounded-full transition-all relative inline-block ${m.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.active ? 'left-5' : 'left-0.5'}`}></div>
+                              </button>
+                            </td>
+                            <td className="p-3 text-right">
+                              <button onClick={() => setEditApprovalRow(m)} className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}><Edit size={14} /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Rules-only sub-tab */}
+            {workflowSubTab === 'rules' && (
+              <div className="grid gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: t('setup.totalRules'), value: rules.length, color: 'from-cyan-500 to-blue-500', icon: Layers },
+                    { label: t('setup.activeRules'), value: rules.filter(r => r.active).length, color: 'from-emerald-500 to-teal-500', icon: Check },
+                    { label: t('setup.notifications'), value: rules.reduce((s, r) => s + r.actions.filter((a: any) => a.type === 'notify').length, 0), color: 'from-amber-500 to-orange-500', icon: Bell },
+                    { label: t('setup.automations'), value: rules.reduce((s, r) => s + r.actions.filter((a: any) => a.type !== 'notify').length, 0), color: 'from-purple-500 to-pink-500', icon: Settings },
+                  ].map((s, idx) => {
+                    const Icon = s.icon;
+                    return (
+                      <article key={idx} className={`rounded-xl p-4 flex items-center gap-3 ${themeConfig.panel} ${themeConfig.shadow}`}>
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center shadow text-white`}>
+                          <Icon size={18} />
+                        </div>
+                        <div>
+                          <span className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
+                          <p className={`text-xs ${themeConfig.textMuted}`}>{s.label}</p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
+                  <div className="flex items-center justify-between border-b pb-4 mb-4 border-white/10">
+                    <div>
+                      <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.ruleEngine')}</h3>
+                      <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
+                    </div>
+                    <button onClick={() => { setRuleActionType('notify'); setShowAddRuleModal(true); }} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
+                      <Plus size={14} />{t('setup.addRule')}
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {rules.map(rule => (
+                      <div key={rule.id} className={`p-4 rounded-xl border border-white/5 transition bg-white/5 ${!rule.active ? 'opacity-40' : ''}`}>
+                        <div className="flex items-start gap-4">
+                          <button onClick={() => toggleRuleActive(rule.id)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${rule.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${rule.active ? 'left-5' : 'left-0.5'}`}></div>
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-2.5`}>{rule.name}</h4>
+                            <div className={`flex items-center gap-2 p-2.5 rounded-lg mb-2.5 bg-black/20 border ${themeConfig.border}`}>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-cyan-500 to-blue-500 text-white">IF</span>
+                              <span className={`text-xs font-mono font-bold ${themeConfig.primaryText}`}>{rule.condition.field}</span>
+                              <span className={`text-xs font-black ${themeConfig.textPrimary}`}>{rule.condition.op}</span>
+                              {rule.condition.value && (<span className="text-xs font-mono font-bold text-amber-400">{rule.condition.value}</span>)}
+                            </div>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white">THEN</span>
+                              {rule.actions.map((action: any, i: number) => {
+                                const ai = ruleActionIcons[action.type as keyof typeof ruleActionIcons] || ruleActionIcons.notify;
+                                const ActionIcon = ai.icon;
+                                return (<div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${ai.color}`}><ActionIcon size={12} /><span>{action.target || action.desc}</span></div>);
+                              })}
+                            </div>
+                          </div>
+                          <button onClick={() => deleteRule(rule.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"><X size={15} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Approvals-only sub-tab */}
+            {workflowSubTab === 'approvals' && (
+              <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
+                <div className="flex items-center justify-between border-b pb-4 mb-4 border-white/10">
+                  <div>
+                    <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.approvalMatrix')}</h3>
+                    <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
+                  </div>
+                  <button onClick={() => setEditApprovalRow('new')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
+                    <Plus size={14} />{t('btn.add')}
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className={`border-b ${themeConfig.border} ${themeConfig.tableHead}`}>
+                        <th className="p-3 text-xs font-bold uppercase">{t('setup.event')}</th>
+                        <th className="p-3 text-xs font-bold uppercase">ประเภท</th>
+                        <th className="p-3 text-xs font-bold uppercase">Steps</th>
+                        <th className="p-3 text-xs font-bold uppercase">ผู้เห็น</th>
+                        <th className="p-3 text-xs font-bold uppercase text-center">{t('col.status')}</th>
+                        <th className="p-3 text-xs font-bold uppercase text-right">{t('col.action')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matrix.map(m => (
+                        <tr key={m.id} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition ${!m.active ? 'opacity-45' : ''}`}>
+                          <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{m.event}</td>
+                          <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-cyan-300">{m.refType}</span></td>
+                          <td className="p-3">
+                            <div className="flex flex-wrap gap-1">
+                              {(m.steps || []).map((s: any, i: number) => (
+                                <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${s.type === 'notify' ? 'border-amber-500/30 text-amber-300' : 'border-emerald-500/30 text-emerald-300'} bg-white/5`}>
+                                  {i > 0 && <span className="text-gray-500 mr-0.5">→</span>}
+                                  {s.role} {s.sla ? `(${s.sla})` : ''}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-wrap gap-1">
+                              {(m.visibleToRoles || []).map((r: string) => (
+                                <span key={r} className="px-1.5 py-0.5 rounded text-[9px] font-mono border border-blue-500/20 text-blue-300 bg-blue-500/5">{r}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <button onClick={() => toggleApprovalActive(m.id)} className={`w-10 h-5 rounded-full transition-all relative inline-block ${m.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.active ? 'left-5' : 'left-0.5'}`}></div>
+                            </button>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button onClick={() => setEditApprovalRow(m)} className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}><Edit size={14} /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -625,7 +791,7 @@ function SetupPageContent() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <select id="rule-field" className={`rounded-lg px-2 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                    {fieldOptions.map(f => <option key={f} value={f}>{f}</option>)}
+                    {(dynamicFieldOptions.length > 0 ? [...new Set([...fieldOptions, ...dynamicFieldOptions])] : fieldOptions).map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                   <select id="rule-op" className={`rounded-lg px-2 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
                     {opOptions.map(o => <option key={o} value={o}>{o}</option>)}
@@ -648,17 +814,26 @@ function SetupPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select id="rule-action-type" className={`rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
+                  <select id="rule-action-type" value={ruleActionType} onChange={e => setRuleActionType(e.target.value)} className={`rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
                     {['notify', 'highlight', 'block', 'status', 'task'].map(actType => (
                       <option key={actType} value={actType}>{actType}</option>
                     ))}
                   </select>
-                  <input 
-                    type="text" 
-                    id="rule-action-desc" 
-                    placeholder="Target / Description" 
-                    className={`flex-1 rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input}`}
-                  />
+                  {ruleActionType === 'notify' ? (
+                    <input 
+                      type="text" 
+                      id="rule-action-desc" 
+                      placeholder="Target role / channel (e.g. supervisor, email, line)" 
+                      className={`flex-1 rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input}`}
+                    />
+                  ) : (
+                    <input 
+                      type="text" 
+                      id="rule-action-desc" 
+                      placeholder="Description" 
+                      className={`flex-1 rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input}`}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -677,7 +852,7 @@ function SetupPageContent() {
                   const opInput = document.getElementById('rule-op') as HTMLSelectElement;
                   const valInput = document.getElementById('rule-val') as HTMLInputElement;
                   const actTypeInput = document.getElementById('rule-action-type') as HTMLSelectElement;
-                  const actDescInput = document.getElementById('rule-action-desc') as HTMLInputElement;
+                  const actDescInput = document.getElementById('rule-action-desc') as HTMLSelectElement | HTMLInputElement;
 
                   if (nameInput?.value) {
                     setRules(prev => [...prev, {
@@ -710,10 +885,10 @@ function SetupPageContent() {
       {editApprovalRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setEditApprovalRow(null)}></div>
-          <div className={`relative rounded-2xl max-w-md w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+          <div className={`relative rounded-2xl max-w-2xl w-full p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto ${themeConfig.dialog}`}>
             <div className="flex items-center justify-between mb-5">
               <h3 className={`text-lg font-bold ${themeConfig.textPrimary}`}>
-                {editApprovalRow === 'new' ? t('btn.add') : t('btn.edit')} — {t('setup.approver')}
+                {editApprovalRow === 'new' ? t('btn.add') : t('btn.edit')} — {t('setup.approvalMatrix')}
               </h3>
               <button onClick={() => setEditApprovalRow(null)} className={`p-1 rounded hover:bg-white/10 ${themeConfig.textMuted}`}>
                 <X size={18} />
@@ -733,29 +908,67 @@ function SetupPageContent() {
               </div>
 
               <div className="grid gap-1.5">
-                <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>{t('setup.approver')}</label>
-                <select 
-                  id="approval-approver" 
-                  defaultValue={editApprovalRow === 'new' ? 'Supervisor' : editApprovalRow.approver}
-                  className={`w-full rounded-lg px-3 py-2 text-sm outline-none ${themeConfig.input} [&>option]:bg-slate-900`}
-                >
-                  {['Supervisor', 'QA Supervisor', 'QA Manager', 'Production Manager', 'Plant Manager', 'Admin'].map(a => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
+                <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>ประเภทเอกสาร (refType)</label>
+                <input 
+                  type="text"
+                  id="approval-reftype"
+                  defaultValue={editApprovalRow === 'new' ? '' : editApprovalRow.refType}
+                  placeholder="e.g. formula_change, purchase_order (admin กำหนดเอง)"
+                  className={`w-full rounded-lg px-3 py-2 text-sm outline-none ${themeConfig.input}`}
+                />
               </div>
 
-              <div className="grid gap-1.5">
-                <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>SLA</label>
-                <select 
-                  id="approval-sla"
-                  defaultValue={editApprovalRow === 'new' ? '24h' : editApprovalRow.sla}
-                  className={`w-full rounded-lg px-3 py-2 text-sm outline-none ${themeConfig.input} [&>option]:bg-slate-900`}
-                >
-                  {['30min', '1h', '2h', '4h', '8h', '24h', '48h'].map(s => (
-                    <option key={s} value={s}>{s}</option>
+              {/* ใครเห็นเอกสารนี้ได้บ้าง */}
+              <div className={`p-4 rounded-xl border bg-black/10 ${themeConfig.border}`}>
+                <label className={`text-[10px] font-bold uppercase tracking-wider block mb-2 ${themeConfig.textMuted}`}>Role ที่เห็นเอกสารนี้ (visibleToRoles)</label>
+                <div className="flex flex-wrap gap-2">
+                  {ROLES.map(r => {
+                    const checked = editApprovalRow === 'new'
+                      ? r === 'admin'
+                      : (editApprovalRow.visibleToRoles || ['admin']).includes(r);
+                    return (
+                      <label key={r} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10">
+                        <input type="checkbox" defaultChecked={checked} data-role={r}
+                          className="rounded"
+                        />
+                        {r}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Multi-step approval chain */}
+              <div className={`p-4 rounded-xl border bg-black/10 ${themeConfig.border}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>ขั้นตอนอนุมัติ (Approval Chain)</label>
+                  <button onClick={addApprovalStep} className="px-2 py-1 rounded text-[10px] font-bold bg-emerald-600 text-white hover:bg-emerald-500">
+                    + เพิ่มขั้น
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {approvalSteps.map((step: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-cyan-400 w-16">Step {idx + 1}</span>
+                      <select value={step.role} onChange={e => updateApprovalStep(idx, 'role', e.target.value)}
+                        className={`flex-1 rounded-lg px-2 py-1.5 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
+                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                      <select value={step.sla} onChange={e => updateApprovalStep(idx, 'sla', e.target.value)}
+                        className={`w-20 rounded-lg px-2 py-1.5 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
+                        {['30min', '1h', '2h', '4h', '8h', '24h', '48h'].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <select value={step.type} onChange={e => updateApprovalStep(idx, 'type', e.target.value)}
+                        className={`w-24 rounded-lg px-2 py-1.5 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
+                        <option value="approve">อนุมัติ</option>
+                        <option value="notify">แจ้งเตือน</option>
+                      </select>
+                      {approvalSteps.length > 1 && (
+                        <button onClick={() => removeApprovalStep(idx)} className="p-1 text-rose-400 hover:text-rose-300"><X size={14} /></button>
+                      )}
+                    </div>
                   ))}
-                </select>
+                </div>
               </div>
             </div>
 
@@ -765,7 +978,7 @@ function SetupPageContent() {
                   onClick={() => deleteApprovalRow(editApprovalRow.id)}
                   className="px-3 py-2 rounded-lg text-xs font-bold text-white shadow bg-rose-600 hover:bg-rose-500 transition mr-auto"
                 >
-                  <X size={15} />
+                  <X size={15} /> ลบ
                 </button>
               )}
               <button 
@@ -777,15 +990,17 @@ function SetupPageContent() {
               <button 
                 onClick={() => {
                   const evInput = document.getElementById('approval-event') as HTMLInputElement;
-                  const appSelect = document.getElementById('approval-approver') as HTMLSelectElement;
-                  const slaSelect = document.getElementById('approval-sla') as HTMLSelectElement;
+                  const refTypeInput = document.getElementById('approval-reftype') as HTMLInputElement;
+                  const roleChecks = document.querySelectorAll<HTMLInputElement>('[data-role]');
+                  const visibleToRoles = Array.from(roleChecks).filter(c => c.checked).map(c => c.dataset.role || '');
 
                   if (evInput?.value) {
                     saveApprovalRow({
                       id: editApprovalRow === 'new' ? null : editApprovalRow.id,
                       event: evInput.value,
-                      approver: appSelect.value,
-                      sla: slaSelect.value,
+                      refType: refTypeInput.value,
+                      steps: approvalSteps,
+                      visibleToRoles,
                       active: editApprovalRow === 'new' ? true : editApprovalRow.active
                     });
                   }

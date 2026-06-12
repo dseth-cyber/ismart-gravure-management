@@ -99,7 +99,6 @@ const MENU = [
       { key: 'userMgt', labelKey: 'nav.userMgt', href: '/settings/users', icon: User },
       { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield },
       { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell },
-      { key: 'systemSettings', labelKey: 'nav.systemSettings', href: '/settings/system', icon: Settings },
     ] 
   },
   {
@@ -458,6 +457,15 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   <p className="text-xs font-bold text-white truncate">{user?.username}</p>
                   <p className="text-[10px] text-gray-400 truncate mt-0.5">{t(`role.${userRole}`)}</p>
                 </div>
+                <Link
+                  href="/settings/system"
+                  onClick={() => setShowRoleMenu(false)}
+                  className={`w-full px-3 py-2 text-left text-xs font-bold transition flex items-center gap-2 ${themeConfig.textSecondary} ${themeConfig.panelHover}`}
+                >
+                  <Settings size={13} />
+                  <span className="flex-1">{t('nav.systemSettings')}</span>
+                </Link>
+                <div className={`border-t ${themeConfig.border} my-1`}></div>
                 <button 
                   onClick={() => { logout(); setShowRoleMenu(false); }}
                   className={`w-full px-3 py-2 text-left text-xs font-bold transition flex items-center gap-2 text-rose-400 ${themeConfig.panelHover}`}

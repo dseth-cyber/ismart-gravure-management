@@ -10,8 +10,7 @@ import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { apiClient } from '@/lib/api/client';
 import { Plus, Lock, Unlock, RotateCw } from 'lucide-react';
-
-const ROLES = ['admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer'] as const;
+import { ROLES } from '@/lib/constants/roles';
 
 interface User {
   id: string;
@@ -33,6 +32,7 @@ export default function UserManagementPage() {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
+  const [confirmLockUser, setConfirmLockUser] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -144,7 +144,7 @@ export default function UserManagementPage() {
                     <td className={`p-3 text-xs ${themeConfig.textMuted}`}>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => handleToggleLock(u)}
+                        onClick={() => setConfirmLockUser(u)}
                         className={`rounded p-1.5 transition ${themeConfig.panelHover}`}
                         title={isLocked(u) ? t('settings.unlock') : t('settings.lock')}
                       >
@@ -184,6 +184,33 @@ export default function UserManagementPage() {
             </div>
           </form>
         </AppDialog>
+
+        {confirmLockUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setConfirmLockUser(null)}></div>
+            <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+              <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>
+                {isLocked(confirmLockUser) ? t('settings.unlockUser') : t('settings.lockUser')}
+              </h3>
+              <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+                {isLocked(confirmLockUser)
+                  ? t('settings.unlockConfirm', { username: confirmLockUser.username })
+                  : t('settings.lockConfirm', { username: confirmLockUser.username })}
+              </p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setConfirmLockUser(null)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                  {t('btn.cancel')}
+                </button>
+                <button
+                  onClick={() => { handleToggleLock(confirmLockUser); setConfirmLockUser(null); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold text-white shadow ${isLocked(confirmLockUser) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-amber-600 hover:bg-amber-500'}`}
+                >
+                  {isLocked(confirmLockUser) ? t('settings.unlock') : t('settings.lock')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

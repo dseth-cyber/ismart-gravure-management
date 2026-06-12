@@ -10,8 +10,7 @@ import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { apiClient } from '@/lib/api/client';
 import { Plus, Trash2, Check, X, Shield, Globe } from 'lucide-react';
-
-const ROLES = ['admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer'] as const;
+import { ROLES } from '@/lib/constants/roles';
 
 type TabId = 'permissions' | 'role-perms' | 'overrides' | 'scopes';
 
@@ -238,7 +237,7 @@ export default function PermissionsPage() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <p className={`text-sm ${themeConfig.textMuted}`}>{permissions.length} {t('perm.allPermissions')}</p>
-              <AppButton variant="primary" size="sm" onClick={() => setAddDialogOpen(true)}>
+              <AppButton variant="primary" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="mr-1 h-3 w-3" /> {t('perm.addPermission')}
               </AppButton>
             </div>
@@ -347,7 +346,7 @@ export default function PermissionsPage() {
                     <option value="">{t('perm.selectRole')}</option>
                     {overridePerms.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
-                  <AppButton variant="primary" size="sm" onClick={handleGrantUser} disabled={!selectedGrantPerm}>
+                  <AppButton variant="primary" onClick={handleGrantUser} disabled={!selectedGrantPerm}>
                     <Check className="mr-1 h-3 w-3" /> {t('perm.grant')}
                   </AppButton>
                 </div>
@@ -380,10 +379,10 @@ export default function PermissionsPage() {
             <div className="mb-4 flex items-center justify-between">
               <p className={`text-sm ${themeConfig.textMuted}`}>{scopes.length} scopes</p>
               <div className="flex gap-2">
-                <AppButton variant="primary" size="sm" onClick={() => setAssignScopeDialogOpen(true)}>
+                <AppButton variant="primary" onClick={() => setAssignScopeDialogOpen(true)}>
                   <Globe className="mr-1 h-3 w-3" /> {t('perm.assignScope')}
                 </AppButton>
-                <AppButton variant="secondary" size="sm" onClick={() => setAddScopeDialogOpen(true)}>
+                <AppButton variant="secondary" onClick={() => setAddScopeDialogOpen(true)}>
                   <Plus className="mr-1 h-3 w-3" /> {t('perm.addScope')}
                 </AppButton>
               </div>
