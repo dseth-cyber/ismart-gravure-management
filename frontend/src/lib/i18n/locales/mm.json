@@ -783,5 +783,15 @@
   "ds.production": "ထုတ်လုပ်မှု",
   "ds.alerts": "သတိပေးချက်များ",
   "ds.inventory": "စတော့",
-  "ds.custom": "စိတ်ကြိုက်"
+  "ds.custom": "စိတ်ကြိုက်",
+  "dash.data.completedToday": "ယနေ့ပြီးစီး",
+  "dash.data.onHold": "ဆိုင်းငံ့",
+  "dash.data.todayOutput": "ယနေ့ထွက်ရှိ",
+  "dash.data.scrapRate": "အလေအလွင့်နှုန်း",
+  "dash.data.efficiency": "စွမ်းဆောင်ရည်",
+  "dash.data.machinesActive": "စက်လည်ပတ်နေဆဲ",
+  "dash.data.cylindersCount": "ဆလင်ဒါအရေအတွက်",
+  "dash.data.inkBatches": "မှင်အသုတ်များ",
+  "dash.data.rawMaterials": "ကုန်ကြမ်းများ",
+  "dash.data.lowStockItems": "စတော့နည်းပစ္စည်းများ"
 }

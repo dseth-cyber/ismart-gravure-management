@@ -927,5 +927,15 @@
   "ds.production": "Production",
   "ds.alerts": "Alerts",
   "ds.inventory": "Inventory",
-  "ds.custom": "Custom"
+  "ds.custom": "Custom",
+  "dash.data.completedToday": "Completed Today",
+  "dash.data.onHold": "On Hold",
+  "dash.data.todayOutput": "Today Output",
+  "dash.data.scrapRate": "Scrap Rate",
+  "dash.data.efficiency": "Efficiency",
+  "dash.data.machinesActive": "Machines Active",
+  "dash.data.cylindersCount": "Cylinders",
+  "dash.data.inkBatches": "Ink Batches",
+  "dash.data.rawMaterials": "Raw Materials",
+  "dash.data.lowStockItems": "Low Stock Items"
 }

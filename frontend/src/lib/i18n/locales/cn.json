@@ -782,5 +782,15 @@
   "ds.production": "生产",
   "ds.alerts": "警报",
   "ds.inventory": "库存",
-  "ds.custom": "自定义"
+  "ds.custom": "自定义",
+  "dash.data.completedToday": "今日完成",
+  "dash.data.onHold": "暂停",
+  "dash.data.todayOutput": "今日产出",
+  "dash.data.scrapRate": "废品率",
+  "dash.data.efficiency": "效率",
+  "dash.data.machinesActive": "运行设备",
+  "dash.data.cylindersCount": "印版总数",
+  "dash.data.inkBatches": "油墨批次",
+  "dash.data.rawMaterials": "原材料",
+  "dash.data.lowStockItems": "低库存物品"
 }

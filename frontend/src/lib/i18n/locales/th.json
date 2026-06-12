@@ -823,5 +823,15 @@
   "ds.production": "การผลิต",
   "ds.alerts": "การแจ้งเตือน",
   "ds.inventory": "คลังสินค้า",
-  "ds.custom": "กำหนดเอง"
+  "ds.custom": "กำหนดเอง",
+  "dash.data.completedToday": "เสร็จวันนี้",
+  "dash.data.onHold": "พักงาน",
+  "dash.data.todayOutput": "ผลผลิตวันนี้",
+  "dash.data.scrapRate": "อัตราเสีย",
+  "dash.data.efficiency": "ประสิทธิภาพ",
+  "dash.data.machinesActive": "เครื่องจักรที่ทำงาน",
+  "dash.data.cylindersCount": "แม่พิมพ์ทั้งหมด",
+  "dash.data.inkBatches": "ชุดหมึก",
+  "dash.data.rawMaterials": "วัตถุดิบ",
+  "dash.data.lowStockItems": "สต็อกต่ำ"
 }

@@ -782,5 +782,15 @@
   "ds.production": "生産",
   "ds.alerts": "アラート",
   "ds.inventory": "在庫",
-  "ds.custom": "カスタム"
+  "ds.custom": "カスタム",
+  "dash.data.completedToday": "本日完了",
+  "dash.data.onHold": "保留中",
+  "dash.data.todayOutput": "本日生産量",
+  "dash.data.scrapRate": "不良率",
+  "dash.data.efficiency": "効率",
+  "dash.data.machinesActive": "稼働機械",
+  "dash.data.cylindersCount": "シリンダー数",
+  "dash.data.inkBatches": "インクバッチ",
+  "dash.data.rawMaterials": "原材料",
+  "dash.data.lowStockItems": "在庫切れ間近"
 }
