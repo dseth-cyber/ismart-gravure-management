@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 export type ChartType =
   | 'timeSeries'
@@ -17,7 +17,8 @@ export type ChartType =
   | 'dashboardList'
   | 'stackedBar'
   | 'cylinderStatus'
-  | 'activityFeed';
+  | 'activityFeed'
+  | 'location';
 
 export type DataSource = 'cylinders' | 'inks' | 'jobs' | 'qc' | 'production' | 'alerts' | 'inventory' | 'custom';
 
@@ -51,22 +52,24 @@ export interface DashboardTemplate {
 }
 
 export const CHART_TYPE_META: Record<ChartType, { nameKey: string; icon: string; defaultColSpan: 1 | 2 | 3; defaultRowSpan: 1 | 2 | 3 }> = {
-  timeSeries:     { nameKey: 'chart.timeSeries',     icon: '📈', defaultColSpan: 2, defaultRowSpan: 2 },
+  timeSeries:     { nameKey: 'chart.timeSeries',     icon: '📊', defaultColSpan: 2, defaultRowSpan: 2 },
   bar:            { nameKey: 'chart.bar',            icon: '📊', defaultColSpan: 2, defaultRowSpan: 2 },
-  stat:           { nameKey: 'chart.stat',           icon: '🔢', defaultColSpan: 1, defaultRowSpan: 1 },
-  gauge:          { nameKey: 'chart.gauge',          icon: '🔄', defaultColSpan: 1, defaultRowSpan: 2 },
-  barGauge:       { nameKey: 'chart.barGauge',       icon: '📏', defaultColSpan: 1, defaultRowSpan: 2 },
-  table:          { nameKey: 'chart.table',          icon: '📋', defaultColSpan: 3, defaultRowSpan: 2 },
-  pie:            { nameKey: 'chart.pie',            icon: '🥧', defaultColSpan: 1, defaultRowSpan: 2 },
-  stateTimeline:  { nameKey: 'chart.stateTimeline',  icon: '⏱️', defaultColSpan: 2, defaultRowSpan: 2 },
+  stat:           { nameKey: 'chart.stat',           icon: '📊', defaultColSpan: 1, defaultRowSpan: 1 },
+  gauge:          { nameKey: 'chart.gauge',          icon: '📊', defaultColSpan: 1, defaultRowSpan: 2 },
+  barGauge:       { nameKey: 'chart.barGauge',       icon: '📊', defaultColSpan: 1, defaultRowSpan: 2 },
+  table:          { nameKey: 'chart.table',          icon: '📊', defaultColSpan: 3, defaultRowSpan: 2 },
+  pie:            { nameKey: 'chart.pie',            icon: '📊', defaultColSpan: 1, defaultRowSpan: 2 },
+  stateTimeline:  { nameKey: 'chart.stateTimeline',  icon: '📊', defaultColSpan: 2, defaultRowSpan: 2 },
   heatmap:        { nameKey: 'chart.heatmap',        icon: '🌡️', defaultColSpan: 2, defaultRowSpan: 2 },
-  statusHistory:  { nameKey: 'chart.statusHistory',  icon: '📅', defaultColSpan: 2, defaultRowSpan: 1 },
-  histogram:      { nameKey: 'chart.histogram',      icon: '📶', defaultColSpan: 2, defaultRowSpan: 2 },
-  text:           { nameKey: 'chart.text',           icon: '📝', defaultColSpan: 1, defaultRowSpan: 1 },
-  alertList:      { nameKey: 'chart.alertList',      icon: '🔔', defaultColSpan: 1, defaultRowSpan: 2 },
-  dashboardList:  { nameKey: 'chart.dashboardList',  icon: '🔗', defaultColSpan: 1, defaultRowSpan: 1 },
+  statusHistory:  { nameKey: 'chart.statusHistory',  icon: '📊', defaultColSpan: 2, defaultRowSpan: 1 },
+  histogram:      { nameKey: 'chart.histogram',      icon: '📊', defaultColSpan: 2, defaultRowSpan: 2 },
+  text:           { nameKey: 'chart.text',           icon: '📊', defaultColSpan: 1, defaultRowSpan: 1 },
+  alertList:      { nameKey: 'chart.alertList',      icon: '📊', defaultColSpan: 1, defaultRowSpan: 2 },
+  dashboardList:  { nameKey: 'chart.dashboardList',  icon: '📊', defaultColSpan: 1, defaultRowSpan: 1 },
   stackedBar:     { nameKey: 'chart.stackedBar',     icon: '▬', defaultColSpan: 2, defaultRowSpan: 1 },
   cylinderStatus: { nameKey: 'chart.cylinderStatus', icon: '🖨️', defaultColSpan: 2, defaultRowSpan: 2 },
+  activityFeed:   { nameKey: 'chart.activityFeed',   icon: '📊', defaultColSpan: 2, defaultRowSpan: 2 },
+  location:       { nameKey: 'chart.location',       icon: '📊', defaultColSpan: 2, defaultRowSpan: 1 },
 };
 
 export const DATA_SOURCE_META: Record<DataSource, { nameKey: string }> = {
@@ -92,8 +95,8 @@ export const DASHBOARD_TEMPLATES: DashboardTemplate[] = [
       { titleKey: 'dash.inkAlerts', chartType: 'alertList', dataSource: 'inks', colSpan: 1, rowSpan: 2, width: 1, height: 2 },
       { titleKey: 'dash.recentJobs', chartType: 'table', dataSource: 'jobs', colSpan: 2, rowSpan: 2, width: 2, height: 2 },
       { titleKey: 'dash.qcRate', chartType: 'pie', dataSource: 'qc', colSpan: 1, rowSpan: 2, width: 1, height: 2 },
-      { titleKey: 'dash.recentActivity', chartType: 'statusHistory', dataSource: 'jobs', colSpan: 1, rowSpan: 1, width: 1, height: 1 },
-      { titleKey: 'dash.cylinderByLocation', chartType: 'bar', dataSource: 'cylinders', colSpan: 2, rowSpan: 1, width: 2, height: 1 },
+      { titleKey: 'dash.recentActivity', chartType: 'activityFeed', dataSource: 'jobs', colSpan: 1, rowSpan: 1, width: 1, height: 1 },
+      { titleKey: 'dash.cylinderByLocation', chartType: 'location', dataSource: 'cylinders', colSpan: 2, rowSpan: 1, width: 2, height: 1 },
     ],
   },
   {

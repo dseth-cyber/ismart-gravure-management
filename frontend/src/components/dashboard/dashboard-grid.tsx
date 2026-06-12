@@ -38,7 +38,7 @@ const DEFAULT_CARD_DEFS: Record<string, { titleKey: string; chartType: string; d
   'card_recentJobs':     { titleKey: 'dash.recentJobs', chartType: 'table', dataSource: 'jobs' },
   'card_qc':             { titleKey: 'dash.qcRate', chartType: 'pie', dataSource: 'qc' },
   'card_activity':       { titleKey: 'dash.recentActivity', chartType: 'statusHistory', dataSource: 'jobs' },
-  'card_location':       { titleKey: 'dash.cylinderByLocation', chartType: 'bar', dataSource: 'cylinders' },
+  'card_location':       { titleKey: 'dash.cylinderByLocation', chartType: 'location', dataSource: 'cylinders' },
 };
 
 export function DashboardGrid() {
@@ -65,8 +65,8 @@ export function DashboardGrid() {
     return map;
   }, [extraCards]);
 
-  const handleLayoutChange = useCallback((_layout: any, allLayouts: RglLayouts) => {
-    setLayouts(allLayouts);
+  const handleLayoutChange = useCallback((_layout: any, allLayouts: any) => {
+    setLayouts(allLayouts as RglLayouts);
   }, [setLayouts]);
 
   const resetLayout = useCallback(() => {

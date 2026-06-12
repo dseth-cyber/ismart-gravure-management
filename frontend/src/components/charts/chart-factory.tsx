@@ -18,6 +18,8 @@ import { AlertListChart } from './alert-list-chart';
 import { DashboardListChart } from './dashboard-list-chart';
 import { StackedBarChart } from './stacked-bar-chart';
 import { CylinderStatusChart } from './cylinder-status-chart';
+import { ActivityFeedChart } from './activity-feed-chart';
+import { LocationChart } from './location-chart';
 
 interface Props {
   chartType: ChartType;
@@ -146,6 +148,37 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
 
       case 'cylinderStatus':
         return <CylinderStatusChart height={height} />;
+
+      case 'activityFeed':
+        return (
+          <ActivityFeedChart
+            activities={[
+              { id: '1', type: 'cylinder' as const, formatKey: 'activity.updatedCyl', args: ['สมชาย', 'CYL-1024', 'available'], timestamp: '14:32' },
+              { id: '2', type: 'ink' as const, formatKey: 'activity.mixedInk', args: ['วิชัย', 'INK-2012', 'Cyan', '250kg'], timestamp: '14:15' },
+              { id: '3', type: 'job' as const, formatKey: 'activity.startedJob', args: ['ประยุทธ์', 'J2024-045', 'M-03'], timestamp: '13:50' },
+              { id: '4', type: 'qc' as const, formatKey: 'activity.passedQc', args: ['สมหมาย', 'J2024-044', '43', '45'], timestamp: '13:22' },
+              { id: '5', type: 'machine' as const, formatKey: 'activity.completedMaint', args: ['M-02'], timestamp: '12:45' },
+              { id: '6', type: 'system' as const, formatKey: 'activity.autoAssigned', args: ['CYL-1089', 'J2024-046'], timestamp: '12:10' },
+            ]}
+            height={height}
+          />
+        );
+
+      case 'location':
+        return (
+          <LocationChart
+            title="Cylinder count by storage location"
+            locations={[
+              { name: 'Rack A',     count: 42, max: 60, color: '#22d3ee', unit: 'cyl' },
+              { name: 'Rack B',     count: 38, max: 60, color: '#3b82f6', unit: 'cyl' },
+              { name: 'Rack C',     count: 28, max: 60, color: '#d946ef', unit: 'cyl' },
+              { name: 'Rack D',     count: 22, max: 60, color: '#f59e0b', unit: 'cyl' },
+              { name: 'Machine Area', count: 48, max: 60, color: '#10b981', unit: 'cyl' },
+              { name: 'QC / Repair',  count: 18, max: 60, color: '#ef4444', unit: 'cyl' },
+            ]}
+            height={height}
+          />
+        );
 
       default:
         return <div className="flex items-center justify-center h-full text-gray-500 text-sm">Unknown chart type: {chartType}</div>;

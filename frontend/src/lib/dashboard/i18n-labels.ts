@@ -61,17 +61,21 @@ const LABEL_KEYS: Record<string, string> = {
   'Due': 'dash.alert.due',
   'Checked': 'dash.alert.checked',
   'Reported': 'dash.alert.reported',
-  'Inspection': 'dash.inspection',
   'OK': 'dash.alert.ok',
   '3 days': 'dash.alert.days3',
   '8 days': 'dash.alert.days8',
   'day': 'dash.alert.day',
   'days': 'dash.alert.days',
-  'Expired': 'dash.alert.expired',
   'Expires': 'dash.alert.expires',
   'Temperature': 'dash.alert.temp',
   'Low level': 'dash.alert.lowLevel',
   'Due soon': 'dash.alert.dueSoon',
+  'activity.updatedCyl': 'dash.activity.updatedCyl',
+  'activity.mixedInk': 'dash.activity.mixedInk',
+  'activity.startedJob': 'dash.activity.startedJob',
+  'activity.passedQc': 'dash.activity.passedQc',
+  'activity.completedMaint': 'dash.activity.completedMaint',
+  'activity.autoAssigned': 'dash.activity.autoAssigned',
 };
 
 export function tLabel(t: (key: string) => string, label: string): string {

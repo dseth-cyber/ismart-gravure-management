@@ -9,7 +9,8 @@ type ActivityType = 'cylinder' | 'ink' | 'job' | 'qc' | 'machine' | 'system';
 interface ActivityItem {
   id: string;
   type: ActivityType;
-  content: string;
+  formatKey: string;
+  args: string[];
   timestamp: string;
 }
 
@@ -26,6 +27,15 @@ const CONFIG: Record<ActivityType, { icon: typeof Layers; bg: string; iconColor:
   machine:  { icon: Cpu, bg: 'bg-blue-500/15', iconColor: 'text-blue-400' },
   system:   { icon: Bell, bg: 'bg-rose-500/15', iconColor: 'text-rose-400' },
 };
+
+function formatMsg(t: (key: string) => string, formatKey: string, args: string[]): string {
+  const template = tLabel(t, formatKey);
+  let result = template;
+  for (let i = 0; i < args.length; i++) {
+    result = result.replace(`{${i}}`, args[i]);
+  }
+  return result;
+}
 
 export function ActivityFeedChart({ activities, height: _h }: Props) {
   const { t } = useTranslation();
@@ -44,7 +54,7 @@ export function ActivityFeedChart({ activities, height: _h }: Props) {
               <Icon size={15} className={cfg.iconColor} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs leading-snug text-white/80">{tLabel(t, item.content)}</p>
+              <p className="text-xs leading-snug text-white/80">{formatMsg(t, item.formatKey, item.args)}</p>
             </div>
             <span className="text-[10px] text-white/40 flex-shrink-0 mt-0.5">{item.timestamp}</span>
           </div>

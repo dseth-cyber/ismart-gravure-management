@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { ChartFactory } from '@/components/charts/chart-factory';
+import type { ChartType } from '@/lib/dashboard/dashboard-config';
 import { GripVertical, Settings } from 'lucide-react';
 
 interface Props {
@@ -17,7 +18,7 @@ interface Props {
   onConfigChange?: (chartType: string, dataSource: string) => void;
 }
 
-const CHART_OPTIONS = ['timeSeries', 'bar', 'stat', 'gauge', 'barGauge', 'table', 'pie', 'stateTimeline', 'heatmap', 'statusHistory', 'histogram', 'text', 'alertList', 'dashboardList', 'cylinderStatus'] as const;
+const CHART_OPTIONS = ['timeSeries', 'bar', 'stat', 'gauge', 'barGauge', 'table', 'pie', 'stateTimeline', 'heatmap', 'statusHistory', 'histogram', 'text', 'alertList', 'dashboardList', 'cylinderStatus', 'activityFeed', 'location'] as const;
 const DATA_OPTIONS = ['cylinders', 'inks', 'jobs', 'qc', 'production', 'alerts', 'inventory', 'custom'] as const;
 
 export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dataSource: initSource, customTitle, isEditing, onTitleChange, onConfigChange }: Props) {
@@ -92,7 +93,9 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
               className="text-xs rounded px-1.5 py-1 border border-white/20 outline-none"
             >
               {CHART_OPTIONS.map((ct) => (
-                <option key={ct} value={ct} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>{ct}</option>
+                <option key={ct} value={ct} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>
+                  {t(`chart.${ct}` as any)}
+                </option>
               ))}
             </select>
             <span className="opacity-60 ml-2">Source:</span>
@@ -103,7 +106,7 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
               className="text-xs rounded px-1.5 py-1 border border-white/20 outline-none"
             >
               {DATA_OPTIONS.map((ds) => (
-                <option key={ds} value={ds} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>{ds}</option>
+                <option key={ds} value={ds} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>{t(`ds.${ds}` as any)}</option>
               ))}
             </select>
           </div>
@@ -111,7 +114,7 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
       )}
 
       <div className="flex-1 px-3 pb-3 min-h-0">
-        <ChartFactory chartType={initChart} dataSource={initSource} height={200} />
+        <ChartFactory chartType={initChart as ChartType} dataSource={initSource} height={200} />
       </div>
     </div>
   );
