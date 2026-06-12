@@ -266,6 +266,68 @@ export class AuthService {
     return result.authenticated;
   }
 
+  // ── User Management (Admin) ──
+  static async listUsers() {
+    return prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        mfaEnabled: true,
+        failedLoginAttempts: true,
+        lockedUntil: true,
+        createdAt: true,
+        updatedAt: true,
+        lastPasswordChange: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  static async getUser(id: string) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        mfaEnabled: true,
+        failedLoginAttempts: true,
+        lockedUntil: true,
+        createdAt: true,
+        updatedAt: true,
+        lastPasswordChange: true,
+      },
+    });
+    if (!user) throw new AppError('User not found', 404);
+    return user;
+  }
+
+  static async createUser(username: string, password: string, role: string) {
+    const existing = await prisma.user.findUnique({ where: { username } });
+    if (existing) throw new AppError('Username already exists', 409);
+    this.validatePassword(password);
+    const passwordHash = await bcrypt.hash(password, 12);
+    return prisma.user.create({
+      data: { username, passwordHash, role: role as any },
+      select: { id: true, username: true, role: true, createdAt: true },
+    });
+  }
+
+  static async updateUser(id: string, data: { role?: string; locked?: boolean }) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) throw new AppError('User not found', 404);
+    const updateData: any = {};
+    if (data.role) updateData.role = data.role;
+    if (data.locked === true) updateData.lockedUntil = new Date('2099-12-31');
+    if (data.locked === false) updateData.lockedUntil = null;
+    return prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: { id: true, username: true, role: true, lockedUntil: true, updatedAt: true },
+    });
+  }
+
   static async getUserProfile(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },

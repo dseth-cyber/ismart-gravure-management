@@ -96,6 +96,10 @@ const MENU = [
       { key: 'settings', labelKey: 'nav.masterSetup', href: '/setup?tab=master', icon: Settings },
       { key: 'ruleEngine', labelKey: 'nav.ruleEngine', href: '/setup?tab=rules', icon: Shield },
       { key: 'approvalMatrix', labelKey: 'nav.approvalMatrix', href: '/setup?tab=approvals', icon: User },
+      { key: 'userMgt', labelKey: 'nav.userMgt', href: '/settings/users', icon: User },
+      { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield },
+      { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell },
+      { key: 'systemSettings', labelKey: 'nav.systemSettings', href: '/settings/system', icon: Settings },
     ] 
   },
   {

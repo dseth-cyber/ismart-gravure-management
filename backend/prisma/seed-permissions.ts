@@ -192,6 +192,11 @@ async function seed() {
   console.log('\n=== Permission seeding complete ===\n');
 }
 
-seed()
-  .catch(e => { console.error('Seed failed:', e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+export { seed };
+
+// Allow standalone execution
+if (require.main === module) {
+  seed()
+    .catch(e => { console.error('Seed failed:', e); process.exit(1); })
+    .finally(() => prisma.$disconnect());
+}

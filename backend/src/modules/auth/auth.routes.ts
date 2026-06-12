@@ -1,12 +1,23 @@
 import { Router } from 'express';
 import { AuthController } from './auth.controller';
-import { requireAuth } from '../../middleware/auth';
+import { requireAuth, requireRoles } from '../../middleware/auth';
 import { validate, validateLogin } from '../../middleware/validate';
 import { z } from 'zod';
 
 const mfaEnableSchema = z.object({
   token: z.string().min(1, 'token is required'),
   secret: z.string().min(1, 'secret is required'),
+});
+
+const createUserSchema = z.object({
+  username: z.string().min(3, 'username must be at least 3 characters'),
+  password: z.string().min(8, 'password must be at least 8 characters'),
+  role: z.enum(['superadmin', 'admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer']),
+});
+
+const updateUserSchema = z.object({
+  role: z.enum(['superadmin', 'admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer']).optional(),
+  locked: z.boolean().optional(),
 });
 
 const mfaVerifySchema = z.object({
@@ -37,5 +48,11 @@ router.post('/mfa/generate', requireAuth, AuthController.mfaGenerate);
 router.post('/mfa/enable', requireAuth, validate(mfaEnableSchema), AuthController.mfaEnable);
 router.post('/mfa/disable', requireAuth, AuthController.mfaDisable);
 router.get('/mfa/status', requireAuth, AuthController.mfaStatus);
+
+// ── User Management (admin) ──
+router.get('/users', requireAuth, requireRoles(['admin']), AuthController.listUsers);
+router.get('/users/:id', requireAuth, requireRoles(['admin']), AuthController.getUser);
+router.post('/users', requireAuth, requireRoles(['admin']), validate(createUserSchema), AuthController.createUser);
+router.put('/users/:id', requireAuth, requireRoles(['admin']), validate(updateUserSchema), AuthController.updateUser);
 
 export default router;

@@ -642,5 +642,62 @@
   "mfa.disable": "MFA ကိုပိတ်ပါ",
   "mfa.disabled": "MFA ကိုအောင်မြင်စွာပိတ်ပြီးပါပြီ",
   "common.copied": "ကော်ပီကူးပြီးပါပြီ",
-  "common.copy": "ကော်ပီကူးပါ"
+  "common.copy": "ကော်ပီကူးပါ",
+  "phase.29.name": "ခွင့်ပြုချက်စီမံခန့်ခွဲမှု",
+  "phase.29.output": "Seed permissions, Role-Permission mapping, Permission UI, PermissionProvider wiring",
+  "phase.29.details": {
+    "outputs": [
+      "Prisma seed script for 8 roles",
+      "Role-Permission assignment API",
+      "User Permission override UI",
+      "Permission management settings page",
+      "PermissionProvider in providers.tsx",
+      "Can component usage",
+      "Scope management UI"
+    ],
+    "criteria": [
+      "Seed script populates 30+ permissions across 6 modules",
+      "PermissionProvider fetches permissions on mount",
+      "Can component conditionally renders UI",
+      "Admin can manage permissions from settings page"
+    ],
+    "notes": [
+      "Completed on 2026-06-12.",
+      "Permission naming: module:action (e.g., user:create).",
+      "Wildcard *:* for superadmin."
+    ]
+  },
+  "phase.29.status": "progress",
+  "settings.permissions": "ခွင့်ပြုချက်စီမံခန့်ခွဲမှု",
+  "settings.permissionsDesc": "Manage role permissions, user overrides, and scopes",
+  "nav.permissions": "ခွင့်ပြုချက်များ",
+  "perm.title": "ခွင့်ပြုချက်စီမံခန့်ခွဲမှု",
+  "perm.subtitle": "Manage roles, permissions, user overrides, and data scopes",
+  "perm.allPermissions": "All Permissions",
+  "perm.addPermission": "Add Permission",
+  "perm.permName": "Permission",
+  "perm.module": "Module",
+  "perm.action": "Action",
+  "perm.description": "Description",
+  "perm.rolePerms": "Role Permissions",
+  "perm.selectRole": "Select Role",
+  "perm.assignPerm": "Assign",
+  "perm.removePerm": "Remove",
+  "perm.userOverrides": "User Overrides",
+  "perm.selectUser": "Select User",
+  "perm.grant": "Grant",
+  "perm.deny": "Deny",
+  "perm.effect": "Effect",
+  "perm.noOverrides": "No overrides",
+  "perm.scopes": "Data Scopes",
+  "perm.scopeType": "Type",
+  "perm.scopeName": "Name",
+  "perm.addScope": "Add Scope",
+  "perm.assignScope": "Assign to User",
+  "perm.saved": "Saved",
+  "perm.deleted": "Deleted",
+  "perm.assigned": "Assigned",
+  "perm.removed": "Removed",
+  "perm.scopeCreated": "Scope created",
+  "perm.error": "Operation failed"
 }

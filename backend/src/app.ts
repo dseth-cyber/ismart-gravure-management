@@ -220,7 +220,7 @@ app.get('/health', async (req, res): Promise<any> => {
 
 // API Routes
 app.use('/api/v1/auth', authRateLimiter, authRoutes);
-app.use('/api/v1/permissions', requireApiKey, permissionRoutes);
+app.use('/api/v1/permissions', permissionRoutes);
 app.use('/api/v1/workflows', requireApiKey, workflowRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/products', productRoutes);

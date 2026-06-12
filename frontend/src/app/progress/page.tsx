@@ -41,6 +41,7 @@ const phases: Array<{ id: number; nameKey: string; outputKey: string; status: St
   { id: 26, nameKey: 'phase.26.name', outputKey: 'phase.26.output', status: 'done' },
   { id: 27, nameKey: 'phase.27.name', outputKey: 'phase.27.output', status: 'done' },
   { id: 28, nameKey: 'phase.28.name', outputKey: 'phase.28.output', status: 'done' },
+  { id: 29, nameKey: 'phase.29.name', outputKey: 'phase.29.output', status: 'progress' },
 ];
 
 const rules = [

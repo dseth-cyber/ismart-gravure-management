@@ -1,8 +1,12 @@
 import { Role, CylinderStatus, InkFormulaStatus, InkBatchStatus, JobStatus, QcStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../src/config/database';
+import { seed as seedPermissions } from './seed-permissions';
 
 async function main() {
+  // Seed permissions first (they are a prerequisite for role-based operations)
+  await seedPermissions();
+
   console.log('Seeding database with test accounts...');
 
   const defaultPassword = 'Password123!';

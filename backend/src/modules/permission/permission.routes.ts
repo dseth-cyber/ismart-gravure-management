@@ -26,7 +26,7 @@ router.get('/', PermissionController.listPermissions);
 router.get('/users/me', PermissionController.getUserPermissions);
 router.get('/scopes/user/me', PermissionController.getUserScopes);
 
-// Admin-only routes
+// Admin-only routes (require admin role)
 router.use(requireRoles(['admin']));
 
 // Permissions CRUD (admin)

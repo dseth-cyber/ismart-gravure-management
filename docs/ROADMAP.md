@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -79,6 +79,7 @@ Use newer stable versions when they are better for a new project and do not conf
 | 26 | File Storage Layer | Done | MinIO, abstraction, thumbnails, file picker |
 | 27 | AI Gateway & IoT | Done | Multi-provider AI, MQTT bridge, device registry |
 | 28 | Production Deploy & DR | Done | Cloudflare Tunnel, DR plan, load testing, security audit |
+| 29 | Permission Management | In Progress | Seed permissions, Role-Permission mapping, Permission UI, PermissionProvider wiring |
 
 ## Phase Details
 
@@ -522,7 +523,7 @@ Notes:
 
 ### Phase 20: Authorization & Permission System
 
-Status: In Progress
+Status: Done
 
 Outputs:
 - Fine-Grained Permission Model
@@ -559,6 +560,39 @@ Notes:
 - Deny always overrides grant (explicit deny takes precedence)
 - Scope hierarchy: company > factory > department > warehouse
 - Lower scope inherits access from higher scope (factory = all departments under it)
+- Completed on 2026-06-12 (seeding + remaining UI finalized in Phase 29).
+
+### Phase 29: Permission Management
+
+Status: In Progress
+
+Outputs:
+- 50 permissions seeded across 6 modules (auth, customers, products, cylinders, inks, orders, jobs, qc, audit, permissions, inventory, reports)
+- Role-permission assignment API (CRUD on role_permissions table)
+- User permission override UI (grant/deny per user via UserPermission table)
+- Permission Management settings page (`/settings/permissions`) with 4 tabs:
+  - All Permissions (list, create, delete)
+  - Role Permissions (assign/remove per role)
+  - User Overrides (grant/deny per user)
+  - Data Scopes (list, create, assign to user)
+- `PermissionProvider` wired in `providers.tsx` — fetches user's effective permissions on app mount
+- `<Can permission="module:action">` component for conditional rendering
+- Navigation menu item for Permission Management in Settings sidebar
+- Permission card on Settings landing page
+
+Acceptance criteria:
+- Seed script populates 30+ permissions across 6 modules
+- PermissionProvider fetches permissions on app mount
+- Can component conditionally renders UI elements
+- Admin can manage permissions from settings page
+- Role dropdown in user management respects permission changes
+
+Notes:
+- Permission naming convention: `module:action` (e.g., `user:create`, `order:read`).
+- Wildcard `*:*` for superadmin, `module:*` for any action in a module.
+- Permission middleware, routes, and schema were already in place from Phase 20 — Phase 29 adds seed data, UI, and provider wiring.
+- `requireApiKey` moved from app-level to individual permission routes; read routes do not require it (frontend compatibility).
+- `requirePermission` middleware available for granular route protection.
 
 ### Phase 21: Approval Workflow Engine
 
@@ -815,6 +849,7 @@ If event-based decoupling is implemented internally:
 | 2026-06-09 | Use Tailwind CSS 4, Express 5, and Prisma ORM 7.x for new code | Avoid starting new project code on older major lines when stable newer versions exist |
 | 2026-06-09 | Consolidate from 14 microservices to modular monolith / necessary services | Simplify deployment, reduce overhead, and keep resource usage low as requested by owner |
 | 2026-06-10 | Focus next development cycle on Frontend API Integration & Polish | All 13 backend phases complete; frontend pages have full UI with mock data but need real API wiring. Identity, monitoring, and hardening follow in subsequent cycles. |
+| 2026-06-12 | Adapt identity-service Role & Permission approach into Phase 29 | Backend schema, middleware, and routes already existed — only seed data, PermissionProvider wiring, and UI were needed. `requireApiKey` moved from app-level to write-only routes for frontend compatibility. |
 
 ## Risks And Blockers
 
@@ -845,3 +880,6 @@ If event-based decoupling is implemented internally:
 | 2026-06-10 | 13 | Completed Phase 13 (Stabilization And Release) including automated E2E smoke tests script, release checklists, database backup/restore guidelines, and production readiness documentation |
 | 2026-06-10 | 9 | Completed Phase 9 (Async Queue Foundation) with BullMQ queue, connection helper, worker, trigger API, and audit log tracking |
 | 2026-06-10 | 14 | Started Phase 14 (Frontend API Integration & Polish) — full codebase audit completed: all 4 main pages have functional UIs with mock data, Dashboard and Login are complete, 1 navigation bug found (inks tab param mismatch), roadmap updated with Phases 14-17 |
+| 2026-06-11 | 22-28 | All Phases 22-28 completed: Schema Isolation, API Security, Observability, Notifications, File Storage, AI/IoT, Production Deploy & DR |
+| 2026-06-12 | 20 | Marked Phase 20 Done — seed script, permission routes, and frontend provider all finalized |
+| 2026-06-12 | 29 | Started Phase 29 — 50 permissions seeded, PermissionProvider wired, /settings/permissions UI with 4 tabs, navigation updated |

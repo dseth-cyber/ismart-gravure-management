@@ -171,6 +171,47 @@ export class AuthController {
     }
   }
 
+  // ── User Management (Admin) ──
+  static async listUsers(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const users = await AuthService.listUsers();
+      return res.status(200).json({ status: 'success', statusCode: 200, data: users } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const user = await AuthService.getUser(req.params.id);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: user } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { username, password, role } = req.body;
+      const user = await AuthService.createUser(username, password, role);
+      await AuditService.record(req, 'user.create', `Admin created user ${username}`, req.user?.userId, req.user?.username);
+      return res.status(201).json({ status: 'success', statusCode: 201, data: user } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { role, locked } = req.body;
+      const user = await AuthService.updateUser(req.params.id, { role, locked });
+      await AuditService.record(req, 'user.update', `Admin updated user ${user.username}`, req.user?.userId, req.user?.username);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: user } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async mfaStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
       if (!req.user) {

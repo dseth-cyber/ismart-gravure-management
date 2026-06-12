@@ -26,9 +26,11 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
 
   const loadPermissions = async () => {
     try {
-      const res = await apiClient.get<ApiResponse>('/api/v1/permissions');
-      if (res.data?.status === 'success' && Array.isArray(res.data.data)) {
-        const perms = new Set(res.data.data.map((p: any) => p.name));
+      const res = await apiClient.get<ApiResponse>('/api/v1/permissions/users/me');
+      if (res.data?.status === 'success' && res.data.data) {
+        const data = res.data.data;
+        const names = Array.isArray(data) ? data.map((p: any) => p.name ?? p.permission?.name ?? p) : [];
+        const perms = new Set(names);
         setPermissions(perms);
       }
     } catch {
