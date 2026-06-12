@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { ChartFactory } from '@/components/charts/chart-factory';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Settings } from 'lucide-react';
 
 interface Props {
   cardId: string;
@@ -14,13 +14,18 @@ interface Props {
   customTitle?: string;
   isEditing: boolean;
   onTitleChange?: (title: string) => void;
+  onConfigChange?: (chartType: string, dataSource: string) => void;
 }
 
-export function DashboardCard({ cardId: _id, titleKey, chartType, dataSource, customTitle, isEditing, onTitleChange }: Props) {
+const CHART_OPTIONS = ['timeSeries', 'bar', 'stat', 'gauge', 'barGauge', 'table', 'pie', 'stateTimeline', 'heatmap', 'statusHistory', 'histogram', 'text', 'alertList', 'dashboardList', 'cylinderStatus'] as const;
+const DATA_OPTIONS = ['cylinders', 'inks', 'jobs', 'qc', 'production', 'alerts', 'inventory', 'custom'] as const;
+
+export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dataSource: initSource, customTitle, isEditing, onTitleChange, onConfigChange }: Props) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [showConfig, setShowConfig] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const displayTitle = customTitle || t(titleKey as any) || titleKey;
@@ -62,14 +67,51 @@ export function DashboardCard({ cardId: _id, titleKey, chartType, dataSource, cu
           </h3>
         )}
         {isEditing && (
-          <div className="drag-handle p-1 rounded hover:bg-white/10 text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0 ml-2">
-            <GripVertical size={14} />
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            <button
+              onClick={() => setShowConfig(!showConfig)}
+              className="p-1 rounded hover:bg-white/10 text-gray-400"
+            >
+              <Settings size={13} />
+            </button>
+            <div className="drag-handle p-1 rounded hover:bg-white/10 text-gray-400 cursor-grab active:cursor-grabbing">
+              <GripVertical size={14} />
+            </div>
           </div>
         )}
       </div>
 
+      {isEditing && showConfig && (
+        <div className={`mx-3 mb-2 p-2 rounded-lg ${themeConfig.badge} border ${themeConfig.border}`}>
+          <div className="flex gap-2 items-center text-xs">
+            <span className="opacity-60">Type:</span>
+            <select
+              value={initChart}
+              onChange={(e) => onConfigChange?.(e.target.value, initSource)}
+              style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: '#e2e8f0' }}
+              className="text-xs rounded px-1.5 py-1 border border-white/20 outline-none"
+            >
+              {CHART_OPTIONS.map((ct) => (
+                <option key={ct} value={ct} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>{ct}</option>
+              ))}
+            </select>
+            <span className="opacity-60 ml-2">Source:</span>
+            <select
+              value={initSource}
+              onChange={(e) => onConfigChange?.(initChart, e.target.value)}
+              style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: '#e2e8f0' }}
+              className="text-xs rounded px-1.5 py-1 border border-white/20 outline-none"
+            >
+              {DATA_OPTIONS.map((ds) => (
+                <option key={ds} value={ds} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>{ds}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 px-3 pb-3 min-h-0">
-        <ChartFactory chartType={chartType} dataSource={dataSource} height={200} />
+        <ChartFactory chartType={initChart} dataSource={initSource} height={200} />
       </div>
     </div>
   );

@@ -102,13 +102,29 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
       case 'alertList':
         return (
           <AlertListChart
-            alerts={[
-              { severity: 'critical', message: 'Cylinder CYL-1024 overdue for inspection', time: '2 min ago' },
-              { severity: 'warning', message: 'Ink batch INK-2012 expiring in 3 days', time: '15 min ago' },
-              { severity: 'warning', message: 'Machine #3 maintenance due', time: '1 hour ago' },
-              { severity: 'info', message: 'Job JOB-3042 completed successfully', time: '2 hours ago' },
-              { severity: 'resolved', message: 'Network latency issue resolved', time: '3 hours ago' },
-            ]}
+            subtitle={dataSource === 'inks' ? 'Ink formulas near expiry' : dataSource === 'cylinders' ? 'Cylinder maintenance alerts' : 'Recent system alerts'}
+            alerts={
+              dataSource === 'inks'
+                ? [
+                    { id: 'INK-2012', icon: 'droplet' as const, swatchColor: '#06b6d4', details: 'Cyan • 250kg', statusDate: 'Expired: 2026-07-15', pillColor: '#ef4444', pillText: 'Expired' },
+                    { id: 'INK-2087', icon: 'droplet' as const, swatchColor: '#d946ef', details: 'Magenta • 180kg', statusDate: 'Expires: 2026-06-20', pillColor: '#f59e0b', pillText: '3 days' },
+                    { id: 'INK-2156', icon: 'droplet' as const, swatchColor: '#eab308', details: 'Yellow • 200kg', statusDate: 'Expires: 2026-06-25', pillColor: '#f59e0b', pillText: '8 days' },
+                    { id: 'INK-1903', icon: 'droplet' as const, swatchColor: '#1e293b', details: 'Black • 300kg', statusDate: 'Expires: 2026-07-01', pillColor: '#22c55e', pillText: 'Active' },
+                    { id: 'INK-2234', icon: 'droplet' as const, swatchColor: '#a855f7', details: 'Violet • 120kg', statusDate: 'Expires: 2026-06-30', pillColor: '#22c55e', pillText: 'Active' },
+                  ]
+                : dataSource === 'cylinders'
+                  ? [
+                      { id: 'CYL-1024', icon: 'alert' as const, swatchColor: '#ef4444', details: 'Overdue · 45,230m', statusDate: 'Inspection: 2026-05-01', pillColor: '#ef4444', pillText: 'Critical' },
+                      { id: 'CYL-1089', icon: 'warning' as const, swatchColor: '#f59e0b', details: 'Scheduled · 38,100m', statusDate: 'Due: 2026-06-20', pillColor: '#f59e0b', pillText: 'Warning' },
+                      { id: 'CYL-1156', icon: 'check' as const, swatchColor: '#22c55e', details: 'Completed · 52,000m', statusDate: 'Checked: 2026-06-10', pillColor: '#22c55e', pillText: 'OK' },
+                    ]
+                  : [
+                      { id: 'ALR-042', icon: 'alert' as const, swatchColor: '#ef4444', details: 'Machine #3 · Temperature', statusDate: 'Reported: 2 min ago', pillColor: '#ef4444', pillText: 'Critical' },
+                      { id: 'ALR-041', icon: 'warning' as const, swatchColor: '#f59e0b', details: 'Ink Tank #7 · Low level', statusDate: 'Reported: 15 min ago', pillColor: '#f59e0b', pillText: 'Warning' },
+                      { id: 'ALR-040', icon: 'warning' as const, swatchColor: '#f59e0b', details: 'Cylinder #215 · Due soon', statusDate: 'Reported: 1 hour ago', pillColor: '#f59e0b', pillText: 'Warning' },
+                      { id: 'ALR-039', icon: 'check' as const, swatchColor: '#22c55e', details: 'Job JOB-3042 completed', statusDate: 'Completed: 2 hours ago', pillColor: '#22c55e', pillText: 'Resolved' },
+                    ]
+            }
             height={height}
           />
         );

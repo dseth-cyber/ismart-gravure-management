@@ -51,6 +51,7 @@ export function DashboardGrid() {
   const [layouts, setLayouts] = useLocalStorage<RglLayouts>('gm_rgl_layout', DEFAULT_RGL_LAYOUTS);
   const [extraCards, setExtraCards] = useLocalStorage<ExtraCardDef[]>('gm_extra_cards', []);
   const [cardTitles, setCardTitles] = useLocalStorage<Record<string, string>>('gm_card_titles', {});
+  const [cardConfigs, setCardConfigs] = useLocalStorage<Record<string, { chartType: string; dataSource: string }>>('gm_card_config', {});
 
   useEffect(() => {
     setIsClient(true);
@@ -72,7 +73,8 @@ export function DashboardGrid() {
     setLayouts(DEFAULT_RGL_LAYOUTS);
     setExtraCards([]);
     setCardTitles({});
-  }, [setLayouts, setExtraCards, setCardTitles]);
+    setCardConfigs({});
+  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs]);
 
   const addCard = useCallback((chartType: ChartType, dataSource: DataSource, _colSpan: number, _rowSpan: number) => {
     const id = `card_extra_${Date.now()}`;
@@ -92,6 +94,10 @@ export function DashboardGrid() {
   const handleTitleChange = useCallback((cardId: string, title: string) => {
     setCardTitles((prev) => ({ ...prev, [cardId]: title }));
   }, [setCardTitles]);
+
+  const handleConfigChange = useCallback((cardId: string, chartType: string, dataSource: string) => {
+    setCardConfigs((prev) => ({ ...prev, [cardId]: { chartType, dataSource } }));
+  }, [setCardConfigs]);
 
   const visibleCardIds = useMemo(() => Object.keys(mergedCardDefs), [mergedCardDefs]);
 
@@ -184,11 +190,12 @@ export function DashboardGrid() {
                 <DashboardCard
                   cardId={id}
                   titleKey={def.titleKey}
-                  chartType={def.chartType}
-                  dataSource={def.dataSource}
+                  chartType={cardConfigs[id]?.chartType || def.chartType}
+                  dataSource={cardConfigs[id]?.dataSource || def.dataSource}
                   customTitle={cardTitles[id] || undefined}
                   isEditing={isEditing}
                   onTitleChange={(title) => handleTitleChange(id, title)}
+                  onConfigChange={(ct, ds) => handleConfigChange(id, ct, ds)}
                 />
               </div>
             );

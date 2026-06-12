@@ -16,7 +16,8 @@ export type ChartType =
   | 'alertList'
   | 'dashboardList'
   | 'stackedBar'
-  | 'cylinderStatus';
+  | 'cylinderStatus'
+  | 'activityFeed';
 
 export type DataSource = 'cylinders' | 'inks' | 'jobs' | 'qc' | 'production' | 'alerts' | 'inventory' | 'custom';
 
