@@ -7,6 +7,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { ROLES } from '@/lib/constants/roles';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { 
   BarChart3, 
   Layers, 
@@ -72,7 +73,7 @@ function SetupPageContent() {
     { id: 'solvent', icon: FlaskConical, label: t('setup.solvents'), color: 'from-teal-500 to-cyan-500' },
   ];
 
-  const [masterData, setMasterData] = useState<Record<string, any[]>>({
+  const [masterData, setMasterData] = useLocalStorage<Record<string, any[]>>('setup_masterData', {
     status: [
       { id: 1, name: 'Available', nameTh: 'พร้อมใช้งาน', color: '#10b981', icon: 'check', active: true },
       { id: 2, name: 'In Production', nameTh: 'ระหว่างผลิต', color: '#3b82f6', icon: 'factory', active: true },
@@ -149,7 +150,7 @@ function SetupPageContent() {
   const currentCategoryItems = masterData[activeCategory] || [];
 
   // 2. RULE ENGINE TAB STATE
-  const [rules, setRules] = useState<any[]>([
+  const [rules, setRules] = useLocalStorage<any[]>('setup_rules', [
     { id: 1, name: 'Ink Near Expiry Alert', active: true,
       condition: { field: 'ink.daysToExpiry', op: '<', value: '7' },
       actions: [{ type: 'notify', target: 'Supervisor' }, { type: 'highlight', color: 'red' }, { type: 'block', desc: 'Block production use' }] },
@@ -194,7 +195,7 @@ function SetupPageContent() {
   const opOptions = ['<', '>', '=', '!=', 'changed', 'contains'];
 
   // 3. APPROVAL MATRIX STATE — no hardcoded lists, admin configures everything via UI
-  const [matrix, setMatrix] = useState<any[]>([
+  const [matrix, setMatrix] = useLocalStorage<any[]>('setup_matrix', [
     { id: 1, event: 'Formula Revision Change', refType: 'formula_change', steps: [{ step: 1, role: 'qa_manager', sla: '24h', type: 'approve' }], visibleToRoles: ['admin', 'qa_manager', 'plant_manager'], active: true },
     { id: 2, event: 'Override FEFO', refType: 'override_fefo', steps: [{ step: 1, role: 'supervisor', sla: '1h', type: 'approve' }], visibleToRoles: ['admin', 'supervisor'], active: true },
     { id: 3, event: 'Expired Ink Override', refType: 'ink_override', steps: [{ step: 1, role: 'plant_manager', sla: '30min', type: 'approve' }], visibleToRoles: ['admin', 'plant_manager', 'qa_manager'], active: true },

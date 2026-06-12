@@ -67,7 +67,9 @@ apiClient.interceptors.response.use(
       refreshQueue = [];
       window.localStorage.removeItem('gm_access_token');
       window.localStorage.removeItem('gm_refresh_token');
-      window.location.href = '/login';
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

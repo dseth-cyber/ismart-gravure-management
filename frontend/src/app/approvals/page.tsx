@@ -77,20 +77,10 @@ export default function ApprovalsPage() {
     return Array.from(types).sort();
   }, [items]);
 
-  const refTypeIcon = (type: string) => {
-    switch (type) {
-      case 'leave_request': return '✈️';
-      case 'purchase_order': return '📋';
-      case 'inventory_adjust': return '📦';
-      case 'sales_discount': return '💰';
-      case 'qc_override': case 'qc_release': return '🔬';
-      case 'formula_change': return '🧪';
-      case 'cylinder_scrap': return '🔄';
-      case 'ink_override': return '🖨️';
-      case 'override_fefo': return '📤';
-      case 'delete_formula': return '🗑️';
-      default: return '📄';
-    }
+  // Admin-configurable refType icons — stored in localStorage, editable via Setup UI
+  const getRefTypeIcon = (type: string): string => {
+    const map: Record<string, string> = JSON.parse(localStorage.getItem('refTypeIcons') || '{}');
+    return map[type] || '📄';
   };
 
   const isSuperRole = ['admin', 'director', 'owner'].includes(user?.role || '');
@@ -103,7 +93,7 @@ export default function ApprovalsPage() {
         {isSuperRole && (
           <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300`}>
             <Shield size={14} />
-            คุณมีสิทธิ์อนุมัติเอกสารทั้งหมด (Admin/Director/Owner)
+            {t('approvals.superRoleBanner')}
           </div>
         )}
 
@@ -122,14 +112,14 @@ export default function ApprovalsPage() {
           >
             ทั้งหมด ({filteredItems.length})
           </button>
-          {refTypeSet.map(rt => (
-            <button
-              key={rt}
-              onClick={() => setActiveFilter(rt)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeFilter === rt ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white' : `${themeConfig.badge} ${themeConfig.panelHover} ${themeConfig.textSecondary}`}`}
-            >
-              {refTypeIcon(rt)} {rt}
-            </button>
+              {refTypeSet.map(rt => (
+              <button
+                key={rt}
+                onClick={() => setActiveFilter(rt)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeFilter === rt ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white' : `${themeConfig.badge} ${themeConfig.panelHover} ${themeConfig.textSecondary}`}`}
+              >
+                {getRefTypeIcon(rt)} {rt}
+              </button>
           ))}
         </div>
 
@@ -147,7 +137,7 @@ export default function ApprovalsPage() {
               <div key={item.id} className={`p-6 rounded-2xl shadow-lg ${themeConfig.dialog}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{refTypeIcon(item.refType)}</span>
+                    <span className="text-2xl">{getRefTypeIcon(item.refType)}</span>
                     <div>
                       <h3 className="font-semibold text-lg">{item.title}</h3>
                       {item.definition && (

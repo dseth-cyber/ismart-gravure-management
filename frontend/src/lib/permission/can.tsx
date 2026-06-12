@@ -25,6 +25,11 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadPermissions = async () => {
+    const token = typeof window !== 'undefined' ? window.localStorage.getItem('gm_access_token') : null;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await apiClient.get<ApiResponse>('/api/v1/permissions/users/me');
       if (res.data?.status === 'success' && res.data.data) {

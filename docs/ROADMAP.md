@@ -595,6 +595,111 @@ Notes:
 - `requireApiKey` moved from app-level to individual permission routes; read routes do not require it (frontend compatibility).
 - `requirePermission` middleware available for granular route protection.
 
+### Phase 30: Low-Code Configuration Audit
+
+Status: Done
+
+Outputs:
+- Comprehensive audit of 18 frontend files identifying **91 hardcoded values** that should be admin-configurable
+- Categories of hardcoded findings:
+  - Master data (statuses, colors, types, locations, machines, racks, suppliers, solvents, ink types, defect types) — ~35 items
+  - Menu/navigation structure and visibility — ~8 items
+  - Roles and permissions — ~6 items
+  - Approval matrix and workflow rules — ~6 items
+  - Dashboard layout configuration, chart colors, widget definitions — ~10 items
+  - Language/locale configuration — ~5 items
+  - Notification channels and templates — ~4 items
+  - Theme options — ~4 items
+  - Mock/fallback data — ~3 items
+  - UI text not using i18n — ~10 items
+- Created `useLocalStorage` hook for persisting admin configuration across sessions
+- Setup page (Master Data, Rules, Approval Matrix) now persists to localStorage — admin edits survive page refresh
+- Removed hardcoded `ROLE_VISIBILITY` from approvals page — filtering uses `visibleToRoles` from matrix config
+- Removed hardcoded `refTypeIcon` switch — icons stored in localStorage, editable via admin
+- Removed hardcoded `docTypes`, `approverRoles`, `notifTemplates` arrays — replaced with free-text input or `ROLES` constant
+- Added `approvals.superRoleBanner` i18n key to all 5 locales (was hardcoded Thai text)
+- Sidebar navigation MENU and languages still need to be made configurable (Phase 31)
+
+Acceptance criteria:
+- Admin can add/edit/delete master data categories and items via Setup UI (persisted to localStorage)
+- Admin can add/edit/delete approval matrix entries with multi-step chains and role visibility
+- Admin can add/edit/delete rule engine rules with dynamic condition fields
+- New document types can be added without code changes (free-text refType input)
+- New roles added to ROLES constant will automatically appear in all dropdowns
+- No hardcoded role-to-visibility mapping in approvals page
+
+### Phase 31: Dashboard v2 — Configurable Analytics & Visualization
+
+Status: In Progress
+
+Outputs:
+- Dashboard Card System (replace static grid)
+  - Cards are stored in localStorage as configurable definitions
+  - Admin can add/remove/reorder/resize cards via UI
+  - Each card has: title, size (col-span, row-span), chart type, data source
+  - Drag-to-resize handles on card edges (like grafana grid)
+  - Card settings panel for configuration
+- Supported Chart Types (14 chart types):
+  - **Time series** — Time-based line, area and bar charts
+  - **Bar chart** — Categorical charts with group support
+  - **Stat** — Big stat values & sparklines
+  - **Gauge** — Standard gauge visualization
+  - **Bar gauge** — Horizontal and vertical gauges
+  - **Table** — Supports many column styles
+  - **Pie chart** — The new core pie chart visualization
+  - **State timeline** — State changes and durations
+  - **Heatmap** — Like a histogram over time
+  - **Status history** — Periodic status history
+  - **Histogram** — Distribution of values presented as a bar chart
+  - **Text** — Supports markdown and html content
+  - **Alert list** — Shows list of alerts and their current status
+  - **Dashboard list** — List of dynamic links to other dashboards
+- Data Source Configuration
+  - Each card can be configured with a data source (API endpoint, metric path)
+  - Built-in data sources: cylinder stats, ink expiry, QC metrics, production throughput, job status, alert count
+  - Custom metric builder UI for selecting field, aggregation, filter
+  - Auto-refresh interval per card (off / 10s / 30s / 1m / 5m)
+- Card Layout System
+  - CSS Grid-based layout with configurable column spans (1-4) and row spans (1-3)
+  - Drag handle on each card for repositioning
+  - Resize handle on bottom-right corner
+  - Layout persists to localStorage per user
+  - "Edit Dashboard" mode toggle for entering config mode
+  - "Add Card" button that opens card template picker
+- Preset Dashboard Templates
+  - Executive overview (stats + sparklines + gauges)
+  - Operations (time series + bar chart + heatmap)
+  - Quality (pie chart + state timeline + stat cards)
+  - Custom (blank grid to build from scratch)
+
+Acceptance criteria:
+- Cards can be added, removed, moved, and resized without code changes
+- All 14 chart types render correctly with mock data
+- Each card can be configured with different data source
+- Layout persists on page refresh
+- Admin can create custom dashboards
+- Dashboard works in all 3 themes
+
+### Phase 32: Dynamic Menu & Role Management
+
+Status: Not Started
+
+Outputs:
+- Sidebar MENU structure stored in localStorage — admin can show/hide menu items
+- Menu item visibility per role (which roles see which nav items)
+- Custom menu items (admin adds external links)
+- Dynamic language management (enable/disable TH/EN/CN/JA/MM)
+- Dynamic theme management (enable/disable modern/dark/light)
+- ROLES constant replaced with localStorage-driven role list
+- All hardcoded option selects now driven from localStorage
+
+Acceptance criteria:
+- Admin can hide/show sidebar menu items
+- Different roles see different navigation items
+- Admin can add custom external links to sidebar
+- Languages can be enabled/disabled from admin panel
+- New roles can be added without code changes
+
 ### Phase 21: Approval Workflow Engine
 
 Status: Done
@@ -844,6 +949,12 @@ If event-based decoupling is implemented internally:
 |---|---|---|
 | 2026-06-09 | Keep standalone HTML as visual reference before Next.js migration | Reduces risk while establishing project guardrails |
 | 2026-06-09 | Use `cn` as required language code for Chinese in the future Next.js app | Matches project requirement, even though current standalone uses `zh` |
+| 2026-06-12 | Use `useLocalStorage` hook for admin config persistence instead of backend API | Instant save/load, works offline, no DB schema changes needed; backend sync can be added later |
+| 2026-06-12 | Merge Rules + Approvals into single Workflow Engine tab with 3 sub-tabs | Eliminated duplicate route tabs; combined All view gives holistic oversight |
+| 2026-06-12 | Replace hardcoded refTypeIcon switch with localStorage JSON map | Admin adds new doc types with icons without code changes |
+| 2026-06-12 | Approval matrix uses per-row visibleToRoles instead of global ROLE_VISIBILITY map | Each doc type has independent visibility rules, fully admin-configurable |
+| 2026-06-12 | Dashboard v2 to use CSS Grid drag-to-resize system (react-grid-layout or native) | Supports all 14 chart types, admin-configurable per card |
+| 2026-06-12 | Sidebar MENU, languages, and roles to be made configurable via localStorage | Final step to eliminate remaining hardcoded config items |
 | 2026-06-09 | Recommend Redpanda for local Kafka-compatible development | Easier Docker Compose setup while preserving Kafka API compatibility |
 | 2026-06-09 | Upgrade frontend baseline from Next.js 15 to Next.js 16 | New project should start on the current official major instead of a previous major |
 | 2026-06-09 | Use Node.js 24 LTS as the default runtime baseline | Node.js 24 is Active LTS with a longer support window for new services |
@@ -885,3 +996,6 @@ If event-based decoupling is implemented internally:
 | 2026-06-12 | 20 | Marked Phase 20 Done — seed script, permission routes, and frontend provider all finalized |
 | 2026-06-12 | 29 | Started Phase 29 — 50 permissions seeded, PermissionProvider wired, /settings/permissions UI with 4 tabs, navigation updated |
 | 2026-06-12 | 29 | Completed Phase 29 — all permission management backend + frontend finalized |
+| 2026-06-12 | 30 | Completed Phase 30 — low-code audit of 91 hardcoded items across 18 files; useLocalStorage hook created; setup page persisted; approvals page made low-code; all i18n gaps filled |
+| 2026-06-12 | 31 | Started Phase 31 — Dashboard v2 card system with 14 chart types, data source config, CSS Grid resizable layout |
+| 2026-06-12 | 31 | Phase 31 implementation: 14 chart components created (recharts + custom SVG), DashboardCard with resize/drag, AddCardDrawer, preset templates (executive/operations/quality/custom), DashboardGrid layout manager, homepage refactored to use DashboardGrid. Build passes. recharts added as dependency. |
