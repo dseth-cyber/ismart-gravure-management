@@ -12,10 +12,11 @@ const SEGMENTS: StatusSegment[] = [
   { label: 'dash.inProduction', count: 48,  percent: 17, color: '#3b82f6' },
   { label: 'dash.reserved',     count: 38,  percent: 13, color: '#f59e0b' },
   { label: 'dash.inspection',   count: 30,  percent: 11, color: '#a855f7' },
-  { label: 'dash.repair',       count: 12,  percent: 4,  color: '#ef4444' },
+  { label: 'dash.repair',       count: 12,  percent: 4,  color: '#f43f5e' },
 ];
 
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/lib/theme/theme-provider';
 
 interface Props {
   height?: number;
@@ -23,6 +24,7 @@ interface Props {
 
 export function CylinderStatusChart({ height: _h }: Props) {
   const { t } = useTranslation();
+  const { themeConfig } = useTheme();
   return (
     <div className="flex flex-col h-full gap-4 md:gap-5 pt-0.5 cylinder-status-container w-full min-h-0 relative">
       <style>{`
@@ -61,11 +63,7 @@ export function CylinderStatusChart({ height: _h }: Props) {
         {SEGMENTS.map((seg, i) => (
           <div
             key={i}
-            className="rounded-xl flex flex-col items-center justify-center gap-1 w-full min-w-0 p-[4cqmin]"
-            style={{
-              backgroundColor: '#45266B',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-            }}
+            className={`rounded-lg flex flex-col items-center justify-center gap-1 w-full min-w-0 p-[4cqmin] ${themeConfig.badge}`}
           >
             <div className="flex items-center justify-center gap-[2cqmin] min-w-0 w-full">
               <span
