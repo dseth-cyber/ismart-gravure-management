@@ -52,14 +52,34 @@ export function AlertListChart({ alerts, subtitle, height: _h }: Props) {
       <div className="flex-1 space-y-2 overflow-auto pr-1">
         {alerts.map((item, i) => {
           const Icon = ICON_MAP[item.icon] || Droplet;
+          
+          // Dynamic styles based on severity (pillColor)
+          const isCritical = item.pillColor === '#ef4444';
+          const isWarning = item.pillColor === '#f59e0b';
+          const isSuccess = item.pillColor === '#22c55e';
+          
+          let containerBg = 'rgba(46,10,92,0.5)';
+          let containerBorder = 'rgba(255,255,255,0.08)';
+          
+          if (isCritical) {
+            containerBg = 'rgba(239,68,68,0.12)';
+            containerBorder = 'rgba(239,68,68,0.35)';
+          } else if (isWarning) {
+            containerBg = 'rgba(245,158,11,0.08)';
+            containerBorder = 'rgba(245,158,11,0.35)';
+          } else if (isSuccess) {
+            containerBg = 'rgba(34,197,94,0.08)';
+            containerBorder = 'rgba(34,197,94,0.35)';
+          }
+
           return (
             <div
               key={i}
-              className="flex items-start gap-3 rounded-xl px-3 py-2.5 border"
-              style={{ backgroundColor: 'rgba(46,10,92,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}
+              className="flex items-start gap-3 rounded-xl px-3 py-2.5 border transition-all duration-200"
+              style={{ backgroundColor: containerBg, borderColor: containerBorder }}
             >
               <div className="flex-shrink-0 mt-0.5">
-                <Icon size={18} className="text-white/70" />
+                <Icon size={18} style={{ color: item.pillColor }} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold leading-tight text-white">{item.id}</p>
@@ -76,8 +96,12 @@ export function AlertListChart({ alerts, subtitle, height: _h }: Props) {
               </div>
               <div className="flex-shrink-0 mt-0.5">
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                  style={{ backgroundColor: item.pillColor + '20', color: item.pillColor }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] font-bold border"
+                  style={{ 
+                    backgroundColor: item.pillColor + '15', 
+                    color: item.pillColor,
+                    borderColor: item.pillColor + '45'
+                  }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.pillColor }} />
                   {tLabel(t, item.pillText)}

@@ -87,6 +87,10 @@ const LABEL_KEYS: Record<string, string> = {
   'activity.passedQc': 'dash.activity.passedQc',
   'activity.completedMaint': 'dash.activity.completedMaint',
   'activity.autoAssigned': 'dash.activity.autoAssigned',
+  'status.nearExpiry': 'status.nearExpiry',
+  'status.expired': 'status.expired',
+  'nearExpiry': 'status.nearExpiry',
+  'expired': 'status.expired',
 };
 
 export function tLabel(t: (key: string) => string, label: string): string {
