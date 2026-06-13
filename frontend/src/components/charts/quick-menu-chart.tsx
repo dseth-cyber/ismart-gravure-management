@@ -53,10 +53,7 @@ export function QuickMenuChart() {
           <Link
             key={i}
             href={m.href}
-            className={`flex flex-col items-center justify-center gap-2 rounded-xl border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer quick-menu-btn select-none ${themeConfig.panelHover}`}
-            style={{
-              backgroundColor: '#45266B',
-            }}
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg transition-all duration-200 cursor-pointer quick-menu-btn select-none ${themeConfig.badge} ${themeConfig.panelHover}`}
           >
             <div 
               className={`rounded-xl flex items-center justify-center shadow-lg text-white flex-shrink-0 bg-gradient-to-br ${m.bg} hover:scale-105 transition-all`}

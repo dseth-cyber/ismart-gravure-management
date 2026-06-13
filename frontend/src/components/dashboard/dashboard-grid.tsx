@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
+import { useAuth } from '@/lib/auth/auth-provider';
 import { DEFAULT_RGL_LAYOUTS } from '@/lib/dashboard/dashboard-config';
 import type { RglLayouts } from '@/lib/dashboard/dashboard-config';
 import type { ChartType, DataSource } from '@/lib/dashboard/dashboard-config';
 import { DashboardCard } from './dashboard-card';
 import { AddCardDrawer } from './add-card-drawer';
-import { Settings, Check, RotateCcw, Plus, QrCode, GripVertical } from 'lucide-react';
+import { Settings, Check, RotateCcw, Plus, QrCode, GripVertical, X, Save } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
@@ -45,18 +46,50 @@ const DEFAULT_CARD_DEFS: Record<string, { titleKey: string; chartType: string; d
 export function DashboardGrid() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showAddDrawer, setShowAddDrawer] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  const [layouts, setLayouts] = useLocalStorage<RglLayouts>('gm_rgl_layout', DEFAULT_RGL_LAYOUTS);
-  const [extraCards, setExtraCards] = useLocalStorage<ExtraCardDef[]>('gm_extra_cards', []);
-  const [cardTitles, setCardTitles] = useLocalStorage<Record<string, string>>('gm_card_titles', {});
-  const [cardConfigs, setCardConfigs] = useLocalStorage<Record<string, { chartType: string; dataSource: string }>>('gm_card_config', {});
+  const storageKey = user?.id ? `gm_${user.id}` : 'gm';
+
+  const [layouts, setLayouts] = useLocalStorage<RglLayouts>(`${storageKey}_rgl_layout`, DEFAULT_RGL_LAYOUTS);
+  const [extraCards, setExtraCards] = useLocalStorage<ExtraCardDef[]>(`${storageKey}_extra_cards`, []);
+  const [cardTitles, setCardTitles] = useLocalStorage<Record<string, string>>(`${storageKey}_card_titles`, {});
+  const [cardConfigs, setCardConfigs] = useLocalStorage<Record<string, { chartType: string; dataSource: string }>>(`${storageKey}_card_config`, {});
+  const [hiddenCards, setHiddenCards] = useLocalStorage<string[]>(`${storageKey}_hidden_cards`, []);
+
+  const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin';
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const existing = localStorage.getItem(`gm_${user.id}_rgl_layout`);
+    if (existing) return;
+    const defaultLayout = localStorage.getItem('gm_default_rgl_layout');
+    if (defaultLayout) {
+      try { setLayouts(JSON.parse(defaultLayout)); } catch {}
+    }
+    const defaultExtra = localStorage.getItem('gm_default_extra_cards');
+    if (defaultExtra) {
+      try { setExtraCards(JSON.parse(defaultExtra)); } catch {}
+    }
+    const defaultTitles = localStorage.getItem('gm_default_card_titles');
+    if (defaultTitles) {
+      try { setCardTitles(JSON.parse(defaultTitles)); } catch {}
+    }
+    const defaultConfigs = localStorage.getItem('gm_default_card_config');
+    if (defaultConfigs) {
+      try { setCardConfigs(JSON.parse(defaultConfigs)); } catch {}
+    }
+    const defaultHidden = localStorage.getItem('gm_default_hidden_cards');
+    if (defaultHidden) {
+      try { setHiddenCards(JSON.parse(defaultHidden)); } catch {}
+    }
+  }, [user?.id, setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards]);
 
   const mergedCardDefs = useMemo(() => {
     const map = { ...DEFAULT_CARD_DEFS };
@@ -70,12 +103,46 @@ export function DashboardGrid() {
     setLayouts(allLayouts as RglLayouts);
   }, [setLayouts]);
 
+  const removeCard = useCallback((cardId: string) => {
+    setLayouts((prev) => {
+      const next = { ...prev };
+      for (const bp of ['lg', 'md', 'sm'] as const) {
+        next[bp] = (next[bp] || []).filter((item) => item.i !== cardId);
+      }
+      return next;
+    });
+    if (cardId.startsWith('card_extra_')) {
+      setExtraCards((prev) => prev.filter((c) => c.id !== cardId));
+    } else {
+      setHiddenCards((prev) => [...prev, cardId]);
+    }
+  }, [setLayouts, setExtraCards, setHiddenCards]);
+
   const resetLayout = useCallback(() => {
-    setLayouts(DEFAULT_RGL_LAYOUTS);
-    setExtraCards([]);
+    const defaultLayout = localStorage.getItem('gm_default_rgl_layout');
+    const defaultExtra = localStorage.getItem('gm_default_extra_cards');
+    if (defaultLayout) {
+      try { setLayouts(JSON.parse(defaultLayout)); } catch { setLayouts(DEFAULT_RGL_LAYOUTS); }
+    } else {
+      setLayouts(DEFAULT_RGL_LAYOUTS);
+    }
+    if (defaultExtra) {
+      try { setExtraCards(JSON.parse(defaultExtra)); } catch { setExtraCards([]); }
+    } else {
+      setExtraCards([]);
+    }
     setCardTitles({});
     setCardConfigs({});
-  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs]);
+    setHiddenCards([]);
+  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards]);
+
+  const saveAsDefault = useCallback(() => {
+    localStorage.setItem('gm_default_rgl_layout', JSON.stringify(layouts));
+    localStorage.setItem('gm_default_extra_cards', JSON.stringify(extraCards));
+    localStorage.setItem('gm_default_card_titles', JSON.stringify(cardTitles));
+    localStorage.setItem('gm_default_card_config', JSON.stringify(cardConfigs));
+    localStorage.setItem('gm_default_hidden_cards', JSON.stringify(hiddenCards));
+  }, [layouts, extraCards, cardTitles, cardConfigs, hiddenCards]);
 
   const addCard = useCallback((chartType: ChartType, dataSource: DataSource, _colSpan: number, _rowSpan: number) => {
     const id = `card_extra_${Date.now()}`;
@@ -100,24 +167,29 @@ export function DashboardGrid() {
     setCardConfigs((prev) => ({ ...prev, [cardId]: { chartType, dataSource } }));
   }, [setCardConfigs]);
 
-  const visibleCardIds = useMemo(() => Object.keys(mergedCardDefs), [mergedCardDefs]);
+  const visibleCardIds = useMemo(() =>
+    Object.keys(mergedCardDefs).filter((id) => !hiddenCards.includes(id)),
+    [mergedCardDefs, hiddenCards]
+  );
 
   const processedLayouts = useMemo(() => {
     const next = { ...layouts };
     for (const bp of ['lg', 'md', 'sm'] as const) {
       if (next[bp]) {
-        next[bp] = next[bp].map((item) => {
-          const defaultItem = DEFAULT_RGL_LAYOUTS[bp]?.find((d) => d.i === item.i);
-          return {
-            ...item,
-            minW: defaultItem ? defaultItem.minW : item.minW ?? 2,
-            minH: defaultItem ? defaultItem.minH : item.minH ?? 2,
-          };
-        });
+        next[bp] = next[bp]
+          .filter((item) => visibleCardIds.includes(item.i))
+          .map((item) => {
+            const defaultItem = DEFAULT_RGL_LAYOUTS[bp]?.find((d) => d.i === item.i);
+            return {
+              ...item,
+              minW: defaultItem ? defaultItem.minW : item.minW ?? 2,
+              minH: defaultItem ? defaultItem.minH : item.minH ?? 2,
+            };
+          });
       }
     }
     return next;
-  }, [layouts]);
+  }, [layouts, visibleCardIds]);
 
   return (
     <div className="relative">
@@ -138,7 +210,7 @@ export function DashboardGrid() {
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition border ${themeConfig.border} hover:bg-white/5 ${themeConfig.textPrimary}`}
                 >
                   <Plus size={13} />
-                  Add Card
+                  {t('layout.addCard')}
                 </button>
                 <button
                   onClick={resetLayout}
@@ -147,6 +219,15 @@ export function DashboardGrid() {
                   <RotateCcw size={13} />
                   {t('layout.reset')}
                 </button>
+                {isSuperadmin && (
+                  <button
+                    onClick={saveAsDefault}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition border border-transparent bg-amber-500/20 hover:bg-amber-500/30 text-amber-300`}
+                  >
+                    <Save size={13} />
+                    {t('layout.saveDefault')}
+                  </button>
+                )}
                 <button
                   onClick={() => setIsEditing(false)}
                   className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition text-white ${themeConfig.primaryButton}`}
@@ -181,7 +262,7 @@ export function DashboardGrid() {
         <div className={`mb-4 px-4 py-2 rounded-lg text-xs font-semibold border ${themeConfig.border}`}
           style={{ backgroundColor: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}
         >
-          Edit mode — Drag cards by the <GripVertical size={12} className="inline" /> handle, resize from bottom-right corner, double-click title to edit
+          {t('layout.editing')} — {t('layout.dragHint')}
         </div>
       )}
 
@@ -204,7 +285,16 @@ export function DashboardGrid() {
             const def = mergedCardDefs[id];
             if (!def) return null;
             return (
-              <div key={id}>
+              <div key={id} className="relative group">
+                {isEditing && (
+                  <button
+                    onClick={() => removeCard(id)}
+                    className="absolute -top-2 -right-2 z-50 w-5 h-5 rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center shadow-lg transition-opacity"
+                    title={t('layout.removeCard')}
+                  >
+                    <X size={11} />
+                  </button>
+                )}
                 <DashboardCard
                   cardId={id}
                   titleKey={def.titleKey}

@@ -26,7 +26,7 @@ export function CylinderStatusChart({ height: _h }: Props) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   return (
-    <div className="flex flex-col h-full gap-4 md:gap-5 pt-0.5 cylinder-status-container w-full min-h-0 relative">
+    <div className="flex flex-col h-full gap-2 md:gap-3 pt-0.5 cylinder-status-container w-full min-h-0 relative">
       <style>{`
         @container (max-height: 165px) {
           .cylinder-status-grid { display: none !important; }
@@ -59,13 +59,13 @@ export function CylinderStatusChart({ height: _h }: Props) {
           />
         ))}
       </div>
-      <div className="grid grid-cols-5 gap-4 md:gap-5 flex-1 cylinder-status-grid min-h-0">
+      <div className="grid grid-cols-5 gap-2 md:gap-3 flex-1 cylinder-status-grid min-h-0">
         {SEGMENTS.map((seg, i) => (
           <div
             key={i}
-            className={`rounded-lg flex flex-col items-center justify-center gap-1 w-full min-w-0 p-[4cqmin] ${themeConfig.badge}`}
+            className={`rounded-lg flex flex-col items-center justify-center gap-0.5 w-full min-w-0 p-[2cqmin] ${themeConfig.badge}`}
           >
-            <div className="flex items-center justify-center gap-[2cqmin] min-w-0 w-full">
+            <div className="flex items-center justify-center gap-[1cqmin] min-w-0 w-full">
               <span
                 className="rounded-full flex-shrink-0 cylinder-status-dot"
                 style={{
@@ -76,7 +76,7 @@ export function CylinderStatusChart({ height: _h }: Props) {
               />
               <span className="font-bold opacity-80 leading-tight truncate" style={{ fontSize: 'clamp(8px, 5.5cqmin, 26px)' }}>{t(seg.label as any)}</span>
             </div>
-            <span className="font-black tracking-tight leading-none text-white mt-1 text-center" style={{ fontSize: 'clamp(12px, 11cqmin, 54px)' }}>{seg.count}</span>
+            <span className="font-black tracking-tight leading-none text-white text-center" style={{ fontSize: 'clamp(12px, 11cqmin, 54px)' }}>{seg.count}</span>
             <span className="font-bold opacity-50 leading-none text-center" style={{ fontSize: 'clamp(7px, 4.8cqmin, 22px)' }}>{seg.percent}%</span>
           </div>
         ))}
