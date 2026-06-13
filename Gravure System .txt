@@ -26,7 +26,7 @@ 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
 
 
 git add .
-git commit -m  "10-6-2569"
+git commit -m  "Graf 13-6-2569"
 git push
 
 ถ้าไม่อยากวาง Token ทุกครั้งที่สำรองข้อมูล ให้พิมพ์คำสั่งนี้ใน VM1 หนึ่งครั้งครับ:

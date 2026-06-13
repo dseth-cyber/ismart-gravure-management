@@ -10,34 +10,58 @@ interface QrScannerProps {
   height?: number;
 }
 
+let scannerInstanceCounter = 0;
+
 export function QrScanner({ onScan, onError, width = 320, height = 320 }: QrScannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const stoppedRef = useRef(false);
+  const onScanRef = useRef(onScan);
+  const onErrorRef = useRef(onError);
+  onScanRef.current = onScan;
+  onErrorRef.current = onError;
   const [scanning, setScanning] = useState(false);
+  const idRef = useRef(`qr-scanner-${++scannerInstanceCounter}`);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const containerId = 'qr-scanner-element';
-    containerRef.current.id = containerId;
+    const el = containerRef.current;
+    const containerId = idRef.current;
+    el.id = containerId;
+    el.innerHTML = '';
 
     const scanner = new Html5Qrcode(containerId);
     scannerRef.current = scanner;
+    stoppedRef.current = false;
+
+    const safeStop = () => {
+      try { scanner.stop(); } catch { /* ignore */ }
+    };
 
     scanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        onScan(decodedText);
-        scanner.stop().catch(() => {});
+        onScanRef.current(decodedText);
+        stoppedRef.current = true;
+        safeStop();
         setScanning(false);
       },
       () => {}
     ).then(() => setScanning(true)).catch((err) => {
-      onError?.(err?.toString() || 'Camera access denied');
+      const msg = typeof err === 'string' ? err : (err?.toString() || '');
+      if (msg.includes('NotFound') || msg.includes('NotAllowed') || msg.includes('NotReadable')) {
+        onErrorRef.current?.('Camera not available — use manual input below');
+      } else {
+        onErrorRef.current?.(msg || 'Camera access denied');
+      }
+      stoppedRef.current = true;
     });
 
     return () => {
-      scanner.stop().catch(() => {});
+      if (!stoppedRef.current) {
+        safeStop();
+      }
     };
   }, []);
 

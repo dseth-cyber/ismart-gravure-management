@@ -284,9 +284,9 @@ function ProductionPageContent() {
                   <p className={`text-xs ${themeConfig.textMuted} mb-4 text-center`}>{t('prod.scanJobSub')}</p>
                   <QrScanner key={scannerKey} onScan={onJobScanned} onError={setScannerError} width={280} height={280} />
                   {scannerError && (
-                    <p className="text-xs text-rose-400 text-center mt-2">{scannerError}</p>
+                    <p className="text-xs text-amber-400 text-center mt-2 font-semibold">{scannerError}</p>
                   )}
-                  <div className="mt-4 flex items-center gap-2">
+                  <div className={`mt-4 flex items-center gap-2 ${scannerError ? 'mt-6 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20' : ''}`}>
                     <input
                       type="text"
                       value={manualInput}
@@ -332,9 +332,9 @@ function ProductionPageContent() {
                     <h5 className={`text-xs font-bold ${themeConfig.textPrimary} mb-3 text-center`}>{t('prod.scanCylinders')}</h5>
                     <QrScanner key={`cyl-${scannerKey}`} onScan={onCylinderScanned} onError={setScannerError} width={280} height={280} />
                     {scannerError && (
-                      <p className="text-xs text-rose-400 text-center mt-2">{scannerError}</p>
+                      <p className="text-xs text-amber-400 text-center mt-2 font-semibold">{scannerError}</p>
                     )}
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className={`mt-3 flex items-center gap-2 ${scannerError ? 'mt-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20' : ''}`}>
                       <input
                         type="text"
                         value={manualInput}
@@ -404,9 +404,9 @@ function ProductionPageContent() {
                     <h5 className={`text-xs font-bold ${themeConfig.textPrimary} mb-3 text-center`}>{t('prod.scanInk')}</h5>
                     <QrScanner key={`ink-${scannerKey}`} onScan={onInkScanned} onError={setScannerError} width={280} height={280} />
                     {scannerError && (
-                      <p className="text-xs text-rose-400 text-center mt-2">{scannerError}</p>
+                      <p className="text-xs text-amber-400 text-center mt-2 font-semibold">{scannerError}</p>
                     )}
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className={`mt-3 flex items-center gap-2 ${scannerError ? 'mt-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20' : ''}`}>
                       <input
                         type="text"
                         value={manualInput}
