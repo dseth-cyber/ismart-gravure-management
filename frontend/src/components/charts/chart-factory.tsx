@@ -167,16 +167,14 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
       case 'location':
         return (
           <LocationChart
-            title="Cylinder count by storage location"
             locations={[
-              { name: 'Rack A',     count: 42, max: 60, color: '#22d3ee', unit: 'cyl' },
-              { name: 'Rack B',     count: 38, max: 60, color: '#3b82f6', unit: 'cyl' },
-              { name: 'Rack C',     count: 28, max: 60, color: '#d946ef', unit: 'cyl' },
-              { name: 'Rack D',     count: 22, max: 60, color: '#f59e0b', unit: 'cyl' },
-              { name: 'Machine Area', count: 48, max: 60, color: '#10b981', unit: 'cyl' },
-              { name: 'QC / Repair',  count: 18, max: 60, color: '#ef4444', unit: 'cyl' },
+              { name: 'Rack A',     count: 42, unit: 'ชิ้น' },
+              { name: 'Rack B',     count: 38, unit: 'ชิ้น' },
+              { name: 'Rack C',     count: 28, unit: 'ชิ้น' },
+              { name: 'Rack D',     count: 22, unit: 'ชิ้น' },
+              { name: 'Machine Area', count: 48, unit: 'ชิ้น' },
+              { name: 'QC / Repair',  count: 18, unit: 'ชิ้น' },
             ]}
-            height={height}
           />
         );
 
