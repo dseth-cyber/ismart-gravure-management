@@ -24,11 +24,11 @@ import { LocationChart } from './location-chart';
 interface Props {
   chartType: ChartType;
   dataSource: string;
-  height?: number;
+  height?: number | string;
   title?: string;
 }
 
-export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
+export function ChartFactory({ chartType, dataSource, height = '100%' }: Props) {
   const mockData = getMockDataSource(dataSource as any);
   const colors = ['#22d3ee', '#d946ef', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#a855f7', '#14b8a6'];
 
@@ -50,13 +50,13 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
         return <StatChart data={mockData.stats} trend="up" trendValue={dataSource === 'cylinders' ? '+3.2%' : dataSource === 'inks' ? '+1.8%' : '+2.1%'} unit={dataSource === 'qc' ? '%' : ''} dataSource={dataSource} />;
 
       case 'gauge':
-        return <GaugeChart config={mockData.gauge} height={height} label={dataSource} />;
+        return <GaugeChart config={mockData.gauge} label={dataSource} />;
 
       case 'barGauge':
-        return <BarGaugeChart data={mockData.stats.map((s, i) => ({ ...s, color: s.color || colors[i % colors.length] }))} height={height} />;
+        return <BarGaugeChart data={mockData.stats.map((s, i) => ({ ...s, color: s.color || colors[i % colors.length] }))} />;
 
       case 'table':
-        return <TableChart data={mockData.table} height={height} />;
+        return <TableChart data={mockData.table} />;
 
       case 'stateTimeline':
         return (
@@ -67,7 +67,6 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
               end: i < mockData.statuses.length - 1 ? `${9 + i}:00` : undefined,
               color: colors[i % colors.length],
             }))}
-            height={height}
           />
         );
 
@@ -81,7 +80,6 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
                 value: Math.floor(Math.random() * 100),
               }))
             )}
-            height={height}
           />
         );
 
@@ -94,12 +92,11 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
               color: colors[i % colors.length],
               label: s,
             }))}
-            height={height}
           />
         );
 
       case 'text':
-        return <TextChart content={`**${dataSource}** — Configure this text panel with markdown or HTML content.`} height={height} />;
+        return <TextChart content={`**${dataSource}** — Configure this text panel with markdown or HTML content.`} />;
 
       case 'alertList':
         return (
@@ -127,7 +124,6 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
                       { id: 'ALR-039', icon: 'check' as const, swatchColor: '#22c55e', details: 'Job JOB-3042 completed', statusDate: 'Completed: 2 hours ago', pillColor: '#22c55e', pillText: 'Resolved' },
                     ]
             }
-            height={height}
           />
         );
 
@@ -144,10 +140,10 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
         );
 
       case 'stackedBar':
-        return <StackedBarChart segments={mockData.distribution} height={height} />;
+        return <StackedBarChart segments={mockData.distribution} />;
 
       case 'cylinderStatus':
-        return <CylinderStatusChart height={height} />;
+        return <CylinderStatusChart />;
 
       case 'activityFeed':
         return (
@@ -160,7 +156,6 @@ export function ChartFactory({ chartType, dataSource, height = 200 }: Props) {
               { id: '5', type: 'machine' as const, formatKey: 'activity.completedMaint', args: ['M-02'], timestamp: '12:45' },
               { id: '6', type: 'system' as const, formatKey: 'activity.autoAssigned', args: ['CYL-1089', 'J2024-046'], timestamp: '12:10' },
             ]}
-            height={height}
           />
         );
 

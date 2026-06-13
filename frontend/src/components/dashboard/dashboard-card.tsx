@@ -39,7 +39,10 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
   }, [editingTitle]);
 
   return (
-    <div className={`rounded-xl overflow-hidden ${themeConfig.panel} ${themeConfig.shadow} h-full flex flex-col ${isEditing ? 'ring-1 ring-white/10' : ''}`}>
+    <div 
+      className={`rounded-xl overflow-hidden ${themeConfig.panel} ${themeConfig.shadow} h-full flex flex-col ${isEditing ? 'ring-1 ring-white/10' : ''}`}
+      style={{ containerType: 'size' }}
+    >
       <div className={`flex items-center justify-between px-3 pt-2.5 pb-1 ${isEditing ? 'select-none' : ''}`}>
         {editingTitle ? (
           <input
@@ -113,8 +116,8 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
         </div>
       )}
 
-      <div className="flex-1 px-3 pb-3 min-h-0">
-        <ChartFactory chartType={initChart as ChartType} dataSource={initSource} height={200} />
+      <div className="flex-1 px-3 pb-3 min-h-0 w-full h-full flex flex-col relative">
+        <ChartFactory chartType={initChart as ChartType} dataSource={initSource} height="100%" />
       </div>
     </div>
   );

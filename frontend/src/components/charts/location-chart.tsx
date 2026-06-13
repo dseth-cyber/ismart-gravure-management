@@ -21,25 +21,42 @@ export function LocationChart({ locations }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-3 h-full content-start pt-1">
+    <div className="grid grid-cols-3 gap-2.5 h-full content-start pt-1 location-grid w-full min-h-0">
+      <style>{`
+        @container (max-width: 385px) {
+          .location-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @container (max-width: 250px) {
+          .location-grid { grid-template-columns: 1fr !important; }
+          .location-pin { display: none !important; }
+        }
+        @container (max-height: 125px) {
+          .location-grid { grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)) !important; gap: 4px !important; }
+          .location-card { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 4px 8px !important; gap: 4px !important; }
+          .location-pin { display: none !important; }
+        }
+      `}</style>
       {locations.map((loc, i) => (
         <div
           key={i}
-          className="rounded-xl px-3 py-3 flex flex-col gap-3 border"
+          className="rounded-xl px-2.5 py-2 flex flex-col gap-2 border location-card min-w-0 transition-all"
           style={{
             backgroundColor: 'rgba(46,10,92,0.45)',
             borderColor: 'rgba(147,51,234,0.3)',
           }}
         >
-          <div className="flex items-center gap-1.5">
-            <MapPin size={14} className="text-cyan-400 shrink-0" />
-            <span className="text-xs font-semibold text-white/70 truncate">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <MapPin className="text-cyan-400 shrink-0 location-pin" style={{ width: 'clamp(10px, 4.2cqmin, 24px)', height: 'clamp(10px, 4.2cqmin, 24px)' }} />
+            <span 
+              className="font-bold text-white/80 truncate"
+              style={{ fontSize: 'clamp(9px, 5.2cqmin, 28px)' }}
+            >
               {tLabel(t, loc.name)}
             </span>
           </div>
-          <div className="text-center">
-            <span className="text-2xl font-bold text-white">{loc.count}</span>
-            <span className="text-xs text-white/40 ml-0.5">{loc.unit}</span>
+          <div className="text-center flex items-baseline justify-center gap-0.5 leading-none">
+            <span className="font-black text-white animate-fade-in" style={{ fontSize: 'clamp(14px, 13cqmin, 64px)' }}>{loc.count}</span>
+            <span className="opacity-40 ml-0.5 font-bold" style={{ fontSize: 'clamp(8px, 5cqmin, 24px)' }}>{loc.unit}</span>
           </div>
         </div>
       ))}

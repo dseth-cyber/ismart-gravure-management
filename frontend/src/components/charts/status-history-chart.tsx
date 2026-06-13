@@ -18,16 +18,32 @@ export function StatusHistoryChart({ events, height: _height }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2 h-full px-1 overflow-auto">
+    <div className="flex items-center justify-around gap-2.5 h-full px-1 w-full overflow-hidden status-history-container">
+      <style>{`
+        .status-history-container {
+          font-size: clamp(8px, 4.5cqmin, 28px);
+        }
+        @container (max-height: 120px) {
+          .status-history-lbl { display: none !important; }
+        }
+        @container (max-width: 200px) {
+          .status-history-lbl { display: none !important; }
+          .status-history-time { display: none !important; }
+        }
+      `}</style>
       {events.map((e, i) => (
-        <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
+        <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0 min-w-0">
           <div
-            className="w-3 h-3 rounded-full transition-all hover:scale-150"
-            style={{ backgroundColor: e.color }}
+            className="rounded-full transition-all hover:scale-150 flex-shrink-0"
+            style={{ 
+              backgroundColor: e.color,
+              width: 'clamp(8px, 8cqmin, 64px)',
+              height: 'clamp(8px, 8cqmin, 64px)'
+            }}
             title={`${e.label}: ${e.time}`}
           ></div>
-          <span className="text-[8px] opacity-50 whitespace-nowrap">{e.time}</span>
-          <span className="text-[8px] opacity-40 whitespace-nowrap max-w-[40px] truncate">{e.label}</span>
+          <span className="opacity-60 whitespace-nowrap status-history-time font-semibold" style={{ fontSize: 'inherit' }}>{e.time}</span>
+          <span className="opacity-50 whitespace-nowrap max-w-[120px] truncate status-history-lbl" style={{ fontSize: 'inherit' }}>{e.label}</span>
         </div>
       ))}
     </div>

@@ -9,11 +9,11 @@ export class QueueController {
       const { jobType, payload } = req.body;
 
       if (!jobType || !payload) {
-        return res.status(400).json({ error: 'jobType and payload are required' });
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'jobType and payload are required' });
       }
 
       if (jobType !== 'GENERATE_REPORT' && jobType !== 'SEND_NOTIFICATION') {
-        return res.status(400).json({ error: 'Invalid jobType. Allowed: GENERATE_REPORT, SEND_NOTIFICATION' });
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'Invalid jobType. Allowed: GENERATE_REPORT, SEND_NOTIFICATION' });
       }
 
       // Attach authenticated user identity to the payload for audit trail tracking in the worker
@@ -43,9 +43,13 @@ export class QueueController {
       );
 
       return res.status(202).json({
+        status: 'success',
+        statusCode: 202,
         message: 'Job enqueued successfully',
-        jobId: job.id,
-        jobName: job.name,
+        data: {
+          jobId: job.id,
+          jobName: job.name,
+        }
       });
     } catch (error) {
       next(error);

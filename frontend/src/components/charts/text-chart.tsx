@@ -12,7 +12,10 @@ export function TextChart({ content, variant = 'plain', height: _height }: Props
   }
 
   return (
-    <div className="h-full overflow-auto px-1 py-1 text-sm leading-relaxed opacity-80">
+    <div 
+      className="h-full overflow-auto px-1.5 py-1 text-white/80 leading-relaxed font-medium"
+      style={{ fontSize: 'clamp(11px, 3.8cqw, 14px)' }}
+    >
       {variant === 'plain' ? content : (
         <div dangerouslySetInnerHTML={{ __html: content }} />
       )}

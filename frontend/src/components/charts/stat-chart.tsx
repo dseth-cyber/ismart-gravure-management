@@ -50,32 +50,91 @@ export function StatChart({ data, height: _height, trend, trendValue, unit, data
   const iconCfg = ICON_MAP[dataSource || ''] || ICON_MAP.cylinders;
   const Icon = iconCfg.icon;
 
+  // Extract from/to colors for linear-gradient
+  const fromColor = iconCfg.bg.split(' ')[0].replace('from-[', '').replace('from-', '').replace(']', '');
+  const toColor = iconCfg.bg.split(' ')[1].replace('to-[', '').replace('to-', '').replace(']', '');
+
   return (
-    <div className="flex flex-col justify-center h-full px-1 relative overflow-hidden">
-      <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${iconCfg.bg} flex items-center justify-center flex-shrink-0 shadow-lg text-white`}>
-          <Icon size={20} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{primary.value}</span>
-            {unit && <span className="text-xs opacity-50">{unit}</span>}
-            {trend && (
-              <span className={`flex items-center gap-0.5 text-xs font-semibold ${trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-gray-400'}`}>
-                {trend === 'up' ? <ArrowUp size={12} /> : trend === 'down' ? <ArrowDown size={12} /> : null}
-                {trendValue || ''}
-              </span>
-            )}
-          </div>
-          {secondary && (
-            <p className="text-xs opacity-50 mt-0.5">
-              {tLabel(t, secondary.label)}: {secondary.value}
-            </p>
+    <div className="flex flex-col items-center justify-center text-center h-full px-4 relative overflow-hidden w-full gap-[3cqh] min-h-0 py-2 stat-container">
+      {/* Inject Scoped CSS for Container Queries */}
+      <style>{`
+        @container (max-height: 130px) {
+          .stat-icon { display: none !important; }
+          .stat-container { gap: 4px !important; }
+        }
+        @container (max-width: 170px) {
+          .stat-icon { display: none !important; }
+        }
+        @container (max-height: 95px) {
+          .stat-secondary { display: none !important; }
+        }
+      `}</style>
+
+      {/* Dynamic Scaling Icon */}
+      <div 
+        className="rounded-2xl flex items-center justify-center shadow-lg text-white transition-all duration-150 flex-shrink-0 stat-icon"
+        style={{ 
+          width: 'clamp(35px, 18cqmin, 160px)', 
+          height: 'clamp(35px, 18cqmin, 160px)',
+          minWidth: '35px',
+          minHeight: '35px',
+          background: `linear-gradient(135deg, var(--color-${fromColor}, ${fromColor}), var(--color-${toColor}, ${toColor}))`
+        }}
+      >
+        <Icon style={{ width: '50%', height: '50%' }} />
+      </div>
+      
+      {/* Primary Value, Unit, Trend */}
+      <div className="flex flex-col items-center gap-0.5 w-full flex-shrink-0">
+        <div className="flex items-baseline justify-center gap-1.5 flex-wrap w-full">
+          <span 
+            className="font-black tracking-tight leading-none text-white transition-all duration-150"
+            style={{ fontSize: 'clamp(24px, 28cqmin, 260px)' }}
+          >
+            {primary.value}
+          </span>
+          {unit && (
+            <span 
+              className="opacity-60 font-bold transition-all duration-150"
+              style={{ fontSize: 'clamp(11px, 9cqmin, 60px)' }}
+            >
+              {unit}
+            </span>
           )}
         </div>
+        
+        {trend && (
+          <span 
+            className={`flex items-center justify-center gap-0.5 font-bold transition-all duration-150 ${trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-gray-400'}`}
+            style={{ fontSize: 'clamp(9px, 6cqmin, 40px)' }}
+          >
+            {trend === 'up' ? <ArrowUp size={12} className="inline-block" /> : trend === 'down' ? <ArrowDown size={12} className="inline-block" /> : null}
+            {trendValue || ''}
+          </span>
+        )}
       </div>
-      <div className="absolute bottom-1 right-1">
-        <Sparkline data={[20, 25, 22, 30, 28, 35, 32, 38, 42, 40, 45]} color="#22d3ee" width={80} height={30} />
+
+      {/* Secondary Label (Centered & Scaled) */}
+      {secondary && (
+        <p 
+          className="opacity-70 font-semibold tracking-wide transition-all duration-150 truncate max-w-full stat-secondary"
+          style={{ fontSize: 'clamp(10px, 6.5cqmin, 50px)' }}
+        >
+          {tLabel(t, secondary.label)}: <span className="text-white font-bold">{secondary.value}</span>
+        </p>
+      )}
+      
+      {/* Ambient background sparkline filling container */}
+      <div className="absolute bottom-0 left-0 right-0 w-full flex justify-center opacity-[0.12] pointer-events-none">
+        <svg viewBox="0 0 100 30" className="w-full h-[35cqh] max-h-[80px]" preserveAspectRatio="none">
+          <polyline 
+            fill="none" 
+            stroke={primary.color || '#22d3ee'} 
+            strokeWidth="3" 
+            points="0,20 10,25 20,22 30,28 40,24 50,29 60,26 70,30 80,32 90,28 100,29"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
       </div>
     </div>
   );

@@ -64,17 +64,17 @@ async function runTests() {
   
   // Admin login
   const adminLogin = await api('POST', '/auth/login', { username: 'admin', password: 'Password123!' });
-  adminToken = adminLogin.data.token;
+  adminToken = adminLogin.data.accessToken;
   console.log('✔ Admin authenticated successfully.');
 
   // Planner login
   const plannerLogin = await api('POST', '/auth/login', { username: 'planner1', password: 'Password123!' });
-  plannerToken = plannerLogin.data.token;
+  plannerToken = plannerLogin.data.accessToken;
   console.log('✔ Planner authenticated successfully.');
 
   // Operator login
   const operatorLogin = await api('POST', '/auth/login', { username: 'operator1', password: 'Password123!' });
-  operatorToken = operatorLogin.data.token;
+  operatorToken = operatorLogin.data.accessToken;
   console.log('✔ Operator authenticated successfully.');
 
   // 3. Customer & Product Creation

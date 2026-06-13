@@ -101,6 +101,23 @@ export function DashboardGrid() {
 
   const visibleCardIds = useMemo(() => Object.keys(mergedCardDefs), [mergedCardDefs]);
 
+  const processedLayouts = useMemo(() => {
+    const next = { ...layouts };
+    for (const bp of ['lg', 'md', 'sm'] as const) {
+      if (next[bp]) {
+        next[bp] = next[bp].map((item) => {
+          const defaultItem = DEFAULT_RGL_LAYOUTS[bp]?.find((d) => d.i === item.i);
+          return {
+            ...item,
+            minW: defaultItem ? defaultItem.minW : item.minW ?? 2,
+            minH: defaultItem ? defaultItem.minH : item.minH ?? 2,
+          };
+        });
+      }
+    }
+    return next;
+  }, [layouts]);
+
   return (
     <div className="relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -170,7 +187,7 @@ export function DashboardGrid() {
       {isClient && (
         <RGL
           className="layout"
-          layouts={layouts}
+          layouts={processedLayouts}
           breakpoints={{ lg: 1200, md: 996, sm: 768 }}
           cols={{ lg: 12, md: 10, sm: 6 }}
           rowHeight={80}

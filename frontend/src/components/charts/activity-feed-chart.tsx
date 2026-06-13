@@ -44,19 +44,33 @@ export function ActivityFeedChart({ activities, height: _h }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2.5 h-full overflow-auto pr-1 pt-0.5">
+    <div className="flex flex-col gap-2 h-full overflow-auto pr-1 pt-0.5 activity-feed-container w-full min-h-0">
+      <style>{`
+        .activity-feed-container {
+          font-size: clamp(9px, 3.8cqw, 12px);
+        }
+        @container (max-width: 250px) {
+          .activity-feed-icon { display: none !important; }
+        }
+        @container (max-width: 170px) {
+          .activity-feed-time { display: none !important; }
+        }
+        @container (max-height: 120px) {
+          .activity-feed-time { display: none !important; }
+        }
+      `}</style>
       {activities.map((item, i) => {
         const cfg = CONFIG[item.type] || CONFIG.system;
         const Icon = cfg.icon;
         return (
-          <div key={i} className="flex items-start gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-              <Icon size={15} className={cfg.iconColor} />
+          <div key={i} className="flex items-start gap-2 min-w-0">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 activity-feed-icon ${cfg.bg}`}>
+              <Icon size={13} className={cfg.iconColor} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs leading-snug text-white/80">{formatMsg(t, item.formatKey, item.args)}</p>
+              <p className="leading-snug text-white/80" style={{ fontSize: 'inherit' }}>{formatMsg(t, item.formatKey, item.args)}</p>
             </div>
-            <span className="text-[10px] text-white/40 flex-shrink-0 mt-0.5">{item.timestamp}</span>
+            <span className="opacity-40 flex-shrink-0 mt-0.5 activity-feed-time font-medium" style={{ fontSize: 'clamp(8px, 3cqw, 10px)' }}>{item.timestamp}</span>
           </div>
         );
       })}

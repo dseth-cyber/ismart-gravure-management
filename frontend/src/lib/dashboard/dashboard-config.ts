@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 export type ChartType =
   | 'timeSeries'
@@ -144,31 +144,31 @@ export const DEFAULT_RGL_LAYOUTS: RglLayouts = {
     { i: 'card_cylinders',   x: 0, y: 0, w: 4, h: 3, minW: 2, minH: 2 },
     { i: 'card_inks',        x: 4, y: 0, w: 4, h: 3, minW: 2, minH: 2 },
     { i: 'card_jobs',        x: 8, y: 0, w: 4, h: 3, minW: 2, minH: 2 },
-    { i: 'card_cylinderStatus', x: 0, y: 3, w: 12, h: 4, minW: 4, minH: 3 },
-    { i: 'card_recentJobs',  x: 0, y: 7, w: 8, h: 5, minW: 4, minH: 3 },
+    { i: 'card_cylinderStatus', x: 0, y: 3, w: 12, h: 4, minW: 2, minH: 3 },
+    { i: 'card_recentJobs',  x: 0, y: 7, w: 8, h: 5, minW: 2, minH: 3 },
     { i: 'card_qc',          x: 8, y: 7, w: 4, h: 5, minW: 2, minH: 3 },
     { i: 'card_activity',    x: 0, y: 12, w: 4, h: 3, minW: 2, minH: 2 },
-    { i: 'card_location',    x: 4, y: 12, w: 8, h: 3, minW: 4, minH: 2 },
+    { i: 'card_location',    x: 4, y: 12, w: 8, h: 3, minW: 2, minH: 2 },
   ],
   md: [
     { i: 'card_cylinders',   x: 0, y: 0, w: 4, h: 3, minW: 2, minH: 2 },
     { i: 'card_inks',        x: 4, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
     { i: 'card_jobs',        x: 7, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
-    { i: 'card_cylinderStatus', x: 0, y: 3, w: 10, h: 4, minW: 4, minH: 3 },
-    { i: 'card_recentJobs',  x: 0, y: 7, w: 6, h: 5, minW: 4, minH: 3 },
+    { i: 'card_cylinderStatus', x: 0, y: 3, w: 10, h: 4, minW: 2, minH: 3 },
+    { i: 'card_recentJobs',  x: 0, y: 7, w: 6, h: 5, minW: 2, minH: 3 },
     { i: 'card_qc',          x: 6, y: 7, w: 4, h: 5, minW: 2, minH: 3 },
     { i: 'card_activity',    x: 0, y: 12, w: 4, h: 3, minW: 2, minH: 2 },
-    { i: 'card_location',    x: 4, y: 12, w: 6, h: 3, minW: 4, minH: 2 },
+    { i: 'card_location',    x: 4, y: 12, w: 6, h: 3, minW: 2, minH: 2 },
   ],
   sm: [
     { i: 'card_cylinders',   x: 0, y: 0, w: 6, h: 3, minW: 2, minH: 2 },
     { i: 'card_inks',        x: 0, y: 3, w: 6, h: 3, minW: 2, minH: 2 },
     { i: 'card_jobs',        x: 0, y: 6, w: 6, h: 3, minW: 2, minH: 2 },
-    { i: 'card_cylinderStatus', x: 0, y: 9, w: 6, h: 5, minW: 4, minH: 3 },
-    { i: 'card_recentJobs',  x: 0, y: 14, w: 6, h: 5, minW: 4, minH: 3 },
+    { i: 'card_cylinderStatus', x: 0, y: 9, w: 6, h: 5, minW: 2, minH: 3 },
+    { i: 'card_recentJobs',  x: 0, y: 14, w: 6, h: 5, minW: 2, minH: 3 },
     { i: 'card_qc',          x: 0, y: 19, w: 6, h: 5, minW: 2, minH: 3 },
     { i: 'card_activity',    x: 0, y: 24, w: 6, h: 3, minW: 2, minH: 2 },
-    { i: 'card_location',    x: 0, y: 27, w: 6, h: 3, minW: 4, minH: 2 },
+    { i: 'card_location',    x: 0, y: 27, w: 6, h: 3, minW: 2, minH: 2 },
   ],
 };
 

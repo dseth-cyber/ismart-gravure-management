@@ -1,5 +1,7 @@
 'use client';
 
+import { Fragment } from 'react';
+
 interface HeatmapCell {
   x: string;
   y: string;
@@ -19,39 +21,65 @@ export function HeatmapChart({ data, height: _height }: Props) {
   const rows = [...new Set(data.map(d => d.y))];
   const cols = [...new Set(data.map(d => d.x))];
   const maxVal = Math.max(...data.map(d => d.value), 1);
-  const cellSize = Math.min(48, Math.floor(200 / Math.max(cols.length, 1)));
 
   return (
-    <div className="flex flex-col items-center justify-center h-full overflow-auto">
-      <div className="flex gap-1">
-        <div className="flex flex-col gap-1 mr-1">
-          {rows.map(r => (
-            <div key={r} style={{ height: cellSize }} className="flex items-center justify-end pr-1 text-[10px] opacity-50">{r}</div>
-          ))}
-        </div>
-        <div className="flex flex-col gap-1">
-          {cols.map(c => (
-            <div key={c} className="flex gap-1">
-              {rows.map(r => {
-                const cell = data.find(d => d.x === c && d.y === r);
-                const intensity = cell ? (cell.value / maxVal) : 0;
-                return (
-                  <div
-                    key={`${c}-${r}`}
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: `rgba(34, 211, 238, ${intensity * 0.8 + 0.1})`,
-                      borderRadius: '4px',
-                    }}
-                    title={cell ? `${c}, ${r}: ${cell.value}` : ''}
-                    className="transition-all hover:brightness-110"
-                  ></div>
-                );
-              })}
+    <div className="flex flex-col h-full w-full justify-center p-1.5 relative overflow-hidden heatmap-container">
+      <style>{`
+        @container (max-width: 240px) {
+          .heatmap-row-lbl { display: none !important; }
+          .heatmap-grid {
+            grid-template-columns: repeat(${cols.length}, 1fr) !important;
+          }
+        }
+        @container (max-height: 125px) {
+          .heatmap-col-lbl { display: none !important; }
+        }
+      `}</style>
+      <div 
+        className="grid h-full w-full gap-[1cqmin] heatmap-grid" 
+        style={{
+          gridTemplateColumns: `auto repeat(${cols.length}, 1fr)`,
+          gridTemplateRows: `repeat(${rows.length}, 1fr) auto`,
+        }}
+      >
+        {rows.map((row) => (
+          <Fragment key={`row-${row}`}>
+            {/* Row Label */}
+            <div 
+              className="flex items-center justify-end pr-2 text-white/50 font-bold truncate select-none leading-none heatmap-row-lbl" 
+              style={{ fontSize: 'clamp(8px, 3.2cqmin, 11px)' }}
+            >
+              {row}
             </div>
-          ))}
-        </div>
+            {/* Row Cells */}
+            {cols.map((col) => {
+              const cell = data.find(d => d.x === col && d.y === row);
+              const intensity = cell ? (cell.value / maxVal) : 0;
+              return (
+                <div
+                  key={`${col}-${row}`}
+                  className="w-full h-full rounded transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: `rgba(34, 211, 238, ${intensity * 0.8 + 0.15})`,
+                  }}
+                  title={cell ? `${col}, ${row}: ${cell.value}` : ''}
+                />
+              );
+            })}
+          </Fragment>
+        ))}
+        {/* Bottom-left corner placeholder */}
+        <div className="heatmap-row-lbl" />
+        {/* Column Labels */}
+        {cols.map((col) => (
+          <div 
+            key={`lbl-col-${col}`} 
+            className="text-center pt-1 text-white/50 font-bold select-none leading-none heatmap-col-lbl" 
+            style={{ fontSize: 'clamp(7px, 3.2cqmin, 10px)' }}
+          >
+            {col}
+          </div>
+        ))}
       </div>
     </div>
   );

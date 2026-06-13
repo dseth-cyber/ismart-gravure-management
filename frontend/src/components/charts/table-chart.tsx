@@ -41,12 +41,30 @@ export function TableChart({ data, height: _height, columns }: Props) {
   };
 
   return (
-    <div className="overflow-auto h-full">
-      <table className="w-full text-left text-xs">
+    <div className="overflow-auto h-full w-full table-container">
+      <style>{`
+        .table-container {
+          font-size: clamp(9px, 4.2cqw, 18px);
+        }
+        .table-cell-padding {
+          padding: clamp(3px, 1.5cqh, 8px) clamp(4px, 1.5cqw, 8px);
+        }
+        @container (max-width: 380px) {
+          .table-col-operator, .table-col-inspector, .table-col-date, .table-col-expiry {
+            display: none !important;
+          }
+        }
+        @container (max-width: 250px) {
+          .table-col-productCode, .table-col-remaining, .table-col-location, .table-col-meter, .table-col-totalPrinted {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <table className="w-full text-left font-medium leading-normal text-white/95 border-collapse">
         <thead>
           <tr className={`border-b ${themeConfig.border}`}>
             {cols.map(col => (
-              <th key={col.key} className="p-2 font-bold uppercase opacity-60">{col.label}</th>
+              <th key={col.key} className={`table-cell-padding font-bold uppercase opacity-60 table-col-${col.key}`}>{col.label}</th>
             ))}
           </tr>
         </thead>
@@ -57,12 +75,16 @@ export function TableChart({ data, height: _height, columns }: Props) {
                 const val = row[col.key];
                 if (col.key === 'status' && typeof val === 'string') {
                   return (
-                    <td key={col.key} className="p-2">
+                    <td key={col.key} className={`table-cell-padding table-col-${col.key}`}>
                       <StatusBadge status={val as any} />
                     </td>
                   );
                 }
-                return <td key={col.key} className="p-2">{formatCell(col.key, val)}</td>;
+                return (
+                  <td key={col.key} className={`table-cell-padding table-col-${col.key}`}>
+                    {formatCell(col.key, val)}
+                  </td>
+                );
               })}
             </tr>
           ))}

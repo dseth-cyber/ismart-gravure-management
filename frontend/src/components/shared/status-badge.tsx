@@ -14,7 +14,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   const { themeConfig } = useTheme();
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${themeConfig.status[status]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[inherit] font-semibold ${themeConfig.status[status]}`}>
       {t(`status.${status}`)}
     </span>
   );
