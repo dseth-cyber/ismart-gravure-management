@@ -172,7 +172,6 @@ function InksPageContent() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className={`text-[11px] font-medium uppercase tracking-wider ${themeConfig.textMuted} mb-0.5`}>INK FORMULA MANAGEMENT</p>
             <h1 className={`text-xl sm:text-2xl font-bold ${themeConfig.textPrimary}`}>{t('ink.title')}</h1>
             <p className={`text-sm ${themeConfig.textSecondary} mt-0.5`}>{t('ink.subtitle')}</p>
           </div>
@@ -250,7 +249,7 @@ function InksPageContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.formula'), t('col.product'), t('col.color'), 'Pantone', t('col.revision'), t('col.viscosity'), 'LAB Target', t('col.status')].map(h => (
+                    {[t('col.formula'), t('col.product'), t('col.color'), t('col.pantone'), t('col.revision'), t('col.viscosity'), t('col.labTarget'), t('col.status')].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -431,7 +430,7 @@ function InksPageContent() {
                   </div>
                   <div>
                     <span className="text-2xl font-bold text-white">{initialShadeHistory.length}</span>
-                    <p className={`text-xs ${themeConfig.textSecondary}`}>Shade Adjustments</p>
+                    <p className={`text-xs ${themeConfig.textSecondary}`}>{t('nav.inkShade')}</p>
                   </div>
                 </div>
               </div>
@@ -442,7 +441,7 @@ function InksPageContent() {
                   </div>
                   <div>
                     <span className="text-2xl font-bold text-white">3</span>
-                    <p className={`text-xs ${themeConfig.textSecondary}`}>Jobs</p>
+                    <p className={`text-xs ${themeConfig.textSecondary}`}>{t('col.jobs')}</p>
                   </div>
                 </div>
               </div>
@@ -453,7 +452,7 @@ function InksPageContent() {
                   </div>
                   <div>
                     <span className="text-2xl font-bold text-white">3</span>
-                    <p className={`text-xs ${themeConfig.textSecondary}`}>Operators</p>
+                    <p className={`text-xs ${themeConfig.textSecondary}`}>{t('col.operator')}</p>
                   </div>
                 </div>
               </div>
@@ -465,7 +464,7 @@ function InksPageContent() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className={`${themeConfig.tableHead}`}>
-                      {[t('col.job'), t('col.product'), t('col.color'), t('col.date'), 'Action', 'Material', 'Qty', 'LAB Before', 'LAB After', t('col.operator')].map(h => (
+                      {[t('col.job'), t('col.product'), t('col.color'), t('col.date'), t('col.action'), t('col.material'), t('col.qty'), t('col.labBefore'), t('col.labAfter'), t('col.operator')].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -511,9 +510,9 @@ function InksPageContent() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { key: 'code', label: 'Formula Code', ph: 'INK-XX-R01' },
-                { key: 'product', label: 'Product Code', ph: 'AGH-001' },
-                { key: 'pantone', label: 'Pantone', ph: 'PMS 299C' },
+                { key: 'code', label: t('col.formula'), ph: 'INK-XX-R01' },
+                { key: 'product', label: t('col.productCode'), ph: 'AGH-001' },
+                { key: 'pantone', label: t('col.pantone'), ph: 'PMS 299C' },
                 { key: 'viscosity', label: t('col.viscosity'), ph: '18±2 sec' },
               ].map(item => (
                 <div key={item.key} className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
@@ -553,7 +552,7 @@ function InksPageContent() {
               </div>
             </div>
             <div className={`mt-4 p-4 rounded-lg ${themeConfig.badge}`}>
-              <p className={`text-xs font-semibold ${themeConfig.textSecondary} mb-2`}>LAB Target</p>
+              <p className={`text-xs font-semibold ${themeConfig.textSecondary} mb-2`}>{t('col.labTarget')}</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'labL', label: 'L*', ph: '55' },
@@ -612,7 +611,7 @@ function InksPageContent() {
               <div className="space-y-4">
                 <p className={`text-sm ${themeConfig.textSecondary}`}>{t('ink.selectFormula')}</p>
                 <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>Product Code</label>
+                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{t('col.productCode')}</label>
                   <select
                     value={mixProduct}
                     onChange={e => setMixProduct(e.target.value)}

@@ -20,12 +20,12 @@ export class InkService {
       throw new AppError(`Formula with code ${dto.code} already exists`, 400);
     }
 
-    // 2. Validate productCode exists
+    // 2. Validate productCode exists (skip if not found — allow demo/dev creation)
     const product = await prisma.product.findUnique({
       where: { code: dto.productCode }
     });
     if (!product) {
-      throw new AppError(`Product with code ${dto.productCode} does not exist`, 400);
+      console.warn(`Product with code ${dto.productCode} does not exist — creating formula without product reference`);
     }
 
     return prisma.inkFormula.create({
@@ -101,13 +101,14 @@ export class InkService {
       throw new AppError(`Ink batch with ID ${dto.id} already exists`, 400);
     }
 
-    // 2. Validate formulaCode and productCode if provided (not RAW base)
+    // 2. Validate formulaCode and productCode if provided (skip if not found — allow demo/dev creation)
     if (dto.formulaCode) {
       const formula = await prisma.inkFormula.findUnique({
         where: { code: dto.formulaCode }
       });
       if (!formula) {
-        throw new AppError(`Formula with code ${dto.formulaCode} does not exist`, 400);
+        console.warn(`Formula with code ${dto.formulaCode} does not exist — creating batch without formula reference`);
+        dto.formulaCode = null;
       }
     }
 
@@ -116,7 +117,8 @@ export class InkService {
         where: { code: dto.productCode }
       });
       if (!product) {
-        throw new AppError(`Product with code ${dto.productCode} does not exist`, 400);
+        console.warn(`Product with code ${dto.productCode} does not exist — creating batch without product reference`);
+        dto.productCode = null;
       }
     }
 

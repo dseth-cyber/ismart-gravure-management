@@ -3,6 +3,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
+function safeStop(scanner: Html5Qrcode) {
+  try {
+    const p = scanner.stop();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {});
+    }
+  } catch {
+    /* synchronous throw — scanner not running */
+  }
+}
+
+function killMedia(el: HTMLElement) {
+  el.querySelectorAll('video').forEach(v => {
+    const vs = v as HTMLVideoElement;
+    if (vs.srcObject instanceof MediaStream) {
+      vs.srcObject.getTracks().forEach(t => t.stop());
+    }
+    vs.srcObject = null;
+  });
+}
+
 interface QrScannerProps {
   onScan: (code: string) => void;
   onError?: (err: string) => void;
@@ -10,9 +31,10 @@ interface QrScannerProps {
   height?: number;
 }
 
-export function QrScanner({ onScan, onError, width = 320, height = 320 }: QrScannerProps) {
+export function QrScanner({ onScan, onError, width = 280, height = 280 }: QrScannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stoppedRef = useRef(false);
+  const mountKeyRef = useRef(0);
   const onScanRef = useRef(onScan);
   const onErrorRef = useRef(onError);
   onScanRef.current = onScan;
@@ -20,30 +42,44 @@ export function QrScanner({ onScan, onError, width = 320, height = 320 }: QrScan
   const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    el.id = 'qr-el';
-    el.innerHTML = '';
-    el.style.cssText = `position:relative;width:${width}px;height:${height}px;background:#000;display:flex;align-items:center;justify-content:center;`;
+    const parent = containerRef.current;
+    if (!parent) return;
 
-    const scanner = new Html5Qrcode('qr-el');
+    const mountId = ++mountKeyRef.current;
+
+    const inner = document.createElement('div');
+    inner.id = `qr-scanner-${mountId}`;
+    inner.style.cssText = 'position:relative;width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+    parent.innerHTML = '';
+    parent.appendChild(inner);
+
+    const scanner = new Html5Qrcode(`qr-scanner-${mountId}`);
     stoppedRef.current = false;
 
     scanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        onScanRef.current(decodedText);
+        if (mountKeyRef.current !== mountId) return;
+        if (stoppedRef.current) return;
         stoppedRef.current = true;
-        try { scanner.stop(); } catch { /* ignore */ }
+        onScanRef.current(decodedText);
+        safeStop(scanner);
+        killMedia(inner);
         setScanning(false);
-        el.querySelectorAll('video').forEach(v => { (v as HTMLVideoElement).style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;'; });
       },
       () => {}
     ).then(() => {
+      if (mountKeyRef.current !== mountId) {
+        killMedia(inner);
+        return;
+      }
       setScanning(true);
-      el.querySelectorAll('video').forEach(v => { (v as HTMLVideoElement).style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;'; });
+      inner.querySelectorAll('video').forEach(v => {
+        (v as HTMLVideoElement).style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;';
+      });
     }).catch((err) => {
+      if (mountKeyRef.current !== mountId) return;
       const msg = typeof err === 'string' ? err : (err?.toString() || '');
       if (msg.includes('NotFound') || msg.includes('NotAllowed') || msg.includes('NotReadable')) {
         onErrorRef.current?.('Camera not available — use manual input below');
@@ -54,15 +90,15 @@ export function QrScanner({ onScan, onError, width = 320, height = 320 }: QrScan
     });
 
     return () => {
-      if (!stoppedRef.current) {
-        try { scanner.stop(); } catch { /* ignore */ }
-      }
-      el.innerHTML = '';
+      stoppedRef.current = true;
+      safeStop(scanner);
+      killMedia(inner);
+      inner.remove();
     };
   }, []);
 
   return (
-    <div>
+    <div className="flex justify-center">
       <div
         ref={containerRef}
         style={{ width, height }}

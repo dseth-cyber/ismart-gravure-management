@@ -175,10 +175,10 @@ function ProductionPageContent() {
   } | null>(null);
 
   const traceDimensions = [
-    { id: 'product', label: 'Product Code', icon: List },
-    { id: 'job', label: 'Job Number', icon: Factory },
-    { id: 'cylinder', label: 'Cylinder Code', icon: Layers },
-    { id: 'inkBatch', label: 'Ink Batch', icon: Droplet },
+    { id: 'product', label: t('col.productCode'), icon: List },
+    { id: 'job', label: t('col.job'), icon: Factory },
+    { id: 'cylinder', label: t('col.cylinder'), icon: Layers },
+    { id: 'inkBatch', label: t('col.inkBatch'), icon: Droplet },
     { id: 'machine', label: t('col.machine'), icon: Settings },
     { id: 'operator', label: t('col.operator'), icon: User },
   ];
@@ -546,7 +546,7 @@ function ProductionPageContent() {
               </div>
             ) : jobs.length === 0 ? (
               <div className={`flex flex-col items-center justify-center py-16 ${themeConfig.textSecondary}`}>
-                <p className="text-sm">{t('common.noData')}</p>
+                <p className="text-sm">{t('common.empty')}</p>
               </div>
             ) : (
             <div className="overflow-x-auto">
@@ -648,7 +648,7 @@ function ProductionPageContent() {
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                      <span className={themeConfig.textMuted}>Product Code</span>
+                      <span className={themeConfig.textMuted}>{t('col.productCode')}</span>
                       <span className={`font-mono font-bold ${themeConfig.primaryText}`}>{traceResults.product}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs">

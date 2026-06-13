@@ -553,7 +553,7 @@ function CylindersPageContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.code'), t('col.product'), t('col.job'), t('col.date'), t('col.machine'), t('col.operator'), t('col.meterRun'), 'Remark'].map(h => (
+                    {[t('col.code'), t('col.product'), t('col.job'), t('col.date'), t('col.machine'), t('col.operator'), t('col.meterRun'), t('col.remark')].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -591,8 +591,8 @@ function CylindersPageContent() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { key: 'id', label: 'Cylinder Code', ph: 'CYL-XX-000' },
-                { key: 'product', label: 'Product Code', ph: 'AGH-001' },
+                { key: 'id', label: t('col.code'), ph: 'CYL-XX-000' },
+                { key: 'product', label: t('col.productCode'), ph: 'AGH-001' },
                 { key: 'customer', label: t('col.customer'), ph: 'บริษัท ...' },
                 { key: 'size', label: t('cyl.size'), ph: '800×250' },
                 { key: 'location', label: t('col.location'), ph: 'Rack A-01' },
