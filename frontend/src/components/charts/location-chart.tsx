@@ -39,10 +39,10 @@ export function LocationChart({ locations }: Props) {
       {locations.map((loc, i) => (
         <div
           key={i}
-          className="rounded-xl px-2.5 py-2 flex flex-col gap-2 border location-card min-w-0 transition-all"
+          className="rounded-xl px-2.5 py-2 flex flex-col gap-2 location-card min-w-0 transition-all"
           style={{
-            backgroundColor: 'rgba(46,10,92,0.45)',
-            borderColor: 'rgba(147,51,234,0.3)',
+            backgroundColor: '#45266B',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
           }}
         >
           <div className="flex items-center gap-1.5 min-w-0">

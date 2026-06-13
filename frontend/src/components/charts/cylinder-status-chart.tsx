@@ -24,7 +24,7 @@ interface Props {
 export function CylinderStatusChart({ height: _h }: Props) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col h-full gap-2.5 pt-0.5 cylinder-status-container w-full min-h-0 relative">
+    <div className="flex flex-col h-full gap-4 md:gap-5 pt-0.5 cylinder-status-container w-full min-h-0 relative">
       <style>{`
         @container (max-height: 165px) {
           .cylinder-status-grid { display: none !important; }
@@ -48,30 +48,38 @@ export function CylinderStatusChart({ height: _h }: Props) {
       >
         {t('dash.cylinderStatusSub')}
       </p>
-      <div className="flex w-full rounded-full overflow-hidden bg-white/5 flex-shrink-0" style={{ height: 'clamp(12px, 4.5cqmin, 28px)' }}>
+      <div className="flex w-full rounded-full overflow-hidden bg-white/5 flex-shrink-0 gap-0.5 md:gap-1" style={{ height: 'clamp(24px, 7.5cqmin, 44px)' }}>
         {SEGMENTS.map((seg, i) => (
           <div
             key={i}
-            className="first:rounded-l-full last:rounded-r-full transition-all duration-500"
-            style={{ width: `${seg.percent}%`, backgroundColor: seg.color }}
+            className="first:rounded-l-full last:rounded-r-full transition-all duration-500 h-full"
+            style={{ flexGrow: seg.percent, flexBasis: 0, backgroundColor: seg.color }}
           />
         ))}
       </div>
-      <div className="grid grid-cols-5 gap-2.5 flex-1 cylinder-status-grid min-h-0">
+      <div className="grid grid-cols-5 gap-4 md:gap-5 flex-1 cylinder-status-grid min-h-0">
         {SEGMENTS.map((seg, i) => (
           <div
             key={i}
-            className="rounded-xl border border-white/10 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 p-[3cqmin]"
+            className="rounded-xl flex flex-col items-center justify-center gap-1 w-full min-w-0 p-[4cqmin]"
             style={{
-              backgroundColor: 'rgba(90,30,140,0.55)',
+              backgroundColor: '#45266B',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
             }}
           >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 cylinder-status-dot" style={{ backgroundColor: seg.color }} />
-              <span className="font-bold opacity-80 leading-tight truncate" style={{ fontSize: 'clamp(8px, 5.8cqmin, 28px)' }}>{t(seg.label as any)}</span>
+            <div className="flex items-center justify-center gap-[2cqmin] min-w-0 w-full">
+              <span
+                className="rounded-full flex-shrink-0 cylinder-status-dot"
+                style={{
+                  width: 'clamp(8px, 3cqmin, 16px)',
+                  height: 'clamp(8px, 3cqmin, 16px)',
+                  backgroundColor: seg.color,
+                }}
+              />
+              <span className="font-bold opacity-80 leading-tight truncate" style={{ fontSize: 'clamp(8px, 5.5cqmin, 26px)' }}>{t(seg.label as any)}</span>
             </div>
-            <span className="font-black tracking-tight leading-none text-white animate-fade-in" style={{ fontSize: 'clamp(12px, 12cqmin, 60px)' }}>{seg.count}</span>
-            <span className="font-semibold opacity-50 leading-none" style={{ fontSize: 'clamp(7px, 5cqmin, 24px)' }}>{seg.percent}%</span>
+            <span className="font-black tracking-tight leading-none text-white mt-1 text-center" style={{ fontSize: 'clamp(12px, 11cqmin, 54px)' }}>{seg.count}</span>
+            <span className="font-bold opacity-50 leading-none text-center" style={{ fontSize: 'clamp(7px, 4.8cqmin, 22px)' }}>{seg.percent}%</span>
           </div>
         ))}
       </div>

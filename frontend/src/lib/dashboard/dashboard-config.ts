@@ -18,7 +18,8 @@ export type ChartType =
   | 'stackedBar'
   | 'cylinderStatus'
   | 'activityFeed'
-  | 'location';
+  | 'location'
+  | 'quickMenu';
 
 export type DataSource = 'cylinders' | 'inks' | 'jobs' | 'qc' | 'production' | 'alerts' | 'inventory' | 'custom';
 
@@ -70,6 +71,7 @@ export const CHART_TYPE_META: Record<ChartType, { nameKey: string; icon: string;
   cylinderStatus: { nameKey: 'chart.cylinderStatus', icon: '🖨️', defaultColSpan: 2, defaultRowSpan: 2 },
   activityFeed:   { nameKey: 'chart.activityFeed',   icon: '📊', defaultColSpan: 2, defaultRowSpan: 2 },
   location:       { nameKey: 'chart.location',       icon: '📊', defaultColSpan: 2, defaultRowSpan: 1 },
+  quickMenu:      { nameKey: 'chart.quickMenu',      icon: '⚡', defaultColSpan: 2, defaultRowSpan: 2 },
 };
 
 export const DATA_SOURCE_META: Record<DataSource, { nameKey: string }> = {
@@ -149,6 +151,7 @@ export const DEFAULT_RGL_LAYOUTS: RglLayouts = {
     { i: 'card_qc',          x: 8, y: 7, w: 4, h: 5, minW: 2, minH: 3 },
     { i: 'card_activity',    x: 0, y: 12, w: 4, h: 3, minW: 2, minH: 2 },
     { i: 'card_location',    x: 4, y: 12, w: 8, h: 3, minW: 2, minH: 2 },
+    { i: 'card_quickMenu',   x: 0, y: 15, w: 4, h: 4, minW: 2, minH: 3 },
   ],
   md: [
     { i: 'card_cylinders',   x: 0, y: 0, w: 4, h: 3, minW: 2, minH: 2 },
@@ -159,6 +162,7 @@ export const DEFAULT_RGL_LAYOUTS: RglLayouts = {
     { i: 'card_qc',          x: 6, y: 7, w: 4, h: 5, minW: 2, minH: 3 },
     { i: 'card_activity',    x: 0, y: 12, w: 4, h: 3, minW: 2, minH: 2 },
     { i: 'card_location',    x: 4, y: 12, w: 6, h: 3, minW: 2, minH: 2 },
+    { i: 'card_quickMenu',   x: 0, y: 15, w: 4, h: 4, minW: 2, minH: 3 },
   ],
   sm: [
     { i: 'card_cylinders',   x: 0, y: 0, w: 6, h: 3, minW: 2, minH: 2 },
@@ -169,6 +173,7 @@ export const DEFAULT_RGL_LAYOUTS: RglLayouts = {
     { i: 'card_qc',          x: 0, y: 19, w: 6, h: 5, minW: 2, minH: 3 },
     { i: 'card_activity',    x: 0, y: 24, w: 6, h: 3, minW: 2, minH: 2 },
     { i: 'card_location',    x: 0, y: 27, w: 6, h: 3, minW: 2, minH: 2 },
+    { i: 'card_quickMenu',   x: 0, y: 30, w: 6, h: 4, minW: 2, minH: 3 },
   ],
 };
 

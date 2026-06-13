@@ -39,6 +39,7 @@ const DEFAULT_CARD_DEFS: Record<string, { titleKey: string; chartType: string; d
   'card_qc':             { titleKey: 'dash.qcRate', chartType: 'pie', dataSource: 'qc' },
   'card_activity':       { titleKey: 'dash.recentActivity', chartType: 'statusHistory', dataSource: 'jobs' },
   'card_location':       { titleKey: 'dash.cylinderByLocation', chartType: 'location', dataSource: 'cylinders' },
+  'card_quickMenu':      { titleKey: 'dash.quickActions', chartType: 'quickMenu', dataSource: 'custom' },
 };
 
 export function DashboardGrid() {

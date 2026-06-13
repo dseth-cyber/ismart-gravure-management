@@ -20,6 +20,7 @@ import { StackedBarChart } from './stacked-bar-chart';
 import { CylinderStatusChart } from './cylinder-status-chart';
 import { ActivityFeedChart } from './activity-feed-chart';
 import { LocationChart } from './location-chart';
+import { QuickMenuChart } from './quick-menu-chart';
 
 interface Props {
   chartType: ChartType;
@@ -172,6 +173,9 @@ export function ChartFactory({ chartType, dataSource, height = '100%' }: Props) 
             ]}
           />
         );
+
+      case 'quickMenu':
+        return <QuickMenuChart />;
 
       default:
         return <div className="flex items-center justify-center h-full text-gray-500 text-sm">Unknown chart type: {chartType}</div>;

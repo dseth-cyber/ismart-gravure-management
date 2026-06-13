@@ -18,7 +18,7 @@ interface Props {
   onConfigChange?: (chartType: string, dataSource: string) => void;
 }
 
-const CHART_OPTIONS = ['timeSeries', 'bar', 'stat', 'gauge', 'barGauge', 'table', 'pie', 'stateTimeline', 'heatmap', 'statusHistory', 'histogram', 'text', 'alertList', 'dashboardList', 'cylinderStatus', 'activityFeed', 'location'] as const;
+const CHART_OPTIONS = ['timeSeries', 'bar', 'stat', 'gauge', 'barGauge', 'table', 'pie', 'stateTimeline', 'heatmap', 'statusHistory', 'histogram', 'text', 'alertList', 'dashboardList', 'cylinderStatus', 'activityFeed', 'location', 'quickMenu'] as const;
 const DATA_OPTIONS = ['cylinders', 'inks', 'jobs', 'qc', 'production', 'alerts', 'inventory', 'custom'] as const;
 
 export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dataSource: initSource, customTitle, isEditing, onTitleChange, onConfigChange }: Props) {
@@ -38,12 +38,17 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
     }
   }, [editingTitle]);
 
+  const isCylinderStatus = initChart === 'cylinderStatus';
+
   return (
-    <div 
+    <div
       className={`rounded-xl overflow-hidden ${themeConfig.panel} ${themeConfig.shadow} h-full flex flex-col ${isEditing ? 'ring-1 ring-white/10' : ''}`}
       style={{ containerType: 'size' }}
     >
-      <div className={`flex items-center justify-between px-3 pt-2.5 pb-1 ${isEditing ? 'select-none' : ''}`}>
+      <div className={isCylinderStatus
+        ? `flex items-center justify-between px-4 pt-3 pb-1.5 ${isEditing ? 'select-none' : ''}`
+        : `flex items-center justify-between px-3 pt-2.5 pb-1 ${isEditing ? 'select-none' : ''}`
+      }>
         {editingTitle ? (
           <input
             ref={titleInputRef}
@@ -116,7 +121,10 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
         </div>
       )}
 
-      <div className="flex-1 px-3 pb-3 min-h-0 w-full h-full flex flex-col relative">
+      <div className={isCylinderStatus
+        ? "flex-1 px-4 pb-4 min-h-0 w-full h-full flex flex-col relative"
+        : "flex-1 px-3 pb-3 min-h-0 w-full h-full flex flex-col relative"
+      }>
         <ChartFactory chartType={initChart as ChartType} dataSource={initSource} height="100%" />
       </div>
     </div>
