@@ -85,7 +85,7 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
       {isEditing && showConfig && (
         <div className={`mx-3 mb-2 p-2 rounded-lg ${themeConfig.badge} border ${themeConfig.border}`}>
           <div className="flex gap-2 items-center text-xs">
-            <span className="opacity-60">Type:</span>
+            <span className="opacity-60">{t('chart.type')}:</span>
             <select
               value={initChart}
               onChange={(e) => onConfigChange?.(e.target.value, initSource)}
@@ -98,7 +98,7 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
                 </option>
               ))}
             </select>
-            <span className="opacity-60 ml-2">Source:</span>
+            <span className="opacity-60 ml-2">{t('chart.source')}:</span>
             <select
               value={initSource}
               onChange={(e) => onConfigChange?.(initChart, e.target.value)}

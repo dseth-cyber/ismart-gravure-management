@@ -23,13 +23,13 @@ export function AddCardDrawer({ isOpen, onClose, onAddCard }: Props) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
       <div className={`relative w-full max-w-md h-full overflow-y-auto ${themeConfig.dialog} p-6 shadow-2xl`}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold">Add Card</h2>
+          <h2 className="text-lg font-bold">{t('chart.addCard')}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-white/10">
             <X size={18} />
           </button>
         </div>
 
-        <p className={`text-sm mb-4 ${themeConfig.textSecondary}`}>Select a chart type to add to your dashboard:</p>
+        <p className={`text-sm mb-4 ${themeConfig.textSecondary}`}>{t('chart.selectType')}</p>
 
         <div className="grid grid-cols-2 gap-2">
           {(Object.entries(CHART_TYPE_META) as [ChartType, typeof CHART_TYPE_META[ChartType]][]).map(([type, meta]) => (
@@ -43,7 +43,7 @@ export function AddCardDrawer({ isOpen, onClose, onAddCard }: Props) {
             >
               <span className="text-xl">{meta.icon}</span>
               <span className={`text-xs font-semibold ${themeConfig.textPrimary} text-center leading-tight`}>
-                {meta.nameKey}
+                {t(meta.nameKey as any)}
               </span>
             </button>
           ))}

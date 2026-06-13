@@ -280,7 +280,7 @@ function CylindersPageContent() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className={`${themeConfig.tableHead}`}>
-                        {[t('col.code'), t('col.color'), t('col.product'), t('col.customer'), t('col.status'), t('col.location'), t('col.meterRun'), 'Type', t('col.action')].map(h => (
+                        {[t('col.code'), t('col.color'), t('col.product'), t('col.customer'), t('col.status'), t('col.location'), t('col.meterRun'), t('col.type'), t('col.action')].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -686,7 +686,7 @@ function CylindersPageContent() {
             <div className="grid grid-cols-2 gap-3 mb-5">
               {[
                 { label: t('col.color'), val: <span className="inline-flex items-center gap-1.5 text-xs text-white"><span className="w-3.5 h-3.5 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[selectedCyl.color] || '#888' }} /><span>{selectedCyl.colorName} ({selectedCyl.color})</span></span> },
-                { label: 'Type', val: <span className="text-sm text-white">{selectedCyl.type}</span> },
+                { label: t('col.type'), val: <span className="text-sm text-white">{selectedCyl.type}</span> },
                 { label: t('cyl.size'), val: <span className="text-sm font-mono text-white">{selectedCyl.size}</span> },
                 { label: t('col.location'), val: <span className="text-sm text-white">{selectedCyl.location}</span> },
                 { label: t('cyl.totalMeters'), val: <span className="text-sm font-mono text-white">{selectedCyl.meter.toLocaleString()} {t('unit.meter')}</span> },

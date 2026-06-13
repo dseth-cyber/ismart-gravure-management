@@ -409,7 +409,7 @@ function InksPageContent() {
                           {u.days <= 0 ? u.label : `${u.days} ${t('unit.days')}`}
                         </p>
                       </div>
-                      {isFirst && <span className="px-2 py-1 rounded-md text-[10px] font-bold bg-gradient-to-r from-cyan-500 to-blue-500 text-white">FEFO</span>}
+                      {isFirst && <span className="px-2 py-1 rounded-md text-[10px] font-bold bg-gradient-to-r from-cyan-500 to-blue-500 text-white">{t('ink.fefoBadge')}</span>}
                     </div>
                   );
                 })}
@@ -649,7 +649,7 @@ function InksPageContent() {
                       <span className="text-sm font-mono font-semibold text-cyan-300">RAW-2024-001</span>
                       <p className={`text-xs ${themeConfig.textSecondary} mt-0.5`}>Black Base · DIC Corp · 38.5 {t('unit.kg')}</p>
                     </div>
-                    <span className="px-2 py-1 rounded-md text-[10px] font-bold bg-gradient-to-r from-cyan-500 to-blue-500 text-white">FEFO #1</span>
+                    <span className="px-2 py-1 rounded-md text-[10px] font-bold bg-gradient-to-r from-cyan-500 to-blue-500 text-white">{t('ink.fefoRank', { rank: 1 })}</span>
                   </div>
                 </div>
                 <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
