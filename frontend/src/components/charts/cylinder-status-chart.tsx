@@ -63,8 +63,12 @@ export function CylinderStatusChart({ height: _h }: Props) {
         {SEGMENTS.map((seg, i) => (
           <div
             key={i}
-            className={`rounded-lg flex flex-col items-center justify-center gap-0.5 w-full min-w-0 p-[2cqmin] ${themeConfig.badge}`}
+            className={`rounded-lg flex flex-col items-center justify-center gap-0.5 w-full min-w-0 p-[2cqmin] ${themeConfig.badge} relative`}
           >
+            <span
+              className="font-bold absolute leading-none"
+              style={{ fontSize: 'clamp(7px, 4.8cqmin, 22px)', top: '2cqmin', right: '1.5cqmin', color: seg.color }}
+            >{seg.percent}%</span>
             <div className="flex items-center justify-center gap-[1cqmin] min-w-0 w-full">
               <span
                 className="rounded-full flex-shrink-0 cylinder-status-dot"
@@ -76,8 +80,7 @@ export function CylinderStatusChart({ height: _h }: Props) {
               />
               <span className="font-bold opacity-80 leading-tight truncate" style={{ fontSize: 'clamp(8px, 5.5cqmin, 26px)' }}>{t(seg.label as any)}</span>
             </div>
-            <span className="font-black tracking-tight leading-none text-white text-center" style={{ fontSize: 'clamp(12px, 11cqmin, 54px)' }}>{seg.count}</span>
-            <span className="font-bold opacity-50 leading-none text-center" style={{ fontSize: 'clamp(7px, 4.8cqmin, 22px)' }}>{seg.percent}%</span>
+            <span className="font-black tracking-tight leading-none text-white text-center mt-0.5" style={{ fontSize: 'clamp(12px, 11cqmin, 54px)' }}>{seg.count}</span>
           </div>
         ))}
       </div>
