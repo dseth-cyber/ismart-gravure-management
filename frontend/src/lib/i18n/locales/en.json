@@ -471,6 +471,8 @@
   "layout.addCard": "Add Card",
   "layout.saveDefault": "Save as Default",
   "layout.removeCard": "Remove Card",
+  "layout.savedDefault": "Saved as default",
+  "layout.resetDone": "Layout reset",
   "cyl.title": "Cylinder List",
   "cyl.subtitle": "Manage all cylinders in the system",
   "cyl.searchPlaceholder": "Search cylinder, product, customer...",

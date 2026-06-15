@@ -50,46 +50,19 @@ export function DashboardGrid() {
   const [isEditing, setIsEditing] = useState(false);
   const [showAddDrawer, setShowAddDrawer] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const storageKey = user?.id ? `gm_${user.id}` : 'gm';
-
-  const [layouts, setLayouts] = useLocalStorage<RglLayouts>(`${storageKey}_rgl_layout`, DEFAULT_RGL_LAYOUTS);
-  const [extraCards, setExtraCards] = useLocalStorage<ExtraCardDef[]>(`${storageKey}_extra_cards`, []);
-  const [cardTitles, setCardTitles] = useLocalStorage<Record<string, string>>(`${storageKey}_card_titles`, {});
-  const [cardConfigs, setCardConfigs] = useLocalStorage<Record<string, { chartType: string; dataSource: string }>>(`${storageKey}_card_config`, {});
-  const [hiddenCards, setHiddenCards] = useLocalStorage<string[]>(`${storageKey}_hidden_cards`, []);
+  const [layouts, setLayouts] = useLocalStorage<RglLayouts>('gm_rgl_layout', DEFAULT_RGL_LAYOUTS);
+  const [extraCards, setExtraCards] = useLocalStorage<ExtraCardDef[]>('gm_extra_cards', []);
+  const [cardTitles, setCardTitles] = useLocalStorage<Record<string, string>>('gm_card_titles', {});
+  const [cardConfigs, setCardConfigs] = useLocalStorage<Record<string, { chartType: string; dataSource: string }>>('gm_card_config', {});
+  const [hiddenCards, setHiddenCards] = useLocalStorage<string[]>('gm_hidden_cards', []);
 
   const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin';
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    const existing = localStorage.getItem(`gm_${user.id}_rgl_layout`);
-    if (existing) return;
-    const defaultLayout = localStorage.getItem('gm_default_rgl_layout');
-    if (defaultLayout) {
-      try { setLayouts(JSON.parse(defaultLayout)); } catch {}
-    }
-    const defaultExtra = localStorage.getItem('gm_default_extra_cards');
-    if (defaultExtra) {
-      try { setExtraCards(JSON.parse(defaultExtra)); } catch {}
-    }
-    const defaultTitles = localStorage.getItem('gm_default_card_titles');
-    if (defaultTitles) {
-      try { setCardTitles(JSON.parse(defaultTitles)); } catch {}
-    }
-    const defaultConfigs = localStorage.getItem('gm_default_card_config');
-    if (defaultConfigs) {
-      try { setCardConfigs(JSON.parse(defaultConfigs)); } catch {}
-    }
-    const defaultHidden = localStorage.getItem('gm_default_hidden_cards');
-    if (defaultHidden) {
-      try { setHiddenCards(JSON.parse(defaultHidden)); } catch {}
-    }
-  }, [user?.id, setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards]);
 
   const mergedCardDefs = useMemo(() => {
     const map = { ...DEFAULT_CARD_DEFS };
@@ -119,22 +92,24 @@ export function DashboardGrid() {
   }, [setLayouts, setExtraCards, setHiddenCards]);
 
   const resetLayout = useCallback(() => {
-    const defaultLayout = localStorage.getItem('gm_default_rgl_layout');
-    const defaultExtra = localStorage.getItem('gm_default_extra_cards');
-    if (defaultLayout) {
-      try { setLayouts(JSON.parse(defaultLayout)); } catch { setLayouts(DEFAULT_RGL_LAYOUTS); }
+    const saved = localStorage.getItem('gm_default_rgl_layout');
+    if (saved) {
+      try { setLayouts(JSON.parse(saved)); } catch { setLayouts(DEFAULT_RGL_LAYOUTS); }
     } else {
       setLayouts(DEFAULT_RGL_LAYOUTS);
     }
-    if (defaultExtra) {
-      try { setExtraCards(JSON.parse(defaultExtra)); } catch { setExtraCards([]); }
+    const savedExtra = localStorage.getItem('gm_default_extra_cards');
+    if (savedExtra) {
+      try { setExtraCards(JSON.parse(savedExtra)); } catch { setExtraCards([]); }
     } else {
       setExtraCards([]);
     }
     setCardTitles({});
     setCardConfigs({});
     setHiddenCards([]);
-  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards]);
+    setToast(t('layout.resetDone'));
+    setTimeout(() => setToast(null), 2500);
+  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards, t]);
 
   const saveAsDefault = useCallback(() => {
     localStorage.setItem('gm_default_rgl_layout', JSON.stringify(layouts));
@@ -142,7 +117,9 @@ export function DashboardGrid() {
     localStorage.setItem('gm_default_card_titles', JSON.stringify(cardTitles));
     localStorage.setItem('gm_default_card_config', JSON.stringify(cardConfigs));
     localStorage.setItem('gm_default_hidden_cards', JSON.stringify(hiddenCards));
-  }, [layouts, extraCards, cardTitles, cardConfigs, hiddenCards]);
+    setToast(t('layout.savedDefault'));
+    setTimeout(() => setToast(null), 2500);
+  }, [layouts, extraCards, cardTitles, cardConfigs, hiddenCards, t]);
 
   const addCard = useCallback((chartType: ChartType, dataSource: DataSource, _colSpan: number, _rowSpan: number) => {
     const id = `card_extra_${Date.now()}`;
@@ -312,6 +289,12 @@ export function DashboardGrid() {
       )}
 
       <AddCardDrawer isOpen={showAddDrawer} onClose={() => setShowAddDrawer(false)} onAddCard={addCard} />
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[9999] px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold shadow-2xl animate-fade-in">
+          {toast}
+        </div>
+      )}
 
       <style>{`
         .react-grid-item > .react-resizable-handle {

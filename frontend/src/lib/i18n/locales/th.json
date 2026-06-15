@@ -470,6 +470,8 @@
   "layout.addCard": "เพิ่ม Card",
   "layout.saveDefault": "บันทึกเป็นค่าเริ่มต้น",
   "layout.removeCard": "ลบ Card",
+  "layout.savedDefault": "บันทึกเป็นค่าเริ่มต้นแล้ว",
+  "layout.resetDone": "รีเซ็ต Layout แล้ว",
   "cyl.title": "รายการแม่พิมพ์",
   "cyl.subtitle": "จัดการแม่พิมพ์ทั้งหมดในระบบ",
   "cyl.searchPlaceholder": "ค้นหารหัสแม่พิมพ์, สินค้า, ลูกค้า...",

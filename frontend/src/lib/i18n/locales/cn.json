@@ -470,6 +470,8 @@
   "layout.addCard": "添加卡片",
   "layout.saveDefault": "保存为默认",
   "layout.removeCard": "删除卡片",
+  "layout.savedDefault": "已保存为默认",
+  "layout.resetDone": "布局已重置",
   "cyl.title": "印版列表",
   "cyl.subtitle": "管理系统中的所有印版",
   "cyl.searchPlaceholder": "搜索印版、产品、客户...",

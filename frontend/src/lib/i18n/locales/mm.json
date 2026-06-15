@@ -470,6 +470,8 @@
   "layout.addCard": "ကတ်ထည့်",
   "layout.saveDefault": "မူလအဖြစ်သိမ်း",
   "layout.removeCard": "ကတ်ဖျက်",
+  "layout.savedDefault": "မူလအဖြစ်သိမ်းပြီး",
+  "layout.resetDone": "Layout ပြန်သတ်မှတ်ပြီး",
   "cyl.title": "ဆလင်ဒါစာရင်း",
   "cyl.subtitle": "ဆလင်ဒါအားလုံးကို စီမံခန့်ခွဲ",
   "cyl.searchPlaceholder": "ဆလင်ဒါ၊ ထုတ်ကုန်၊ ဖောက်သည် ရှာဖွေ...",

@@ -471,6 +471,8 @@
   "layout.addCard": "カード追加",
   "layout.saveDefault": "デフォルトとして保存",
   "layout.removeCard": "カード削除",
+  "layout.savedDefault": "デフォルトとして保存完了",
+  "layout.resetDone": "レイアウトをリセット",
   "cyl.title": "シリンダー一覧",
   "cyl.subtitle": "システム内全シリンダーの管理",
   "cyl.searchPlaceholder": "シリンダー、製品、顧客を検索...",
