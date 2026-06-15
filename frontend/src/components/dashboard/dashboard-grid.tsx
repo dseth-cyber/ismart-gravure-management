@@ -13,6 +13,7 @@ import { AddCardDrawer } from './add-card-drawer';
 import { Settings, Check, RotateCcw, Plus, QrCode, GripVertical, X, Save } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { fetchDefaultLayout, fetchMyLayout, saveDefaultLayout, saveMyLayout, resetMyLayout } from '@/lib/api/layouts';
 
 const RGL = dynamic(
   () => import('react-grid-layout/legacy').then((m) => {
@@ -61,7 +62,36 @@ export function DashboardGrid() {
   const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin';
 
   useEffect(() => {
+    if (!isClient) return;
+    const timer = setTimeout(() => {
+      saveMyLayout({ layouts, extraCards, cardTitles, cardConfigs, hiddenCards }).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [layouts, extraCards, cardTitles, cardConfigs, hiddenCards, isClient]);
+
+  useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const defaultData = await fetchDefaultLayout();
+      if (defaultData) {
+        if (defaultData.layouts) localStorage.setItem('gm_default_rgl_layout', JSON.stringify(defaultData.layouts));
+        if (defaultData.extraCards) localStorage.setItem('gm_default_extra_cards', JSON.stringify(defaultData.extraCards));
+        if (defaultData.cardTitles) localStorage.setItem('gm_default_card_titles', JSON.stringify(defaultData.cardTitles));
+        if (defaultData.cardConfigs) localStorage.setItem('gm_default_card_config', JSON.stringify(defaultData.cardConfigs));
+        if (defaultData.hiddenCards) localStorage.setItem('gm_default_hidden_cards', JSON.stringify(defaultData.hiddenCards));
+      }
+      const myData = await fetchMyLayout();
+      if (myData) {
+        if (myData.layouts) setLayouts(myData.layouts);
+        if (myData.extraCards) setExtraCards(myData.extraCards);
+        if (myData.cardTitles) setCardTitles(myData.cardTitles);
+        if (myData.cardConfigs) setCardConfigs(myData.cardConfigs);
+        if (myData.hiddenCards) setHiddenCards(myData.hiddenCards);
+      }
+    })();
   }, []);
 
   const mergedCardDefs = useMemo(() => {
@@ -91,32 +121,52 @@ export function DashboardGrid() {
     }
   }, [setLayouts, setExtraCards, setHiddenCards]);
 
-  const resetLayout = useCallback(() => {
-    const saved = localStorage.getItem('gm_default_rgl_layout');
-    if (saved) {
-      try { setLayouts(JSON.parse(saved)); } catch { setLayouts(DEFAULT_RGL_LAYOUTS); }
-    } else {
-      setLayouts(DEFAULT_RGL_LAYOUTS);
+  const resetLayout = useCallback(async () => {
+    try {
+      await resetMyLayout();
+      const defaultData = await fetchDefaultLayout();
+      if (defaultData) {
+        if (defaultData.layouts) setLayouts(defaultData.layouts);
+        if (defaultData.extraCards) setExtraCards(defaultData.extraCards);
+        if (defaultData.cardTitles) setCardTitles(defaultData.cardTitles);
+        if (defaultData.cardConfigs) setCardConfigs(defaultData.cardConfigs);
+        if (defaultData.hiddenCards) setHiddenCards(defaultData.hiddenCards);
+      } else {
+        setLayouts(DEFAULT_RGL_LAYOUTS);
+        setExtraCards([]);
+        setCardTitles({});
+        setCardConfigs({});
+        setHiddenCards([]);
+      }
+    } catch {
+      const saved = localStorage.getItem('gm_default_rgl_layout');
+      if (saved) {
+        try { setLayouts(JSON.parse(saved)); } catch { setLayouts(DEFAULT_RGL_LAYOUTS); }
+      } else {
+        setLayouts(DEFAULT_RGL_LAYOUTS);
+      }
+      const savedExtra = localStorage.getItem('gm_default_extra_cards');
+      if (savedExtra) {
+        try { setExtraCards(JSON.parse(savedExtra)); } catch { setExtraCards([]); }
+      } else {
+        setExtraCards([]);
+      }
+      setCardTitles({});
+      setCardConfigs({});
+      setHiddenCards([]);
     }
-    const savedExtra = localStorage.getItem('gm_default_extra_cards');
-    if (savedExtra) {
-      try { setExtraCards(JSON.parse(savedExtra)); } catch { setExtraCards([]); }
-    } else {
-      setExtraCards([]);
-    }
-    setCardTitles({});
-    setCardConfigs({});
-    setHiddenCards([]);
     setToast(t('layout.resetDone'));
     setTimeout(() => setToast(null), 2500);
   }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards, t]);
 
   const saveAsDefault = useCallback(() => {
+    const data = { layouts, extraCards, cardTitles, cardConfigs, hiddenCards };
     localStorage.setItem('gm_default_rgl_layout', JSON.stringify(layouts));
     localStorage.setItem('gm_default_extra_cards', JSON.stringify(extraCards));
     localStorage.setItem('gm_default_card_titles', JSON.stringify(cardTitles));
     localStorage.setItem('gm_default_card_config', JSON.stringify(cardConfigs));
     localStorage.setItem('gm_default_hidden_cards', JSON.stringify(hiddenCards));
+    saveDefaultLayout(data).catch(() => {});
     setToast(t('layout.savedDefault'));
     setTimeout(() => setToast(null), 2500);
   }, [layouts, extraCards, cardTitles, cardConfigs, hiddenCards, t]);

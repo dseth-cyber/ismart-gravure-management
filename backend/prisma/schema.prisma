@@ -566,3 +566,14 @@ model DeviceTelemetry {
   @@map("device_telemetry")
 }
 
+model DashboardLayout {
+  id        String   @id @default(uuid())
+  key       String   @unique // "default" or "user:{userId}"
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("auth")
+  @@map("dashboard_layouts")
+}
+

@@ -29,6 +29,7 @@ import aiRoutes from './modules/ai/ai.routes';
 import iotRoutes from './modules/iot/iot.routes';
 import permissionRoutes from './modules/permission/permission.routes';
 import workflowRoutes from './modules/workflow/workflow.routes';
+import layoutRoutes from './modules/layouts/layouts.routes';
 import { initQueueWorker } from './modules/queue/queue.service';
 import { prisma } from './config/database';
 import { getRedis } from './config/redis';
@@ -235,6 +236,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/storage', storageRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/iot', iotRoutes);
+app.use('/api/v1/layouts', layoutRoutes);
 
 // Initialize background worker
 initQueueWorker();
