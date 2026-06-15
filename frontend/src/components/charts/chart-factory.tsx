@@ -48,7 +48,8 @@ export function ChartFactory({ chartType, dataSource, height = '100%' }: Props) 
         return <HistogramChart data={mockData.stats.map((s, i) => ({ label: s.label, value: s.value, color: colors[i % colors.length] }))} height={height} />;
 
       case 'stat':
-        return <StatChart data={mockData.stats} trend="up" trendValue={dataSource === 'cylinders' ? '+3.2%' : dataSource === 'inks' ? '+1.8%' : '+2.1%'} unit={dataSource === 'qc' ? '%' : ''} dataSource={dataSource} />;
+        const statUnit = dataSource === 'jobs' ? 'งาน' : dataSource === 'inks' ? 'สูตร' : dataSource === 'cylinders' ? 'ลูก' : dataSource === 'qc' ? '%' : '';
+return <StatChart data={mockData.stats} trend="up" trendValue={dataSource === 'cylinders' ? '+3.2%' : dataSource === 'inks' ? '+1.8%' : '+2.1%'} unit={statUnit} dataSource={dataSource} />;
 
       case 'gauge':
         return <GaugeChart config={mockData.gauge} label={dataSource} />;

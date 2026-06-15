@@ -68,24 +68,38 @@ export function StatChart({ data, height: _height, trend, trendValue, unit, data
         @container (max-height: 95px) {
           .stat-secondary { display: none !important; }
         }
+        @container (max-height: 145px) {
+          .stat-trend { display: none !important; }
+        }
       `}</style>
 
-      {/* Dynamic Scaling Icon */}
-      <div 
-        className="rounded-2xl flex items-center justify-center shadow-lg text-white transition-all duration-150 flex-shrink-0 stat-icon"
-        style={{ 
-          width: 'clamp(35px, 18cqmin, 160px)', 
-          height: 'clamp(35px, 18cqmin, 160px)',
-          minWidth: '35px',
-          minHeight: '35px',
-          background: `linear-gradient(135deg, var(--color-${fromColor}, ${fromColor}), var(--color-${toColor}, ${toColor}))`
-        }}
-      >
-        <Icon style={{ width: '50%', height: '50%' }} />
+      {/* Top: Icon left, Trend right */}
+      <div className="flex items-start justify-between w-full flex-shrink-0 relative z-10">
+        <div 
+          className="rounded-2xl flex items-center justify-center shadow-lg text-white transition-all duration-150 flex-shrink-0 stat-icon"
+          style={{ 
+            width: 'clamp(35px, 18cqmin, 160px)', 
+            height: 'clamp(35px, 18cqmin, 160px)',
+            minWidth: '35px',
+            minHeight: '35px',
+            background: `linear-gradient(135deg, var(--color-${fromColor}, ${fromColor}), var(--color-${toColor}, ${toColor}))`
+          }}
+        >
+          <Icon style={{ width: '50%', height: '50%' }} />
+        </div>
+        {trend && (
+          <span 
+            className={`flex items-center gap-0.5 font-bold stat-trend ${trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-gray-400'}`}
+            style={{ fontSize: 'clamp(9px, 6cqmin, 40px)' }}
+          >
+            {trend === 'up' ? <ArrowUp size={12} className="inline-block" /> : trend === 'down' ? <ArrowDown size={12} className="inline-block" /> : null}
+            {trendValue || ''}
+          </span>
+        )}
       </div>
       
-      {/* Primary Value, Unit, Trend */}
-      <div className="flex flex-col items-center gap-0.5 w-full flex-shrink-0">
+      {/* Primary Value, Unit */}
+      <div className="flex flex-col items-center gap-0.5 w-full flex-shrink-0 flex-1 justify-center">
         <div className="flex items-baseline justify-center gap-1.5 flex-wrap w-full">
           <span 
             className="font-black tracking-tight leading-none text-white transition-all duration-150"
@@ -102,16 +116,6 @@ export function StatChart({ data, height: _height, trend, trendValue, unit, data
             </span>
           )}
         </div>
-        
-        {trend && (
-          <span 
-            className={`flex items-center justify-center gap-0.5 font-bold transition-all duration-150 ${trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-gray-400'}`}
-            style={{ fontSize: 'clamp(9px, 6cqmin, 40px)' }}
-          >
-            {trend === 'up' ? <ArrowUp size={12} className="inline-block" /> : trend === 'down' ? <ArrowDown size={12} className="inline-block" /> : null}
-            {trendValue || ''}
-          </span>
-        )}
       </div>
 
       {/* Secondary Label (Centered & Scaled) */}

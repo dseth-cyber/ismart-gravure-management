@@ -10,6 +10,7 @@ const LABEL_KEYS: Record<string, string> = {
   'Inspection': 'dash.inspection',
   'Active Formulas': 'dash.activeFormulas',
   'Total Ink Batches': 'dash.totalBatches',
+  'Total Batches': 'dash.totalBatches',
   'Near Expiry': 'dash.nearExpiry',
   'Expired': 'dash.expired',
   'Active Jobs': 'dash.activeJobs',

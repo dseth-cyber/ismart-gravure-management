@@ -263,8 +263,8 @@ export function getMockDataSource(dataSource: DataSource): { stats: ChartDataPoi
       return {
         stats: [
           { label: 'Active Formulas', value: 127, color: '#d946ef' },
-          { label: 'Total Batches', value: 312, color: '#a855f7' },
           { label: 'Near Expiry', value: 5, color: '#f59e0b' },
+          { label: 'Total Batches', value: 312, color: '#a855f7' },
           { label: 'Expired', value: 3, color: '#ef4444' },
         ],
         timeSeries,
@@ -278,7 +278,7 @@ export function getMockDataSource(dataSource: DataSource): { stats: ChartDataPoi
       return {
         stats: [
           { label: 'Active Jobs', value: 12, color: '#10b981' },
-          { label: 'Completed Today', value: 8, color: '#3b82f6' },
+          { label: 'Pass Rate', value: 96.5, color: '#22d3ee' },
           { label: 'On Hold', value: 3, color: '#f59e0b' },
           { label: 'Cancelled', value: 1, color: '#ef4444' },
         ],
