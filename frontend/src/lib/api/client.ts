@@ -67,6 +67,7 @@ apiClient.interceptors.response.use(
       refreshQueue = [];
       window.localStorage.removeItem('gm_access_token');
       window.localStorage.removeItem('gm_refresh_token');
+      document.cookie = 'gm_token=; path=/; max-age=0';
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
       }

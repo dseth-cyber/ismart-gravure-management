@@ -35,14 +35,17 @@ export default function LoginPage() {
     setErrorMsg('');
     try {
       await login(username, password);
+      setSubmitting(false);
     } catch (err: any) {
       console.error(err);
+      setSubmitting(false);
       if (err.response?.status === 400) {
         setErrorMsg(t('login.error.invalid'));
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setErrorMsg(t('login.error.generic'));
       } else {
         setErrorMsg(t('login.error.generic'));
       }
-      setSubmitting(false);
     }
   };
 

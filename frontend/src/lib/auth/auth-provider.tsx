@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { apiClient } from '../api/client';
 import { UserProfileDto, ApiResponse } from '@shared/dto/auth/auth.dto';
 
+const COOKIE_OPTS = 'path=/; max-age=86400; sameSite=lax';
+
 type AuthContextType = {
   user: UserProfileDto | null;
   accessToken: string | null;
@@ -29,6 +31,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const setAuthCookie = () => {
+    document.cookie = `gm_token=1; ${COOKIE_OPTS}`;
+  };
+  const clearAuthCookie = () => {
+    document.cookie = 'gm_token=; path=/; max-age=0';
+  };
+
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem('gm_refresh_token');
     if (refreshToken) {
@@ -38,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     localStorage.removeItem('gm_access_token');
     localStorage.removeItem('gm_refresh_token');
+    clearAuthCookie();
     setAccessToken(null);
     setUser(null);
     setMfaPending(false);
@@ -84,7 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await apiClient.post('/api/v1/auth/login', { username, password });
-      const data = res.data.data;
+      console.debug('[Auth] login response:', res.status, res.headers['content-type'], res.data);
+      const data = res.data?.data;
+      if (!data) {
+        const bodyPreview = typeof res.data === 'string' ? res.data.substring(0, 200) : JSON.stringify(res.data);
+        throw new Error(res.data?.message || bodyPreview || 'Empty response from server');
+      }
 
       if (data.mfaRequired) {
         setMfaPending(true);
@@ -97,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { accessToken: at, refreshToken: rt, user: u } = data;
       localStorage.setItem('gm_access_token', at);
       localStorage.setItem('gm_refresh_token', rt);
+      setAuthCookie();
       setAccessToken(at);
       setUser(u);
       setLoading(false);
@@ -117,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { accessToken: at, refreshToken: rt, user: u } = res.data.data;
       localStorage.setItem('gm_access_token', at);
       localStorage.setItem('gm_refresh_token', rt);
+      setAuthCookie();
       setAccessToken(at);
       setUser(u);
       setMfaPending(false);
@@ -132,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await apiClient.post('/api/v1/auth/change-password', { currentPassword, newPassword });
     localStorage.removeItem('gm_access_token');
     localStorage.removeItem('gm_refresh_token');
+    clearAuthCookie();
     setAccessToken(null);
     setUser(null);
     router.push('/login');
