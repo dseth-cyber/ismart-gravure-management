@@ -2,6 +2,7 @@
 
 import { ArrowUp, ArrowDown, Layers, Droplet, Factory, Shield, BarChart3, Package, AlertTriangle, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/navigation';
 import type { ChartDataPoint } from '@/lib/dashboard/dashboard-config';
 import { tLabel } from '@/lib/dashboard/i18n-labels';
 
@@ -12,6 +13,7 @@ interface Props {
   trendValue?: string;
   unit?: string;
   dataSource?: string;
+  href?: string;
 }
 
 const ICON_MAP: Record<string, { icon: typeof Layers; bg: string }> = {
@@ -39,8 +41,9 @@ function Sparkline({ data, color = '#22d3ee', width = 80, height = 30 }: { data:
   );
 }
 
-export function StatChart({ data, height: _height, trend, trendValue, unit, dataSource }: Props) {
+export function StatChart({ data, height: _height, trend, trendValue, unit, dataSource, href }: Props) {
   const { t } = useTranslation();
+  const router = useRouter();
   if (!data || data.length === 0) {
     return <div className="flex items-center justify-center h-full text-gray-500 text-sm">No data</div>;
   }
@@ -55,7 +58,10 @@ export function StatChart({ data, height: _height, trend, trendValue, unit, data
   const toColor = iconCfg.bg.split(' ')[1].replace('to-[', '').replace('to-', '').replace(']', '');
 
   return (
-    <div className="flex flex-col items-center justify-center text-center h-full px-4 relative overflow-hidden w-full gap-[3cqh] min-h-0 py-2 stat-container">
+    <div
+      className={`flex flex-col items-center justify-center text-center h-full px-4 relative overflow-hidden w-full gap-[3cqh] min-h-0 py-2 stat-container ${href ? 'cursor-pointer' : ''}`}
+      onClick={href ? () => router.push(href) : undefined}
+    >
       {/* Inject Scoped CSS for Container Queries */}
       <style>{`
         @container (max-height: 130px) {

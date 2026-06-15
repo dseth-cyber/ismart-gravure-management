@@ -49,7 +49,8 @@ export function ChartFactory({ chartType, dataSource, height = '100%' }: Props) 
 
       case 'stat':
         const statUnit = dataSource === 'jobs' ? 'งาน' : dataSource === 'inks' ? 'สูตร' : dataSource === 'cylinders' ? 'ลูก' : dataSource === 'qc' ? '%' : '';
-return <StatChart data={mockData.stats} trend="up" trendValue={dataSource === 'cylinders' ? '+3.2%' : dataSource === 'inks' ? '+1.8%' : '+2.1%'} unit={statUnit} dataSource={dataSource} />;
+        const statHref: Record<string, string> = { cylinders: '/cylinders', inks: '/inks', jobs: '/production', qc: '/production?tab=verification', production: '/production', alerts: '/approvals', inventory: '/settings' };
+        return <StatChart data={mockData.stats} trend="up" trendValue={dataSource === 'cylinders' ? '+3.2%' : dataSource === 'inks' ? '+1.8%' : '+2.1%'} unit={statUnit} dataSource={dataSource} href={statHref[dataSource] || undefined} />;
 
       case 'gauge':
         return <GaugeChart config={mockData.gauge} label={dataSource} />;

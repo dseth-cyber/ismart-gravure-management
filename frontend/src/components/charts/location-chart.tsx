@@ -3,6 +3,7 @@
 import { useTranslation } from 'react-i18next';
 import { tLabel } from '@/lib/dashboard/i18n-labels';
 import { useTheme } from '@/lib/theme/theme-provider';
+import { useRouter } from 'next/navigation';
 import { MapPin } from 'lucide-react';
 
 interface LocationData {
@@ -18,6 +19,7 @@ interface Props {
 export function LocationChart({ locations }: Props) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
+  const router = useRouter();
   if (!locations || locations.length === 0) {
     return <div className="flex items-center justify-center h-full text-gray-500 text-sm">No data</div>;
   }
@@ -41,7 +43,8 @@ export function LocationChart({ locations }: Props) {
       {locations.map((loc, i) => (
         <div
           key={i}
-          className={`rounded-lg px-2.5 py-2 flex flex-col gap-2 location-card min-w-0 transition-all ${themeConfig.badge}`}
+          className={`rounded-lg px-2.5 py-2 flex flex-col gap-2 location-card min-w-0 transition-all ${themeConfig.badge} cursor-pointer hover:opacity-80`}
+          onClick={() => router.push(`/cylinders?location=${encodeURIComponent(loc.name)}`)}
         >
           <div className="flex items-center gap-1.5 min-w-0">
             <MapPin className="text-cyan-400 shrink-0 location-pin" style={{ width: 'clamp(10px, 4.2cqmin, 24px)', height: 'clamp(10px, 4.2cqmin, 24px)' }} />

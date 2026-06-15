@@ -57,6 +57,8 @@ function CylindersPageContent() {
   const router = useRouter();
 
   const tabParam = searchParams.get('tab') || 'list';
+  const statusParam = searchParams.get('status');
+  const locationParam = searchParams.get('location');
 
   // Navigation states
   const [activeTab, setActiveTab] = useState<'list' | 'status' | 'location' | 'history'>('list');
@@ -67,8 +69,24 @@ function CylindersPageContent() {
     }
   }, [tabParam]);
 
+  useEffect(() => {
+    if (statusParam) {
+      setActiveTab('list');
+      setFilterStatus(statusParam);
+    }
+  }, [statusParam]);
+
+  useEffect(() => {
+    if (locationParam) {
+      setActiveTab('location');
+      setFilterLocation(locationParam);
+    }
+  }, [locationParam]);
+
   const handleTabChange = (tab: 'list' | 'status' | 'location' | 'history') => {
     setActiveTab(tab);
+    setFilterLocation(null);
+    if (tab !== 'list') setFilterStatus('all');
     router.replace(`/cylinders?tab=${tab}`);
   };
 
@@ -80,6 +98,7 @@ function CylindersPageContent() {
   const [view, setView] = useState<'table' | 'card'>('table');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterLocation, setFilterLocation] = useState<string | null>(null);
 
   // Dialog overlays
   const [selectedCyl, setSelectedCyl] = useState<CylinderDisplay | null>(null);
@@ -306,7 +325,7 @@ function CylindersPageContent() {
                           <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.location}</td>
                           <td className="px-4 py-3 text-white font-mono text-xs">{c.meter.toLocaleString()} {t('unit.meter')}</td>
                           <td className="px-4 py-3">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{c.type}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{t('cyl.type' + c.type)}</span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
@@ -347,7 +366,7 @@ function CylindersPageContent() {
                         <span className="w-3 h-3 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[c.color] || '#888' }} />
                         <span>{c.colorName}</span>
                       </span>
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{c.type}</span>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{t('cyl.type' + c.type)}</span>
                     </div>
                     <p className="text-sm font-semibold text-white mb-0.5">{c.product || c.productCode}</p>
                     <p className={`text-xs ${themeConfig.textSecondary} mb-3`}>{c.customer || '—'}</p>
@@ -491,22 +510,50 @@ function CylindersPageContent() {
         {/* Tab content 3. Location */}
         {activeTab === 'location' && (
           <div className="grid gap-6">
+            {filterLocation && (
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg ${themeConfig.badge}`}>
+                <span className={`text-sm ${themeConfig.textSecondary}`}>
+                  Filtering: <span className="font-semibold text-white">{filterLocation}</span>
+                </span>
+                <button
+                  onClick={() => { setFilterLocation(null); router.replace('/cylinders?tab=location'); }}
+                  className="ml-auto text-xs text-rose-400 hover:text-rose-300 transition-colors"
+                >
+                  Clear ✕
+                </button>
+              </div>
+            )}
             {/* Location Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               {mockLocations.map(loc => (
-                <div key={loc.name} className={`rounded-xl p-4 text-center ${themeConfig.panel}`}>
+                <button
+                  key={loc.name}
+                  onClick={() => { const next = filterLocation === loc.name ? null : loc.name; setFilterLocation(next); router.replace(next ? `/cylinders?tab=location&location=${encodeURIComponent(next)}` : '/cylinders?tab=location'); }}
+                  className={`rounded-xl p-4 text-center ${themeConfig.panel} transition-all hover:scale-[1.02] ${filterLocation === loc.name ? 'ring-2 ring-cyan-400' : ''}`}
+                >
                   <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-2 text-cyan-400`}>
                     <MapPin size={18} />
                   </div>
                   <span className="text-2xl font-bold text-white">{loc.count}</span>
                   <p className={`text-xs ${themeConfig.textSecondary} mt-1`}>{loc.name}</p>
-                </div>
+                </button>
               ))}
             </div>
 
             {/* Cylinder per Location list */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {['Rack A-03', 'Machine M-03', 'Rack A-04', 'Rack B-01', 'Repair Shop', 'QC Area'].map(loc => {
+              {(['Rack A-03', 'Machine M-03', 'Rack A-04', 'Rack B-01', 'Repair Shop', 'QC Area'] as const)
+                .filter(loc => {
+                  if (!filterLocation) return true;
+                  const LOC_SECTIONS: Record<string, string[]> = {
+                    'Rack A': ['Rack A-03', 'Rack A-04'],
+                    'Rack B': ['Rack B-01'],
+                    'Machine Area': ['Machine M-03'],
+                    'QC / Repair': ['Repair Shop', 'QC Area'],
+                  };
+                  return LOC_SECTIONS[filterLocation]?.includes(loc) ?? false;
+                })
+                .map(loc => {
                 const cylsInLoc = cylinders.filter(c => c.location.toLowerCase() === loc.toLowerCase() || (loc === 'Repair Shop' && c.status === 'repair') || (loc === 'QC Area' && c.status === 'inspection'));
                 const normalizedLocName = loc === 'Repair Shop' ? 'QC / Repair' : loc === 'QC Area' ? 'QC Area' : loc;
                 return (
@@ -627,8 +674,8 @@ function CylindersPageContent() {
                   onChange={e => setForm({ ...form, type: e.target.value })}
                   className="bg-transparent text-white text-sm outline-none w-full"
                 >
-                  {['Dedicated', 'Shared', 'Common', 'Backup'].map(t => (
-                    <option key={t} value={t} className="bg-slate-900 text-white">{t}</option>
+                  {['Dedicated', 'Shared', 'Common', 'Backup'].map(opt => (
+                    <option key={opt} value={opt} className="bg-slate-900 text-white">{t('cyl.type' + opt)}</option>
                   ))}
                 </select>
               </div>
@@ -686,7 +733,7 @@ function CylindersPageContent() {
             <div className="grid grid-cols-2 gap-3 mb-5">
               {[
                 { label: t('col.color'), val: <span className="inline-flex items-center gap-1.5 text-xs text-white"><span className="w-3.5 h-3.5 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[selectedCyl.color] || '#888' }} /><span>{selectedCyl.colorName} ({selectedCyl.color})</span></span> },
-                { label: t('col.type'), val: <span className="text-sm text-white">{selectedCyl.type}</span> },
+                { label: t('col.type'), val: <span className="text-sm text-white">{t('cyl.type' + selectedCyl.type)}</span> },
                 { label: t('cyl.size'), val: <span className="text-sm font-mono text-white">{selectedCyl.size}</span> },
                 { label: t('col.location'), val: <span className="text-sm text-white">{selectedCyl.location}</span> },
                 { label: t('cyl.totalMeters'), val: <span className="text-sm font-mono text-white">{selectedCyl.meter.toLocaleString()} {t('unit.meter')}</span> },

@@ -17,14 +17,24 @@ const SEGMENTS: StatusSegment[] = [
 
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme/theme-provider';
+import { useRouter } from 'next/navigation';
 
 interface Props {
   height?: number;
 }
 
+const STATUS_ROUTES: Record<string, string> = {
+  'dash.available': '/cylinders?status=available',
+  'dash.inProduction': '/cylinders?status=inProduction',
+  'dash.reserved': '/cylinders?status=reserved',
+  'dash.inspection': '/cylinders?status=inspection',
+  'dash.repair': '/cylinders?status=repair',
+};
+
 export function CylinderStatusChart({ height: _h }: Props) {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
+  const router = useRouter();
   return (
     <div className="flex flex-col h-full gap-2 md:gap-3 pt-0.5 cylinder-status-container w-full min-h-0 relative">
       <style>{`
@@ -63,7 +73,8 @@ export function CylinderStatusChart({ height: _h }: Props) {
         {SEGMENTS.map((seg, i) => (
           <div
             key={i}
-            className={`rounded-lg flex flex-col items-center justify-center gap-0.5 w-full min-w-0 p-[2cqmin] ${themeConfig.badge} relative`}
+            className={`rounded-lg flex flex-col items-center justify-center gap-0.5 w-full min-w-0 p-[2cqmin] ${themeConfig.badge} relative cursor-pointer transition-opacity hover:opacity-80`}
+            onClick={() => router.push(STATUS_ROUTES[seg.label] || '/cylinders')}
           >
             <span
               className="font-bold absolute leading-none"
