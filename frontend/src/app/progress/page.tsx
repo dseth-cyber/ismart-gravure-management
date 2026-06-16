@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Server, ShieldCheck, Workflow, Boxes, Database, RadioTower, FileText, Info } from 'lucide-react';
+import { Server, ShieldCheck, Workflow, Boxes, Database, RadioTower, FileText, Info, BarChart3, HardDrive, Mail, Clock, Container, Activity, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { AppDialog } from '@/components/shared/app-dialog';
@@ -40,6 +40,14 @@ const phases: Array<{ id: number; nameKey: string; outputKey: string; status: St
   { id: 27, nameKey: 'phase.27.name', outputKey: 'phase.27.output', status: 'done' },
   { id: 28, nameKey: 'phase.28.name', outputKey: 'phase.28.output', status: 'done' },
   { id: 29, nameKey: 'phase.29.name', outputKey: 'phase.29.output', status: 'done' },
+  { id: 30, nameKey: 'phase.30.name', outputKey: 'phase.30.output', status: 'done' },
+  { id: 31, nameKey: 'phase.31.name', outputKey: 'phase.31.output', status: 'done' },
+  { id: 32, nameKey: 'phase.32.name', outputKey: 'phase.32.output', status: 'done' },
+  { id: 33, nameKey: 'phase.33.name', outputKey: 'phase.33.output', status: 'done' },
+  { id: 34, nameKey: 'phase.34.name', outputKey: 'phase.34.output', status: 'done' },
+  { id: 35, nameKey: 'phase.35.name', outputKey: 'phase.35.output', status: 'done' },
+  { id: 36, nameKey: 'phase.36.name', outputKey: 'phase.36.output', status: 'done' },
+  { id: 37, nameKey: 'phase.37.name', outputKey: 'phase.37.output', status: 'done' },
 ];
 
 const rules = [
@@ -49,14 +57,24 @@ const rules = [
   'rule.theme',
   'rule.database',
   'rule.docker',
+  'rule.roadmap_sync',
+  'rule.searchable_select',
+  'rule.list_page_standard',
+  'rule.dashboard_layout',
+  'rule.tls_https',
+  'rule.infra_security',
 ];
 
 const architecture = [
   { icon: Server, labelKey: 'architecture.frontend', valueKey: 'architecture.frontendValue' },
+  { icon: Activity, labelKey: 'architecture.backend', valueKey: 'architecture.backendValue' },
   { icon: ShieldCheck, labelKey: 'architecture.auth', valueKey: 'architecture.authValue' },
   { icon: Database, labelKey: 'architecture.database', valueKey: 'architecture.databaseValue' },
-  { icon: RadioTower, labelKey: 'architecture.events', valueKey: 'architecture.eventsValue' },
-  { icon: Boxes, labelKey: 'architecture.infra', valueKey: 'architecture.infraValue' },
+  { icon: Container, labelKey: 'architecture.redis', valueKey: 'architecture.redisValue' },
+  { icon: BarChart3, labelKey: 'architecture.monitoring', valueKey: 'architecture.monitoringValue' },
+  { icon: HardDrive, labelKey: 'architecture.storage', valueKey: 'architecture.storageValue' },
+  { icon: Mail, labelKey: 'architecture.email', valueKey: 'architecture.emailValue' },
+  { icon: Globe, labelKey: 'architecture.network', valueKey: 'architecture.networkValue' },
   { icon: Workflow, labelKey: 'architecture.workflow', valueKey: 'architecture.workflowValue' },
 ];
 

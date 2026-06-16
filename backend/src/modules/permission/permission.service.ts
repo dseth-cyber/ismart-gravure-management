@@ -13,6 +13,13 @@ export class PermissionService {
     return prisma.permission.create({ data });
   }
 
+  static async updatePermission(id: string, data: { name: string; module: string; action: string; description?: string }) {
+    return prisma.permission.update({
+      where: { id },
+      data,
+    });
+  }
+
   static async deletePermission(id: string) {
     return prisma.permission.delete({ where: { id } });
   }
@@ -80,6 +87,19 @@ export class PermissionService {
 
   static async createScope(data: { type: string; name: string; parentId?: string }) {
     return prisma.scope.create({ data });
+  }
+
+  static async updateScope(id: string, data: { type: string; name: string; parentId?: string | null }) {
+    return prisma.scope.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async deleteScope(id: string) {
+    return prisma.scope.delete({
+      where: { id },
+    });
   }
 
   static async assignUserScope(userId: string, scopeId: string) {

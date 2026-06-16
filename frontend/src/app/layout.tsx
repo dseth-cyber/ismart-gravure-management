@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { IBM_Plex_Sans_Thai, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { GlobalErrorDialog } from '@/components/shared/error-dialog';
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
   weight: ['300', '400', '500', '600', '700'],
@@ -23,7 +24,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="th">
       <body className={`${ibmPlexSansThai.variable} ${inter.variable} antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <GlobalErrorDialog />
+        </Providers>
       </body>
     </html>
   );

@@ -20,20 +20,32 @@ export function AppInput({ className = '', labelKey, ...props }: AppInputProps) 
   );
 }
 
-type AppSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+import SearchableSelect, { type Option } from '@/components/ui/SearchableSelect';
+
+type AppSelectProps = {
   labelKey: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Option[];
+  placeholder?: string;
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
 };
 
-export function AppSelect({ children, className = '', labelKey, ...props }: AppSelectProps) {
+export function AppSelect({ labelKey, value, onChange, options, placeholder, disabled, required, className = '' }: AppSelectProps) {
   const { t } = useTranslation();
-  const { themeConfig } = useTheme();
 
   return (
-    <label className="grid gap-2 text-sm">
-      <span className={themeConfig.textSecondary}>{t(labelKey)}</span>
-      <select className={`min-h-10 rounded-lg px-3 py-2 ${themeConfig.input} ${themeConfig.focusRing} ${className}`} {...props}>
-        {children}
-      </select>
-    </label>
+    <SearchableSelect
+      label={t(labelKey)}
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      disabled={disabled}
+      required={required}
+      className={className}
+    />
   );
 }

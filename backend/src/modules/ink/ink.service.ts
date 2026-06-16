@@ -42,15 +42,18 @@ export class InkService {
     });
   }
 
-  static async listFormulas(search?: string) {
+  static async listFormulas(search?: string, showDeleted = false) {
+    const filters: any = {};
+    filters.deletedAt = showDeleted ? { not: null } : null;
+    if (search) {
+      filters.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { productCode: { contains: search, mode: 'insensitive' } },
+        { color: { contains: search, mode: 'insensitive' } }
+      ];
+    }
     return prisma.inkFormula.findMany({
-      where: search ? {
-        OR: [
-          { code: { contains: search, mode: 'insensitive' } },
-          { productCode: { contains: search, mode: 'insensitive' } },
-          { color: { contains: search, mode: 'insensitive' } }
-        ]
-      } : undefined,
+      where: filters,
       orderBy: { code: 'asc' }
     });
   }
@@ -82,8 +85,30 @@ export class InkService {
 
   static async deleteFormula(code: string) {
     await this.getFormulaByCode(code);
+    return prisma.inkFormula.update({
+      where: { code },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async restoreFormula(code: string) {
+    await this.getFormulaByCode(code);
+    return prisma.inkFormula.update({
+      where: { code },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async permanentDeleteFormula(code: string) {
+    await this.getFormulaByCode(code);
     return prisma.inkFormula.delete({
       where: { code }
+    });
+  }
+
+  static async emptyFormulaTrash() {
+    return prisma.inkFormula.deleteMany({
+      where: { deletedAt: { not: null } }
     });
   }
 
@@ -138,15 +163,18 @@ export class InkService {
     });
   }
 
-  static async listBatches(search?: string, sortByExpiry = false) {
+  static async listBatches(search?: string, sortByExpiry = false, showDeleted = false) {
+    const filters: any = {};
+    filters.deletedAt = showDeleted ? { not: null } : null;
+    if (search) {
+      filters.OR = [
+        { id: { contains: search, mode: 'insensitive' } },
+        { color: { contains: search, mode: 'insensitive' } },
+        { operator: { contains: search, mode: 'insensitive' } }
+      ];
+    }
     return prisma.inkBatch.findMany({
-      where: search ? {
-        OR: [
-          { id: { contains: search, mode: 'insensitive' } },
-          { color: { contains: search, mode: 'insensitive' } },
-          { operator: { contains: search, mode: 'insensitive' } }
-        ]
-      } : undefined,
+      where: filters,
       orderBy: sortByExpiry ? { expiryDate: 'asc' } : { id: 'desc' }
     });
   }
@@ -175,8 +203,30 @@ export class InkService {
 
   static async deleteBatch(id: string) {
     await this.getBatchById(id);
+    return prisma.inkBatch.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async restoreBatch(id: string) {
+    await this.getBatchById(id);
+    return prisma.inkBatch.update({
+      where: { id },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async permanentDeleteBatch(id: string) {
+    await this.getBatchById(id);
     return prisma.inkBatch.delete({
       where: { id }
+    });
+  }
+
+  static async emptyBatchTrash() {
+    return prisma.inkBatch.deleteMany({
+      where: { deletedAt: { not: null } }
     });
   }
 }

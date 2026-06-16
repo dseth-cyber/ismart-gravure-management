@@ -9,6 +9,7 @@ export interface ProductionJobDto {
   plannedDate: Date | string;
   status: JobStatus;
   totalPrinted: number;
+  deletedAt: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

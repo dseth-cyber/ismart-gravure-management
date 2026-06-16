@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { emitGlobalError } from '@/components/shared/error-dialog';
 
 const isServer = typeof window === 'undefined';
 
@@ -26,6 +27,28 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (error.response && error.response.status === 403) {
+      const lang = typeof window !== 'undefined' ? window.localStorage.getItem('gm_lang') || 'th' : 'th';
+      let msg = 'Access Denied: You do not have permission to access this resource.';
+      if (lang === 'th') {
+        msg = 'คุณไม่มีสิทธิ์เข้าถึงหรือดำเนินการในส่วนนี้ กรุณาติดต่อผู้ดูแลระบบ';
+      } else if (lang === 'cn') {
+        msg = '您没有权限访问此资源，请联系管理员。';
+      } else if (lang === 'ja') {
+        msg = 'このリソースにアクセスする権限がありません。管理者にお問い合わせください。';
+      } else if (lang === 'mm') {
+        msg = 'ဤလုပ်ဆောင်ချက်ကို လုပ်ဆောင်ရန် သင့်တွင် ခွင့်ပြုချက်မရှိပါ။ စီမံခန့်ခွဲသူကို ဆက်သွယ်ပါ။';
+      }
+      error.message = msg;
+      if (error.response.data && typeof error.response.data === 'object') {
+        error.response.data.message = msg;
+      }
+      if (typeof window !== 'undefined') {
+        emitGlobalError({ message: msg, titleKey: 'common.forbidden', statusCode: 403 });
+      }
+      return Promise.reject(error);
+    }
+
     if (isServer || !error.response || error.response.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }

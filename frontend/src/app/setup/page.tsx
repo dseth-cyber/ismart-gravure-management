@@ -6,7 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { ROLES } from '@/lib/constants/roles';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import { getRoles } from '@/lib/constants/roles';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { 
   BarChart3, 
@@ -30,6 +31,11 @@ function SetupPageContent() {
   const { themeConfig } = useTheme();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [roles, setRoles] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRoles(getRoles());
+  }, []);
 
   // Active sub-page tab state
   const tabParamRaw = searchParams.get('tab') || 'master';
@@ -170,6 +176,11 @@ function SetupPageContent() {
 
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
   const [ruleActionType, setRuleActionType] = useState('notify');
+  const [ruleName, setRuleName] = useState('');
+  const [ruleField, setRuleField] = useState('ink.daysToExpiry');
+  const [ruleOp, setRuleOp] = useState('<');
+  const [ruleVal, setRuleVal] = useState('');
+  const [ruleActionDesc, setRuleActionDesc] = useState('');
 
   const toggleRuleActive = (id: number) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
@@ -420,7 +431,7 @@ function SetupPageContent() {
                           <Icon size={18} />
                         </div>
                         <div>
-                          <span className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
+                          <span suppressHydrationWarning className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
                           <p className={`text-xs ${themeConfig.textMuted}`}>{s.label}</p>
                         </div>
                       </article>
@@ -565,7 +576,7 @@ function SetupPageContent() {
                           <Icon size={18} />
                         </div>
                         <div>
-                          <span className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
+                          <span suppressHydrationWarning className={`text-2xl font-black ${themeConfig.textPrimary}`}>{s.value}</span>
                           <p className={`text-xs ${themeConfig.textMuted}`}>{s.label}</p>
                         </div>
                       </article>
@@ -579,7 +590,15 @@ function SetupPageContent() {
                       <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.ruleEngine')}</h3>
                       <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
                     </div>
-                    <button onClick={() => { setRuleActionType('notify'); setShowAddRuleModal(true); }} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
+                    <button onClick={() => {
+                      setRuleName('');
+                      setRuleField(fieldOptions[0] || 'ink.daysToExpiry');
+                      setRuleOp(opOptions[0] || '<');
+                      setRuleVal('');
+                      setRuleActionType('notify');
+                      setRuleActionDesc('');
+                      setShowAddRuleModal(true);
+                    }} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
                       <Plus size={14} />{t('setup.addRule')}
                     </button>
                   </div>
@@ -762,9 +781,9 @@ function SetupPageContent() {
 
       {/* Add Rule Modal */}
       {showAddRuleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setShowAddRuleModal(false)}></div>
-          <div className={`relative rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto ${themeConfig.dialog}`}>
+          <div className={`relative rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 overflow-visible ${themeConfig.dialog}`}>
             <div className="flex items-center justify-between mb-5">
               <h3 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('setup.addRule')}</h3>
               <button onClick={() => setShowAddRuleModal(false)} className={`p-1 rounded hover:bg-white/10 ${themeConfig.textMuted}`}>
@@ -779,6 +798,8 @@ function SetupPageContent() {
                 <input 
                   type="text" 
                   id="rule-name" 
+                  value={ruleName}
+                  onChange={e => setRuleName(e.target.value)}
                   placeholder="e.g. Ink Low Stock Alert" 
                   className={`w-full rounded-lg px-3 py-2 text-sm outline-none ${themeConfig.input}`}
                 />
@@ -790,18 +811,26 @@ function SetupPageContent() {
                   <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-cyan-500 to-blue-500 text-white">IF</span>
                   <span className={`text-xs font-bold ${themeConfig.textSecondary}`}>{t('setup.condition')}</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <select id="rule-field" className={`rounded-lg px-2 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                    {(dynamicFieldOptions.length > 0 ? [...new Set([...fieldOptions, ...dynamicFieldOptions])] : fieldOptions).map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <select id="rule-op" className={`rounded-lg px-2 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                    {opOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                  <SearchableSelect
+                    value={ruleField}
+                    onChange={setRuleField}
+                    placeholder="Field"
+                    options={(dynamicFieldOptions.length > 0 ? [...new Set([...fieldOptions, ...dynamicFieldOptions])] : fieldOptions).map(f => ({ value: f, label: f }))}
+                  />
+                  <SearchableSelect
+                    value={ruleOp}
+                    onChange={setRuleOp}
+                    placeholder="Operator"
+                    options={opOptions.map(o => ({ value: o, label: o }))}
+                  />
                   <input 
                     type="text" 
                     id="rule-val" 
+                    value={ruleVal}
+                    onChange={e => setRuleVal(e.target.value)}
                     placeholder="Value" 
-                    className={`rounded-lg px-2 py-2 text-xs outline-none ${themeConfig.input}`}
+                    className={`rounded-lg px-3 py-2 text-sm outline-none h-10 ${themeConfig.input}`}
                   />
                 </div>
               </div>
@@ -814,25 +843,32 @@ function SetupPageContent() {
                     <span className={`text-xs font-bold ${themeConfig.textSecondary}`}>{t('setup.actions')}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select id="rule-action-type" value={ruleActionType} onChange={e => setRuleActionType(e.target.value)} className={`rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                    {['notify', 'highlight', 'block', 'status', 'task'].map(actType => (
-                      <option key={actType} value={actType}>{actType}</option>
-                    ))}
-                  </select>
+                <div className="flex items-end gap-2">
+                  <div className="w-1/3">
+                    <SearchableSelect
+                      value={ruleActionType}
+                      onChange={setRuleActionType}
+                      placeholder="Action"
+                      options={['notify', 'highlight', 'block', 'status', 'task'].map(actType => ({ value: actType, label: actType }))}
+                    />
+                  </div>
                   {ruleActionType === 'notify' ? (
                     <input 
                       type="text" 
                       id="rule-action-desc" 
+                      value={ruleActionDesc}
+                      onChange={e => setRuleActionDesc(e.target.value)}
                       placeholder="Target role / channel (e.g. supervisor, email, line)" 
-                      className={`flex-1 rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input}`}
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm outline-none h-10 ${themeConfig.input}`}
                     />
                   ) : (
                     <input 
                       type="text" 
                       id="rule-action-desc" 
+                      value={ruleActionDesc}
+                      onChange={e => setRuleActionDesc(e.target.value)}
                       placeholder="Description" 
-                      className={`flex-1 rounded-lg px-2.5 py-2 text-xs outline-none ${themeConfig.input}`}
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm outline-none h-10 ${themeConfig.input}`}
                     />
                   )}
                 </div>
@@ -848,26 +884,19 @@ function SetupPageContent() {
               </button>
               <button 
                 onClick={() => {
-                  const nameInput = document.getElementById('rule-name') as HTMLInputElement;
-                  const fieldInput = document.getElementById('rule-field') as HTMLSelectElement;
-                  const opInput = document.getElementById('rule-op') as HTMLSelectElement;
-                  const valInput = document.getElementById('rule-val') as HTMLInputElement;
-                  const actTypeInput = document.getElementById('rule-action-type') as HTMLSelectElement;
-                  const actDescInput = document.getElementById('rule-action-desc') as HTMLSelectElement | HTMLInputElement;
-
-                  if (nameInput?.value) {
+                  if (ruleName.trim()) {
                     setRules(prev => [...prev, {
                       id: Date.now(),
-                      name: nameInput.value,
+                      name: ruleName.trim(),
                       active: true,
                       condition: {
-                        field: fieldInput.value,
-                        op: opInput.value,
-                        value: valInput.value
+                        field: ruleField,
+                        op: ruleOp,
+                        value: ruleVal
                       },
                       actions: [{
-                        type: actTypeInput.value,
-                        [actTypeInput.value === 'notify' ? 'target' : 'desc']: actDescInput.value
+                        type: ruleActionType,
+                        [ruleActionType === 'notify' ? 'target' : 'desc']: ruleActionDesc
                       }]
                     }]);
                     setShowAddRuleModal(false);
@@ -884,9 +913,9 @@ function SetupPageContent() {
 
       {/* Edit Approval Matrix Modal */}
       {editApprovalRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setEditApprovalRow(null)}></div>
-          <div className={`relative rounded-2xl max-w-2xl w-full p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto ${themeConfig.dialog}`}>
+          <div className={`relative rounded-2xl max-w-2xl w-full p-6 shadow-2xl z-10 overflow-visible ${themeConfig.dialog}`}>
             <div className="flex items-center justify-between mb-5">
               <h3 className={`text-lg font-bold ${themeConfig.textPrimary}`}>
                 {editApprovalRow === 'new' ? t('btn.add') : t('btn.edit')} — {t('setup.approvalMatrix')}
@@ -923,7 +952,7 @@ function SetupPageContent() {
               <div className={`p-4 rounded-xl border bg-black/10 ${themeConfig.border}`}>
                 <label className={`text-[10px] font-bold uppercase tracking-wider block mb-2 ${themeConfig.textMuted}`}>Role ที่เห็นเอกสารนี้ (visibleToRoles)</label>
                 <div className="flex flex-wrap gap-2">
-                  {ROLES.map(r => {
+                  {roles.map(r => {
                     const checked = editApprovalRow === 'new'
                       ? r === 'admin'
                       : (editApprovalRow.visibleToRoles || ['admin']).includes(r);
@@ -951,19 +980,33 @@ function SetupPageContent() {
                   {approvalSteps.map((step: any, idx: number) => (
                     <div key={idx} className="flex items-center gap-2">
                       <span className="text-[10px] font-mono font-bold text-cyan-400 w-16">Step {idx + 1}</span>
-                      <select value={step.role} onChange={e => updateApprovalStep(idx, 'role', e.target.value)}
-                        className={`flex-1 rounded-lg px-2 py-1.5 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                      <select value={step.sla} onChange={e => updateApprovalStep(idx, 'sla', e.target.value)}
-                        className={`w-20 rounded-lg px-2 py-1.5 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                        {['30min', '1h', '2h', '4h', '8h', '24h', '48h'].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <select value={step.type} onChange={e => updateApprovalStep(idx, 'type', e.target.value)}
-                        className={`w-24 rounded-lg px-2 py-1.5 text-xs outline-none ${themeConfig.input} [&>option]:bg-slate-900`}>
-                        <option value="approve">อนุมัติ</option>
-                        <option value="notify">แจ้งเตือน</option>
-                      </select>
+                       <div className="flex-1 text-slate-100">
+                        <SearchableSelect
+                          value={step.role}
+                          onChange={(v) => updateApprovalStep(idx, 'role', v)}
+                          options={roles.map(r => ({ value: r, label: r }))}
+                          placeholder={t('common.select')}
+                        />
+                      </div>
+                      <div className="w-24 text-slate-100">
+                        <SearchableSelect
+                          value={step.sla}
+                          onChange={(v) => updateApprovalStep(idx, 'sla', v)}
+                          options={['30min', '1h', '2h', '4h', '8h', '24h', '48h'].map(s => ({ value: s, label: s }))}
+                          placeholder="SLA"
+                        />
+                      </div>
+                      <div className="w-28 text-slate-100">
+                        <SearchableSelect
+                          value={step.type}
+                          onChange={(v) => updateApprovalStep(idx, 'type', v)}
+                          options={[
+                            { value: 'approve', label: 'อนุมัติ' },
+                            { value: 'notify', label: 'แจ้งเตือน' },
+                          ]}
+                          placeholder="Type"
+                        />
+                      </div>
                       {approvalSteps.length > 1 && (
                         <button onClick={() => removeApprovalStep(idx)} className="p-1 text-rose-400 hover:text-rose-300"><X size={14} /></button>
                       )}

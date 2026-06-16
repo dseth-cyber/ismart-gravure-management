@@ -11,6 +11,7 @@ export interface CylinderDto {
   lastUsed?: string | null;
   type: string;
   size: string;
+  deletedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -25,3 +25,17 @@ export async function updateCylinder(id: string, data: UpdateCylinderDto): Promi
 export async function deleteCylinder(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/cylinders/${id}`);
 }
+
+export async function restoreCylinder(id: string): Promise<CylinderDto> {
+  const res = await apiClient.post<ApiResponse<CylinderDto>>(`/api/v1/cylinders/${id}/restore`);
+  return res.data.data!;
+}
+
+export async function permanentDeleteCylinder(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/cylinders/${id}/permanent`);
+}
+
+export async function emptyCylinderTrash(): Promise<{ deleted: number }> {
+  const res = await apiClient.delete<ApiResponse<{ deleted: number }>>('/api/v1/cylinders/trash/empty');
+  return res.data.data!;
+}

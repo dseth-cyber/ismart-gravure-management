@@ -11,6 +11,7 @@ export interface InkFormulaDto {
   viscosity: string;
   labTarget: string;
   solvent: string;
+  deletedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -44,6 +45,7 @@ export interface InkBatchDto {
   remaining: number;
   operator: string;
   status: InkBatchStatus;
+  deletedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

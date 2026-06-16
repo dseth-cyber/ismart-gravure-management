@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme/theme-provider';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { ChartFactory } from '@/components/charts/chart-factory';
 import type { ChartType } from '@/lib/dashboard/dashboard-config';
 import { GripVertical, Settings } from 'lucide-react';
@@ -94,29 +95,29 @@ export function DashboardCard({ cardId: _id, titleKey, chartType: initChart, dat
         <div className={`mx-3 mb-2 p-2 rounded-lg ${themeConfig.badge} border ${themeConfig.border}`}>
           <div className="flex gap-2 items-center text-xs">
             <span className="opacity-60">{t('chart.type')}:</span>
-            <select
-              value={initChart}
-              onChange={(e) => onConfigChange?.(e.target.value, initSource)}
-              style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: '#e2e8f0' }}
-              className="text-xs rounded px-1.5 py-1 border border-white/20 outline-none"
-            >
-              {CHART_OPTIONS.map((ct) => (
-                <option key={ct} value={ct} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>
-                  {t(`chart.${ct}` as any)}
-                </option>
-              ))}
-            </select>
+            <div className="w-44 text-slate-100">
+              <SearchableSelect
+                value={initChart}
+                onChange={(v) => onConfigChange?.(v, initSource)}
+                placeholder={t('common.select')}
+                options={CHART_OPTIONS.map((ct) => ({
+                  value: ct,
+                  label: t(`chart.${ct}` as any),
+                }))}
+              />
+            </div>
             <span className="opacity-60 ml-2">{t('chart.source')}:</span>
-            <select
-              value={initSource}
-              onChange={(e) => onConfigChange?.(initChart, e.target.value)}
-              style={{ backgroundColor: 'rgba(0,0,0,0.35)', color: '#e2e8f0' }}
-              className="text-xs rounded px-1.5 py-1 border border-white/20 outline-none"
-            >
-              {DATA_OPTIONS.map((ds) => (
-                <option key={ds} value={ds} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>{t(`ds.${ds}` as any)}</option>
-              ))}
-            </select>
+            <div className="w-40 text-slate-100">
+              <SearchableSelect
+                value={initSource}
+                onChange={(v) => onConfigChange?.(initChart, v)}
+                placeholder={t('common.select')}
+                options={DATA_OPTIONS.map((ds) => ({
+                  value: ds,
+                  label: t(`ds.${ds}` as any),
+                }))}
+              />
+            </div>
           </div>
         </div>
       )}

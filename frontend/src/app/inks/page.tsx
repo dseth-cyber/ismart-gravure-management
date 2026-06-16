@@ -2,14 +2,20 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode, Printer } from 'lucide-react';
+import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode, Printer, Trash2, RotateCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { listFormulas, createFormula, listBatches, createBatch, updateBatch } from '@/lib/services/ink';
+import { 
+  listFormulas, createFormula, listBatches, createBatch, updateBatch,
+  deleteFormula, restoreFormula, permanentDeleteFormula, emptyFormulaTrash,
+  deleteBatch, restoreBatch, permanentDeleteBatch, emptyBatchTrash
+} from '@/lib/services/ink';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import type { InkFormulaDto, InkBatchDto } from '@shared/dto/ink/ink.dto';
 
 const initialShadeHistory = [
@@ -38,6 +44,8 @@ function InksPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const queryClient = useQueryClient();
+
   const tabParam = searchParams.get('tab') || 'formulas';
 
   // Navigation states
@@ -54,12 +62,6 @@ function InksPageContent() {
     router.replace(`/inks?tab=${tab}`);
   };
   
-  // Data states
-  const [formulas, setFormulas] = useState<InkFormulaDto[]>([]);
-  const [batches, setBatches] = useState<InkBatchDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
   // Search/Filters
   const [search, setSearch] = useState('');
 
@@ -75,21 +77,55 @@ function InksPageContent() {
   const [mixColor, setMixColor] = useState('Black');
   const [mixWeight, setMixWeight] = useState('15');
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const [f, b] = await Promise.all([listFormulas(), listBatches()]);
-      setFormulas(f);
-      setBatches(b);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load ink data');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Trash bin toggles and dialog targets
+  const [showTrashFormulas, setShowTrashFormulas] = useState(false);
+  const [showTrashBatches, setShowTrashBatches] = useState(false);
+  
+  // React Query fetching
+  const { data: formulas = [], isLoading: formulasLoading, error: formulasError, refetch: refetchFormulas } = useQuery<InkFormulaDto[]>({
+    queryKey: ['formulas', showTrashFormulas],
+    queryFn: () => listFormulas({ showDeleted: showTrashFormulas ? 'true' : 'false' }),
+  });
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data: batches = [], isLoading: batchesLoading, error: batchesError, refetch: refetchBatches } = useQuery<InkBatchDto[]>({
+    queryKey: ['batches', showTrashBatches],
+    queryFn: () => listBatches({ showDeleted: showTrashBatches ? 'true' : 'false' }),
+  });
+
+  const loading = formulasLoading || batchesLoading;
+  const error = (formulasError instanceof Error ? formulasError.message : formulasError ? String(formulasError) : '') || 
+                (batchesError instanceof Error ? batchesError.message : batchesError ? String(batchesError) : '');
+  const refetch = () => { refetchFormulas(); refetchBatches(); };
+
+  const [confirmDeleteFormula, setConfirmDeleteFormula] = useState<string | null>(null);
+  const [confirmPermanentDeleteFormula, setConfirmPermanentDeleteFormula] = useState<string | null>(null);
+  const [emptyFormulaTrashConfirm, setEmptyFormulaTrashConfirm] = useState(false);
+
+  const [confirmDeleteBatch, setConfirmDeleteBatch] = useState<string | null>(null);
+  const [confirmPermanentDeleteBatch, setConfirmPermanentDeleteBatch] = useState<string | null>(null);
+  const [emptyBatchTrashConfirm, setEmptyBatchTrashConfirm] = useState(false);
+
+  // Dynamic Required Fields configurations
+  const [requiredFieldsFormula, setRequiredFieldsFormula] = useState<string[]>([]);
+  const [requiredFieldsBatch, setRequiredFieldsBatch] = useState<string[]>([]);
+  const [formulaError, setFormulaError] = useState('');
+  const [batchError, setBatchError] = useState('');
+
+  useEffect(() => {
+    const loadRequired = async () => {
+      try {
+        const { listSettings } = await import('@/lib/services/setting');
+        const dbSettings = await listSettings();
+        const fSetting = dbSettings.find(s => s.key === 'requiredFields.inkFormula');
+        if (fSetting) setRequiredFieldsFormula(JSON.parse(fSetting.value));
+        const bSetting = dbSettings.find(s => s.key === 'requiredFields.inkBatch');
+        if (bSetting) setRequiredFieldsBatch(JSON.parse(bSetting.value));
+      } catch (e) {
+        console.error('Failed to load required fields settings', e);
+      }
+    };
+    loadRequired();
+  }, []);
 
   useEffect(() => {
     const handler = (e: Event) => setPrintTarget((e as CustomEvent).detail as any);
@@ -128,8 +164,26 @@ function InksPageContent() {
   const normalCount = sortedExpiry.filter(b => getUrgency(b.expiryDate).days > 30).length;
 
   const handleSaveFormula = async () => {
+    const missing: string[] = [];
+    requiredFieldsFormula.forEach(field => {
+      let val = '';
+      if (field === 'productCode') val = formulaForm.product;
+      else if (field === 'labTarget') val = formulaForm.labL || formulaForm.labA || formulaForm.labB;
+      else val = (formulaForm as any)[field];
+
+      if (!val || String(val).trim() === '') {
+        missing.push(field);
+      }
+    });
+
+    if (missing.length > 0) {
+      setFormulaError(`${t('common.requiredFieldsMissing') || 'Required fields missing'}: ${missing.map(f => t(`ink.${f}`) || f).join(', ')}`);
+      return;
+    }
+    setFormulaError('');
+
     try {
-      const newF = await createFormula({
+      await createFormula({
         code: formulaForm.code || `INK-${formulaForm.color.substring(0, 2).toUpperCase()}-R${Math.floor(Math.random() * 9 + 1)}`,
         productCode: formulaForm.product || 'UNKNOWN-001',
         color: formulaForm.color,
@@ -138,17 +192,39 @@ function InksPageContent() {
         labTarget: `L:${formulaForm.labL || '0'} a:${formulaForm.labA || '0'} b:${formulaForm.labB || '0'}`,
         solvent: formulaForm.solvent,
       });
-      setFormulas(prev => [newF, ...prev]);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
       setShowAddFormula(false);
       setFormulaForm({ code: '', product: '', color: 'Black', pantone: '', solvent: 'Ethyl Acetate', viscosity: '', labL: '', labA: '', labB: '' });
     } catch (err: any) {
       console.error('Failed to create formula:', err);
+      setFormulaError(err?.response?.data?.message || err?.message || 'Failed to create formula');
     }
   };
 
   const handleMixComplete = async () => {
+    const missing: string[] = [];
+    requiredFieldsBatch.forEach(field => {
+      let val = '';
+      if (field === 'mixDate') val = new Date().toISOString().split('T')[0];
+      else if (field === 'expiryDate') val = '2024-09-20';
+      else if (field === 'weight') val = mixWeight;
+      else if (field === 'operator') val = 'สมหมาย';
+      else if (field === 'mixProduct') val = mixProduct;
+      else if (field === 'mixColor') val = mixColor;
+      
+      if (!val || String(val).trim() === '') {
+        missing.push(field);
+      }
+    });
+
+    if (missing.length > 0) {
+      setBatchError(`${t('common.requiredFieldsMissing') || 'Required fields missing'}: ${missing.map(f => t(`ink.${f}`) || f).join(', ')}`);
+      return;
+    }
+    setBatchError('');
+
     try {
-      const newB = await createBatch({
+      await createBatch({
         id: `MIX-2024-${Math.floor(100 + Math.random() * 900)}`,
         formulaCode: `INK-${mixColor.substring(0, 2).toUpperCase()}-R03`,
         productCode: mixProduct,
@@ -158,11 +234,91 @@ function InksPageContent() {
         weight: parseFloat(mixWeight) || 15.0,
         operator: 'สมหมาย',
       });
-      setBatches(prev => [newB, ...prev]);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       setShowMix(false);
       setMixStep(1);
     } catch (err: any) {
       console.error('Failed to create batch:', err);
+      setBatchError(err?.response?.data?.message || err?.message || 'Failed to create batch');
+    }
+  };
+
+  // Trash bins handlers
+  const handleDeleteFormula = async (code: string) => {
+    try {
+      await deleteFormula(code);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+    } catch (err) {
+      console.error('Failed to soft delete formula', err);
+    }
+  };
+
+  const handleRestoreFormula = async (code: string) => {
+    try {
+      await restoreFormula(code);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+    } catch (err) {
+      console.error('Failed to restore formula', err);
+    }
+  };
+
+  const handlePermanentDeleteFormula = async () => {
+    if (!confirmPermanentDeleteFormula) return;
+    try {
+      await permanentDeleteFormula(confirmPermanentDeleteFormula);
+      setConfirmPermanentDeleteFormula(null);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+    } catch (err) {
+      console.error('Failed to permanent delete formula', err);
+    }
+  };
+
+  const handleEmptyFormulaTrash = async () => {
+    try {
+      await emptyFormulaTrash();
+      setEmptyFormulaTrashConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+    } catch (err) {
+      console.error('Failed to empty formula trash', err);
+    }
+  };
+
+  const handleDeleteBatch = async (id: string) => {
+    try {
+      await deleteBatch(id);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+    } catch (err) {
+      console.error('Failed to soft delete batch', err);
+    }
+  };
+
+  const handleRestoreBatch = async (id: string) => {
+    try {
+      await restoreBatch(id);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+    } catch (err) {
+      console.error('Failed to restore batch', err);
+    }
+  };
+
+  const handlePermanentDeleteBatch = async () => {
+    if (!confirmPermanentDeleteBatch) return;
+    try {
+      await permanentDeleteBatch(confirmPermanentDeleteBatch);
+      setConfirmPermanentDeleteBatch(null);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+    } catch (err) {
+      console.error('Failed to permanent delete batch', err);
+    }
+  };
+
+  const handleEmptyBatchTrash = async () => {
+    try {
+      await emptyBatchTrash();
+      setEmptyBatchTrashConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+    } catch (err) {
+      console.error('Failed to empty batch trash', err);
     }
   };
 
@@ -176,13 +332,53 @@ function InksPageContent() {
             <p className={`text-sm ${themeConfig.textSecondary} mt-0.5`}>{t('ink.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {activeTab === 'formulas' ? (
-              <button onClick={() => setShowAddFormula(true)}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium text-white transition-all ${themeConfig.primaryButton} shadow`}>
-                <Plus size={15} />
-                {t('ink.addFormula')}
-              </button>
-            ) : (
+            {activeTab === 'formulas' && (
+              <>
+                <button onClick={() => { setShowAddFormula(true); setFormulaError(''); }}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium text-white transition-all ${themeConfig.primaryButton} shadow`}>
+                  <Plus size={15} />
+                  {t('ink.addFormula')}
+                </button>
+                <button onClick={() => setShowTrashFormulas(v => !v)}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow ${
+                    showTrashFormulas ? 'bg-red-600 hover:bg-red-500 text-white font-semibold' : `${themeConfig.secondaryButton}`
+                  }`}>
+                  <Trash2 size={15} />
+                  {showTrashFormulas ? t('common.viewActive') || 'View Active' : t('common.trashBin') || 'Trash Bin'}
+                </button>
+                {showTrashFormulas && formulas.length > 0 && (
+                  <button onClick={() => setEmptyFormulaTrashConfirm(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow text-red-400 border border-red-500/30 hover:bg-red-500/10">
+                    <Trash2 size={15} />
+                    {t('common.emptyTrash') || 'Empty Trash'}
+                  </button>
+                )}
+              </>
+            )}
+            {activeTab === 'batch' && (
+              <>
+                <button onClick={() => { setShowMix(true); setBatchError(''); }}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium text-white transition-all ${themeConfig.primaryButton} shadow`}>
+                  <FlaskConical size={15} />
+                  {t('btn.mixInk')}
+                </button>
+                <button onClick={() => setShowTrashBatches(v => !v)}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow ${
+                    showTrashBatches ? 'bg-red-600 hover:bg-red-500 text-white font-semibold' : `${themeConfig.secondaryButton}`
+                  }`}>
+                  <Trash2 size={15} />
+                  {showTrashBatches ? t('common.viewActive') || 'View Active' : t('common.trashBin') || 'Trash Bin'}
+                </button>
+                {showTrashBatches && batches.length > 0 && (
+                  <button onClick={() => setEmptyBatchTrashConfirm(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow text-red-400 border border-red-500/30 hover:bg-red-500/10">
+                    <Trash2 size={15} />
+                    {t('common.emptyTrash') || 'Empty Trash'}
+                  </button>
+                )}
+              </>
+            )}
+            {activeTab !== 'formulas' && activeTab !== 'batch' && (
               <button onClick={() => setShowMix(true)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium text-white transition-all ${themeConfig.primaryButton} shadow`}>
                 <FlaskConical size={15} />
@@ -237,7 +433,7 @@ function InksPageContent() {
           <div className="flex flex-col items-center justify-center py-16 text-rose-400 gap-2">
             <AlertTriangle size={24} />
             <p className="text-sm">{error}</p>
-            <button onClick={fetchData} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
+            <button onClick={() => refetch()} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
               {t('btn.retry')}
             </button>
           </div>
@@ -249,14 +445,14 @@ function InksPageContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.formula'), t('col.product'), t('col.color'), t('col.pantone'), t('col.revision'), t('col.viscosity'), t('col.labTarget'), t('col.status')].map(h => (
+                    {[t('col.formula'), t('col.product'), t('col.color'), t('col.pantone'), t('col.revision'), t('col.viscosity'), t('col.labTarget'), t('col.status'), t('common.actions') || 'Actions'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredFormulas.map(f => (
-                    <tr key={f.code + f.revision} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border} cursor-pointer`}>
+                    <tr key={f.code + f.revision} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border}`}>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{f.code}</td>
                       <td className="px-4 py-3 text-white">{f.productCode}</td>
                       <td className="px-4 py-3">
@@ -279,6 +475,22 @@ function InksPageContent() {
                           {t(`status.${f.status}`)}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-left">
+                        {showTrashFormulas ? (
+                          <div className="flex gap-2">
+                            <button onClick={() => handleRestoreFormula(f.code)} className="text-emerald-400 hover:text-emerald-300">
+                              <RotateCw size={15} />
+                            </button>
+                            <button onClick={() => setConfirmPermanentDeleteFormula(f.code)} className="text-red-500 hover:text-red-400">
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => handleDeleteFormula(f.code)} className="text-red-400 hover:text-red-300">
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -293,7 +505,7 @@ function InksPageContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.batch'), t('col.formula'), t('col.color'), t('ink.mixDate'), t('col.expiry'), t('col.weight'), t('col.remaining'), t('col.operator'), t('col.status'), ''].map(h => (
+                    {[t('col.batch'), t('col.formula'), t('col.color'), t('ink.mixDate'), t('col.expiry'), t('col.weight'), t('col.remaining'), t('col.operator'), t('col.status'), t('common.actions') || 'Actions'].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -329,14 +541,30 @@ function InksPageContent() {
                             {t(`status.${b.status}`)}
                           </span>
                         </td>
-                        <td className="px-2 py-3">
-                          <button
-                            onClick={() => document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'ink', data: b } }))}
-                            className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary} hover:text-cyan-400`}
-                            title="Print Label"
-                          >
-                            <Printer size={15} />
-                          </button>
+                        <td className="px-2 py-3 text-left">
+                          {showTrashBatches ? (
+                            <div className="flex gap-2">
+                              <button onClick={() => handleRestoreBatch(b.id)} className="text-emerald-400 hover:text-emerald-300">
+                                <RotateCw size={15} />
+                              </button>
+                              <button onClick={() => setConfirmPermanentDeleteBatch(b.id)} className="text-red-500 hover:text-red-400">
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'ink', data: b } }))}
+                                className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary} hover:text-cyan-400`}
+                                title="Print Label"
+                              >
+                                <Printer size={15} />
+                              </button>
+                              <button onClick={() => handleDeleteBatch(b.id)} className="text-red-400 hover:text-red-300">
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -499,60 +727,68 @@ function InksPageContent() {
 
       {/* Add Formula Modal */}
       {showAddFormula && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddFormula(false)}></div>
-          <div className={`relative ${themeConfig.panel} rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto`}>
+          <div className={`relative ${themeConfig.panel} rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 overflow-visible`}>
             <div className="flex items-center justify-between mb-5">
               <h3 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('ink.addFormula')}</h3>
               <button onClick={() => setShowAddFormula(false)} className={`p-1.5 rounded-lg ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
                 <X size={18} />
               </button>
             </div>
+            {formulaError && (
+              <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+                {formulaError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               {[
                 { key: 'code', label: t('col.formula'), ph: 'INK-XX-R01' },
                 { key: 'product', label: t('col.productCode'), ph: 'AGH-001' },
                 { key: 'pantone', label: t('col.pantone'), ph: 'PMS 299C' },
                 { key: 'viscosity', label: t('col.viscosity'), ph: '18±2 sec' },
-              ].map(item => (
-                <div key={item.key} className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{item.label}</label>
-                  <input
-                    type="text"
-                    value={(formulaForm as any)[item.key]}
-                    onChange={e => setFormulaForm({ ...formulaForm, [item.key]: e.target.value })}
-                    className="bg-transparent text-white text-sm outline-none w-full"
-                    placeholder={item.ph}
-                  />
-                </div>
-              ))}
-              <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{t('col.color')}</label>
-                <select
+              ].map(item => {
+                const isRequired = item.key === 'product' ? requiredFieldsFormula.includes('productCode') : requiredFieldsFormula.includes(item.key);
+                return (
+                  <div key={item.key} className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
+                    <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>
+                      {item.label} {isRequired && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      value={(formulaForm as any)[item.key]}
+                      onChange={e => setFormulaForm({ ...formulaForm, [item.key]: e.target.value })}
+                      className="bg-transparent text-white text-sm outline-none w-full"
+                      placeholder={item.ph}
+                    />
+                  </div>
+                );
+              })}
+              <div className="flex flex-col gap-1 w-full text-slate-100">
+                <SearchableSelect
+                  label={`${t('col.color')}`}
                   value={formulaForm.color}
-                  onChange={e => setFormulaForm({ ...formulaForm, color: e.target.value })}
-                  className="bg-transparent text-white text-sm outline-none w-full"
-                >
-                  {['Black', 'Cyan', 'Magenta', 'Yellow', 'White', 'Varnish'].map(c => (
-                    <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setFormulaForm({ ...formulaForm, color: v })}
+                  required={requiredFieldsFormula.includes('color')}
+                  placeholder={t('common.select')}
+                  options={['Black', 'Cyan', 'Magenta', 'Yellow', 'White', 'Varnish'].map(c => ({ value: c, label: c }))}
+                />
               </div>
-              <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>Solvent</label>
-                <select
+              <div className="flex flex-col gap-1 w-full text-slate-100">
+                <SearchableSelect
+                  label="Solvent"
                   value={formulaForm.solvent}
-                  onChange={e => setFormulaForm({ ...formulaForm, solvent: e.target.value })}
-                  className="bg-transparent text-white text-sm outline-none w-full"
-                >
-                  {['Ethyl Acetate', 'Toluene', 'IPA', 'MEK'].map(s => (
-                    <option key={s} value={s} className="bg-slate-900 text-white">{s}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setFormulaForm({ ...formulaForm, solvent: v })}
+                  required={requiredFieldsFormula.includes('solvent')}
+                  placeholder={t('common.select')}
+                  options={['Ethyl Acetate', 'Toluene', 'IPA', 'MEK'].map(s => ({ value: s, label: s }))}
+                />
               </div>
             </div>
             <div className={`mt-4 p-4 rounded-lg ${themeConfig.badge}`}>
-              <p className={`text-xs font-semibold ${themeConfig.textSecondary} mb-2`}>{t('col.labTarget')}</p>
+              <p className={`text-xs font-semibold ${themeConfig.textSecondary} mb-2`}>
+                {t('col.labTarget')} {requiredFieldsFormula.includes('labTarget') && <span className="text-red-500">*</span>}
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'labL', label: 'L*', ph: '55' },
@@ -595,6 +831,11 @@ function InksPageContent() {
                 <X size={18} />
               </button>
             </div>
+            {batchError && (
+              <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+                {batchError}
+              </div>
+            )}
 
             {/* Wizard step progress */}
             <div className="flex items-center gap-2 mb-6">
@@ -610,28 +851,32 @@ function InksPageContent() {
             {mixStep === 1 && (
               <div className="space-y-4">
                 <p className={`text-sm ${themeConfig.textSecondary}`}>{t('ink.selectFormula')}</p>
-                <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{t('col.productCode')}</label>
-                  <select
+                <div className="flex flex-col gap-1 w-full text-slate-100">
+                  <SearchableSelect
+                    label={`${t('col.productCode')}`}
                     value={mixProduct}
-                    onChange={e => setMixProduct(e.target.value)}
-                    className="bg-transparent text-white text-sm outline-none w-full"
-                  >
-                    <option value="AGH-001" className="bg-slate-900">AGH-001</option>
-                    <option value="BKK-002" className="bg-slate-900">BKK-002</option>
-                  </select>
+                    onChange={setMixProduct}
+                    required={requiredFieldsBatch.includes('mixProduct')}
+                    placeholder={t('common.select')}
+                    options={[
+                      { value: 'AGH-001', label: 'AGH-001' },
+                      { value: 'BKK-002', label: 'BKK-002' },
+                    ]}
+                  />
                 </div>
-                <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{t('col.color')}</label>
-                  <select
+                <div className="flex flex-col gap-1 w-full text-slate-100">
+                  <SearchableSelect
+                    label={`${t('col.color')}`}
                     value={mixColor}
-                    onChange={e => setMixColor(e.target.value)}
-                    className="bg-transparent text-white text-sm outline-none w-full"
-                  >
-                    <option value="Black" className="bg-slate-900">Black (BK)</option>
-                    <option value="Cyan" className="bg-slate-900">Cyan (CY)</option>
-                    <option value="Magenta" className="bg-slate-900">Magenta (MG)</option>
-                  </select>
+                    onChange={setMixColor}
+                    required={requiredFieldsBatch.includes('mixColor')}
+                    placeholder={t('common.select')}
+                    options={[
+                      { value: 'Black', label: 'Black (BK)' },
+                      { value: 'Cyan', label: 'Cyan (CY)' },
+                      { value: 'Magenta', label: 'Magenta (MG)' },
+                    ]}
+                  />
                 </div>
                 <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
                   <p className="text-xs text-cyan-300">{t('ink.formulaUsed')}: INK-BK-R03 (Rev.03 Active)</p>
@@ -653,7 +898,9 @@ function InksPageContent() {
                   </div>
                 </div>
                 <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{t('ink.weightUsed')}</label>
+                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>
+                    {t('ink.weightUsed')} {requiredFieldsBatch.includes('weight') && <span className="text-red-500">*</span>}
+                  </label>
                   <input
                     type="number"
                     value={mixWeight}
@@ -695,6 +942,98 @@ function InksPageContent() {
                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold ${themeConfig.primaryButton}`}
               >
                 {mixStep < 3 ? t('btn.next') : t('ink.printQr')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPermanentDeleteFormula && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setConfirmPermanentDeleteFormula(null)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.deletePermanent') || 'Delete Permanently'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              Are you sure you want to permanently delete formula "{confirmPermanentDeleteFormula}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmPermanentDeleteFormula(null)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handlePermanentDeleteFormula}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emptyFormulaTrashConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setEmptyFormulaTrashConfirm(false)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.emptyTrash') || 'Empty Trash'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              Are you sure you want to empty the formulas trash bin? All deleted formulas will be permanently purged.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEmptyFormulaTrashConfirm(false)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handleEmptyFormulaTrash}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Empty'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPermanentDeleteBatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setConfirmPermanentDeleteBatch(null)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.deletePermanent') || 'Delete Permanently'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              Are you sure you want to permanently delete batch "{confirmPermanentDeleteBatch}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmPermanentDeleteBatch(null)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handlePermanentDeleteBatch}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emptyBatchTrashConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setEmptyBatchTrashConfirm(false)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.emptyTrash') || 'Empty Trash'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              Are you sure you want to empty the batches trash bin? All deleted batches will be permanently purged.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEmptyBatchTrashConfirm(false)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handleEmptyBatchTrash}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Empty'}
               </button>
             </div>
           </div>

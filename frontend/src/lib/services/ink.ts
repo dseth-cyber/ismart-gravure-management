@@ -52,3 +52,30 @@ export async function updateBatch(id: string, data: UpdateInkBatchDto): Promise<
 export async function deleteBatch(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/inks/batches/${id}`);
 }
+
+export async function restoreFormula(code: string): Promise<void> {
+  await apiClient.post(`/api/v1/inks/formulas/${code}/restore`);
+}
+
+export async function permanentDeleteFormula(code: string): Promise<void> {
+  await apiClient.delete(`/api/v1/inks/formulas/${code}/permanent`);
+}
+
+export async function emptyFormulaTrash(): Promise<{ deleted: number }> {
+  const res = await apiClient.delete<ApiResponse<{ deleted: number }>>('/api/v1/inks/formulas/trash/empty');
+  return res.data.data!;
+}
+
+export async function restoreBatch(id: string): Promise<void> {
+  await apiClient.post(`/api/v1/inks/batches/${id}/restore`);
+}
+
+export async function permanentDeleteBatch(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/inks/batches/${id}/permanent`);
+}
+
+export async function emptyBatchTrash(): Promise<{ deleted: number }> {
+  const res = await apiClient.delete<ApiResponse<{ deleted: number }>>('/api/v1/inks/batches/trash/empty');
+  return res.data.data!;
+}
+

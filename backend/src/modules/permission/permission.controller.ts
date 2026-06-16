@@ -36,6 +36,20 @@ export class PermissionController {
     } catch (error) { next(error); }
   }
 
+  // ── Update a permission ──
+  static async updatePermission(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const id = String(req.params.id);
+      const { name, module, action, description } = req.body;
+      if (!name || !module || !action) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'name, module, action are required' } as ApiResponse);
+      }
+      const perm = await PermissionService.updatePermission(id, { name, module, action, description });
+      await AuditService.record(req, 'permission.update', `Updated permission: ${name}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: perm } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
   // ── Get role permissions ──
   static async getRolePermissions(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
@@ -125,6 +139,28 @@ export class PermissionController {
       }
       const scope = await PermissionService.createScope({ type, name, parentId });
       return res.status(201).json({ status: 'success', statusCode: 201, data: scope } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
+  static async updateScope(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const id = String(req.params.id);
+      const { type, name, parentId } = req.body;
+      if (!type || !name) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'type and name required' } as ApiResponse);
+      }
+      const scope = await PermissionService.updateScope(id, { type, name, parentId });
+      await AuditService.record(req, 'scope.update', `Updated scope: ${name}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: scope } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
+  static async deleteScope(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const id = String(req.params.id);
+      await PermissionService.deleteScope(id);
+      await AuditService.record(req, 'scope.delete', `Deleted scope: ${id}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, message: 'Scope deleted' } as ApiResponse);
     } catch (error) { next(error); }
   }
 

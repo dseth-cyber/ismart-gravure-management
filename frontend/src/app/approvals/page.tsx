@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { CheckCircle, XCircle, AlertTriangle, ArrowRight, Shield } from 'lucide-react';
 import { ApiResponse } from '@shared/dto/auth/auth.dto';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface PendingItem {
   id: string;
@@ -28,22 +29,18 @@ export default function ApprovalsPage() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const { user } = useAuth();
-  const [items, setItems] = useState<PendingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: items = [], isLoading: loading } = useQuery<PendingItem[], Error>({
+    queryKey: ['workflows', 'pending'],
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse>('/api/v1/workflows/pending');
+      return res.data.data || [];
+    }
+  });
   const [comment, setComment] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
-
-  const load = async () => {
-    try {
-      const res = await apiClient.get<ApiResponse>('/api/v1/workflows/pending');
-      setItems(res.data.data || []);
-    } catch { /* ignore */ }
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setErrorMsg('');
@@ -53,7 +50,7 @@ export default function ApprovalsPage() {
       await apiClient.post(`/api/v1/workflows/instances/${id}/${action}`, body);
       setComment('');
       setActionId(null);
-      load();
+      queryClient.invalidateQueries({ queryKey: ['workflows', 'pending'] });
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Action failed');
     }

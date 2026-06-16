@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 const roleAssignSchema = z.object({
   permissionId: z.string().min(1),
-  role: z.enum(['superadmin', 'admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer']),
+  role: z.string().min(1, 'role is required'),
 });
 
 const userPermSchema = z.object({
@@ -31,6 +31,7 @@ router.use(requireRoles(['admin']));
 
 // Permissions CRUD (admin)
 router.post('/', PermissionController.createPermission);
+router.put('/:id', PermissionController.updatePermission);
 router.delete('/:id', PermissionController.deletePermission);
 
 // Role-permission mapping
@@ -46,6 +47,8 @@ router.get('/users/:userId', PermissionController.getUserPermissions);
 // Scope management (admin)
 router.get('/scopes', PermissionController.listScopes);
 router.post('/scopes', PermissionController.createScope);
+router.put('/scopes/:id', PermissionController.updateScope);
+router.delete('/scopes/:id', PermissionController.deleteScope);
 router.post('/scopes/assign', PermissionController.assignUserScope);
 router.get('/scopes/user/:userId', PermissionController.getUserScopes);
 

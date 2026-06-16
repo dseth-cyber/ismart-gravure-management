@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
@@ -8,6 +8,7 @@ import { AppButton } from '@/components/shared/app-button';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { apiClient } from '@/lib/api/client';
 import { Send, Plus, Trash2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Template {
   type: string;
@@ -25,25 +26,27 @@ interface Pref {
 export default function NotificationSettingsPage() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [prefs, setPrefs] = useState<Pref[]>([]);
-  const [testResult, setTestResult] = useState('');
-  const [error, setError] = useState('');
-
-  const fetchData = useCallback(async () => {
-    try {
+  const queryClient = useQueryClient();
+  const { data: configData, error: queryError } = useQuery({
+    queryKey: ['notificationsSettings'],
+    queryFn: async () => {
       const [tplRes, prefRes] = await Promise.all([
         apiClient.get('/api/v1/notifications/templates'),
         apiClient.get('/api/v1/notifications/prefs/me'),
       ]);
-      setTemplates(tplRes.data.data || []);
-      setPrefs(prefRes.data.data || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to load notification settings');
+      return {
+        templates: (tplRes.data.data || []) as Template[],
+        prefs: (prefRes.data.data || []) as Pref[],
+      };
     }
-  }, []);
+  });
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const templates = configData?.templates || [];
+  const prefs = configData?.prefs || [];
+
+  const [testResult, setTestResult] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const error = queryError?.message || errorMsg;
 
   const handleTest = async (channel: string) => {
     try {
@@ -58,27 +61,27 @@ export default function NotificationSettingsPage() {
   const handleSaveTemplate = async (tpl: Template) => {
     try {
       await apiClient.post('/api/v1/notifications/templates', tpl);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['notificationsSettings'] });
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to save template');
+      setErrorMsg(err?.response?.data?.message || 'Failed to save template');
     }
   };
 
   const handleDeleteTemplate = async (type: string) => {
     try {
       await apiClient.delete(`/api/v1/notifications/templates/${type}`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['notificationsSettings'] });
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to delete template');
+      setErrorMsg(err?.response?.data?.message || 'Failed to delete template');
     }
   };
 
   const handleTogglePref = async (channel: string, enabled: boolean) => {
     try {
       await apiClient.post('/api/v1/notifications/prefs/me', { channel, enabled });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['notificationsSettings'] });
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to update preference');
+      setErrorMsg(err?.response?.data?.message || 'Failed to update preference');
     }
   };
 

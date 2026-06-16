@@ -38,8 +38,10 @@ export class CylinderService {
     });
   }
 
-  static async list(search?: string, status?: string) {
+  static async list(search?: string, status?: string, showDeleted = false) {
     const filters: any = {};
+
+    filters.deletedAt = showDeleted ? { not: null } : null;
 
     if (status && status !== 'all') {
       filters.status = status as CylinderStatus;
@@ -54,7 +56,7 @@ export class CylinderService {
     }
 
     return prisma.cylinder.findMany({
-      where: Object.keys(filters).length > 0 ? filters : undefined,
+      where: filters,
       orderBy: { id: 'asc' }
     });
   }
@@ -87,8 +89,30 @@ export class CylinderService {
 
   static async delete(id: string) {
     await this.getById(id);
+    return prisma.cylinder.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async restore(id: string) {
+    await this.getById(id);
+    return prisma.cylinder.update({
+      where: { id },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async permanentDelete(id: string) {
+    await this.getById(id);
     return prisma.cylinder.delete({
       where: { id }
+    });
+  }
+
+  static async emptyTrash() {
+    return prisma.cylinder.deleteMany({
+      where: { deletedAt: { not: null } }
     });
   }
 }

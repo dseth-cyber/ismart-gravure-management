@@ -12,12 +12,17 @@ const mfaEnableSchema = z.object({
 const createUserSchema = z.object({
   username: z.string().min(3, 'username must be at least 3 characters'),
   password: z.string().min(8, 'password must be at least 8 characters'),
-  role: z.enum(['superadmin', 'admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer']),
+  role: z.string().min(1, 'role is required'),
+  email: z.string().email('invalid email').optional().nullable(),
 });
 
 const updateUserSchema = z.object({
-  role: z.enum(['superadmin', 'admin', 'sales', 'planner', 'production', 'qc', 'warehouse', 'inkroom', 'viewer']).optional(),
+  username: z.string().min(3, 'username must be at least 3 characters').optional(),
+  email: z.string().email('invalid email').optional().nullable(),
+  role: z.string().min(1).optional(),
   locked: z.boolean().optional(),
+  password: z.string().min(8, 'password must be at least 8 characters').optional(),
+  adminPassword: z.string().min(1, 'admin password is required').optional(),
 });
 
 const mfaVerifySchema = z.object({
@@ -51,8 +56,12 @@ router.get('/mfa/status', requireAuth, AuthController.mfaStatus);
 
 // ── User Management (admin) ──
 router.get('/users', requireAuth, requireRoles(['admin']), AuthController.listUsers);
+router.delete('/users/trash/empty', requireAuth, requireRoles(['admin']), AuthController.emptyUserTrash);
 router.get('/users/:id', requireAuth, requireRoles(['admin']), AuthController.getUser);
 router.post('/users', requireAuth, requireRoles(['admin']), validate(createUserSchema), AuthController.createUser);
 router.put('/users/:id', requireAuth, requireRoles(['admin']), validate(updateUserSchema), AuthController.updateUser);
+router.delete('/users/:id', requireAuth, requireRoles(['admin']), AuthController.deleteUser);
+router.post('/users/:id/restore', requireAuth, requireRoles(['admin']), AuthController.restoreUser);
+router.delete('/users/:id/permanent', requireAuth, requireRoles(['admin']), AuthController.permanentDeleteUser);
 
 export default router;

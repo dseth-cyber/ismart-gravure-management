@@ -174,7 +174,8 @@ export class AuthController {
   // ── User Management (Admin) ──
   static async listUsers(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const users = await AuthService.listUsers();
+      const showDeleted = req.query.showDeleted === 'true';
+      const users = await AuthService.listUsers(showDeleted);
       return res.status(200).json({ status: 'success', statusCode: 200, data: users } as ApiResponse);
     } catch (error) {
       next(error);
@@ -183,7 +184,7 @@ export class AuthController {
 
   static async getUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const user = await AuthService.getUser(req.params.id);
+      const user = await AuthService.getUser(req.params.id as string);
       return res.status(200).json({ status: 'success', statusCode: 200, data: user } as ApiResponse);
     } catch (error) {
       next(error);
@@ -192,8 +193,8 @@ export class AuthController {
 
   static async createUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const { username, password, role } = req.body;
-      const user = await AuthService.createUser(username, password, role);
+      const { username, password, role, email } = req.body;
+      const user = await AuthService.createUser(username, password, role, email);
       await AuditService.record(req, 'user.create', `Admin created user ${username}`, req.user?.userId, req.user?.username);
       return res.status(201).json({ status: 'success', statusCode: 201, data: user } as ApiResponse);
     } catch (error) {
@@ -203,8 +204,8 @@ export class AuthController {
 
   static async updateUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const { role, locked } = req.body;
-      const user = await AuthService.updateUser(req.params.id, { role, locked });
+      const { role, locked, password, username, email, adminPassword } = req.body;
+      const user = await AuthService.updateUser(req.params.id as string, { role, locked, password, username, email, adminPassword, adminId: req.user?.userId });
       await AuditService.record(req, 'user.update', `Admin updated user ${user.username}`, req.user?.userId, req.user?.username);
       return res.status(200).json({ status: 'success', statusCode: 200, data: user } as ApiResponse);
     } catch (error) {
@@ -231,6 +232,46 @@ export class AuthController {
           hasSecret: !!user?.mfaSecret,
         },
       } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const user = await AuthService.deleteUser(req.params.id as string);
+      await AuditService.record(req, 'user.delete', `Admin deleted user ${user.username}`, req.user?.userId, req.user?.username);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: user } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async restoreUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const result = await AuthService.restoreUser(req.params.id as string);
+      await AuditService.record(req, 'user.restore', `Admin restored user ${result.username}`, req.user?.userId, req.user?.username);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: result } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async permanentDeleteUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const result = await AuthService.permanentDeleteUser(req.params.id as string);
+      await AuditService.record(req, 'user.permanent_delete', `Admin permanently deleted user ${result.username}`, req.user?.userId, req.user?.username);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: result } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async emptyUserTrash(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const count = await AuthService.emptyUserTrash();
+      await AuditService.record(req, 'user.empty_trash', `Admin emptied user trash bin. Purged ${count} user(s)`, req.user?.userId, req.user?.username);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { deleted: count } } as ApiResponse);
     } catch (error) {
       next(error);
     }

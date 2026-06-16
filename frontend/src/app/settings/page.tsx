@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { Users, Bell, Settings as SettingsIcon, Shield, KeyRound } from 'lucide-react';
+import { Users, Bell, Settings as SettingsIcon, Shield, KeyRound, ClipboardList } from 'lucide-react';
+import { useAuth } from '@/lib/auth/auth-provider';
 
 const cards = [
   { key: 'userMgt', icon: Users, href: '/settings/users', color: 'from-blue-500 to-indigo-600' },
@@ -12,18 +13,26 @@ const cards = [
   { key: 'notifications', icon: Bell, href: '/settings/notifications', color: 'from-cyan-500 to-teal-500' },
   { key: 'system', icon: SettingsIcon, href: '/settings/system', color: 'from-purple-500 to-pink-500' },
   { key: 'mfa', icon: Shield, href: '/settings/mfa', color: 'from-emerald-500 to-green-600' },
+  { key: 'auditLogs', icon: ClipboardList, href: '/settings/audit', color: 'from-rose-500 to-red-600' },
 ];
 
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
+  const { user } = useAuth();
+
+  const isAdmin = user?.role === 'admin';
+  const visibleCards = cards.filter(c => {
+    if (['userMgt', 'permissions', 'notifications', 'auditLogs'].includes(c.key) && !isAdmin) return false;
+    return true;
+  });
 
   return (
     <AppLayout>
       <div className="grid gap-6">
         <PageHeader titleKey="settings.title" subtitleKey="settings.subtitle" />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => {
+          {visibleCards.map((card) => {
             const Icon = card.icon;
             return (
               <a

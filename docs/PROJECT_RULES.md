@@ -1,6 +1,6 @@
 # Project Rules
 
-Last updated: 2026-06-09
+Last updated: 2026-06-16
 
 These rules are mandatory for all future development of Gravure Management System.
 
@@ -21,6 +21,18 @@ These rules are mandatory for all future development of Gravure Management Syste
 13. Do not create page-specific one-off themes.
 14. If a consolidated backend is used, the frontend calls the backend API directly.
 15. Databases can be shared or split into logical tables/schemas within the same instance.
+16. Access Control & UI Self-Service: All settings, permissions, and data scopes must be fully manageable (created, edited, deleted) directly through the UI without requiring source code modifications or manual database scripts.
+17. Activity Audit Trail: Every primary action (such as Add/Create, Edit/Update, Delete, Login, and Print Label) must be recorded in the system audit logs, capturing the exact operation, operator details, and the client's IP address.
+18. Auto-Pruning Log Retention: The backend must support automated pruning/deletion of old log history once logs exceed the configured retention settings.
+19. Dynamic Form Validation: Form layouts for creating/editing assets must respect dynamic required field settings (covering all input fields in the system), show appropriate validation indicators (such as red asterisks), and enforce validation checks before submission.
+20. Soft-Deletion and Trash Bin (Frontend + Backend): Soft-deleted entities must be relocated to a Trash Bin view to allow users to either restore them or permanently delete them, fully supported on both frontend and backend.
+21. Roadmap & Progress Synchronization: Every time a new module, function, or service is added or updated, it must be synchronized and documented in the Roadmap UI page and all related progress cards (such as Phases, Architecture Baseline, and Control Documents).
+22. Searchable Dropdowns: This project uses ONLY the custom `SearchableSelect` component for all dropdown selects. Native `<select>` elements or other custom select wrappers are strictly prohibited. The search capability must be enabled dynamically when the option count exceeds 5 items. Dynamic rendering rules, localized formatting, and filter-clearing behavior must follow the SearchableSelect guidelines.
+23. Standard List Page Pattern (React Query + Sort + Filter + Trash): All list pages must follow the standardized Next.js React Query pattern for fetching, pagination, filtering, column sorting, soft-deleted trash toggle, and column selection. Do not use local React state + `useEffect` for data fetching. Invalidate react-query cache keys instead of calling fetch functions directly. All styling (tables, inputs, filters) must strictly utilize `themeConfig` tokens.
+24. Dashboard Layout Persistence: Dashboard grid layouts (card positions, sizes, extra cards, hidden cards, chart configurations) must be persisted to the backend database via the `/api/v1/layouts` API. Admin saves the default layout (key: `default`) that all users inherit on first visit. Each user's personal customization is saved under (`user:{userId}`). Reset clears the user's personal entry and falls back to the admin default. This ensures layout consistency across different origins (localhost vs LAN IP) where localStorage is per-origin and cannot be shared.
+25. TLS/HTTPS Enforcement: All external-facing services must be behind a TLS-terminating reverse proxy (Caddy). Internal services (DB, Redis, exporters) must NOT expose ports to the Docker host — they communicate only over Docker internal networks. Cloudflare Tunnel must point to the reverse proxy (TLS), not directly to the backend (HTTP).
+26. Infrastructure Security: Internal services (PostgreSQL, Redis, MinIO, Prometheus, Loki, exporters) must NOT bind to host ports. Redis must always have a password. Grafana admin credentials must come from Docker secrets, never hardcoded. The Docker socket must not be mounted into application containers.
+
 
 ## Frontend Rules
 
@@ -214,3 +226,4 @@ Before marking a phase or feature done, verify:
 - Auth-protected API calls use shared axios client.
 - Backend service does not share database with another service.
 - Docker or environment changes are documented.
+- Standard List Page pattern (React Query + Sort + Filter + Trash) followed.

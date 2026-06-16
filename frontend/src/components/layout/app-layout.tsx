@@ -31,7 +31,8 @@ import {
   FlaskConical,
   Clock,
   ShieldCheck,
-  GitBranch
+  GitBranch,
+  Search
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme/theme-provider';
 import type { ThemeName } from '@/lib/theme/theme-config';
@@ -99,6 +100,7 @@ const MENU = [
       { key: 'userMgt', labelKey: 'nav.userMgt', href: '/settings/users', icon: User },
       { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield },
       { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell },
+      { key: 'auditLogs', labelKey: 'settings.auditLogs', href: '/settings/audit', icon: History },
     ] 
   },
   {
@@ -181,6 +183,71 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     listNotifications().then(setNotifications).catch(() => {});
+  }, []);
+
+  // Custom event listener to capture local label printing events and log them
+  useEffect(() => {
+    const handlePrintEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      let details = 'Printed labels';
+      if (customEvent.detail) {
+        if (typeof customEvent.detail === 'string') {
+          details = customEvent.detail;
+        } else if (typeof customEvent.detail === 'object') {
+          const { type, data } = customEvent.detail;
+          if (type && data) {
+            const idVal = data.id || data.serialNumber || data.batchNumber || data.code || '';
+            details = `Printed label for ${type}: ${idVal}`;
+          } else {
+            details = JSON.stringify(customEvent.detail);
+          }
+        }
+      }
+      import('@/lib/services/audit').then(({ createAuditLog }) => {
+        createAuditLog('print.label', details).catch(err => console.error('Failed to log print audit', err));
+      });
+    };
+    window.addEventListener('print-label', handlePrintEvent);
+    return () => window.removeEventListener('print-label', handlePrintEvent);
+  }, []);
+
+  // Global Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Debounced search logic
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults(null);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const { globalSearch } = await import('@/lib/services/search');
+        const res = await globalSearch(searchQuery);
+        setSearchResults(res);
+      } catch (err) {
+        console.error('Global search error', err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   useRealtimeEvent('notification:alerts', (data: AlertNotification[]) => {
@@ -330,6 +397,69 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Right tools and settings */}
         <div className="flex items-center gap-2">
+          {/* Global Search Input Box */}
+          <div className="relative mr-2" ref={searchContainerRef}>
+            <div className="relative flex items-center">
+              <Search size={14} className="absolute left-2.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder={t('common.searchPlaceholder') || 'Search everything...'}
+                value={searchQuery}
+                onFocus={() => setSearchFocused(true)}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-48 md:w-64 rounded-full border pl-8 pr-3 py-1 text-xs outline-none transition-all duration-200 ${
+                  searchFocused 
+                    ? 'w-64 md:w-80 border-indigo-500 bg-white/10 text-white' 
+                    : 'border-white/10 bg-white/5 text-gray-300'
+                }`}
+              />
+            </div>
+
+            {searchFocused && (searchResults || searchLoading) && (
+              <div className={`absolute right-0 top-full mt-1.5 rounded-xl min-w-[320px] max-w-[450px] max-h-[400px] overflow-y-auto z-50 border shadow-2xl p-2 ${themeConfig.dialog}`}>
+                {searchLoading ? (
+                  <div className="px-3 py-4 text-center text-xs text-gray-400">Loading...</div>
+                ) : (
+                  Object.keys(searchResults || {}).every(key => searchResults[key].length === 0) ? (
+                    <div className="px-3 py-4 text-center text-xs text-gray-500">No results found</div>
+                  ) : (
+                    Object.entries(searchResults || {}).map(([category, items]: [string, any]) => {
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={category} className="mb-2 last:mb-0">
+                          <div className="px-2 py-1 text-[10px] font-bold text-indigo-400 uppercase tracking-wider border-b border-white/5">
+                            {category === 'cylinders' ? (t('menu.cylinders') || 'Cylinders') :
+                             category === 'products' ? (t('menu.products') || 'Products') :
+                             category === 'customers' ? (t('menu.customers') || 'Customers') :
+                             category === 'inkFormulas' ? (t('ink.formulas') || 'Ink Formulas') :
+                             category === 'jobs' ? (t('menu.jobs') || 'Production Jobs') :
+                             category}
+                          </div>
+                          <div className="mt-1 space-y-0.5">
+                            {items.map((item: any) => (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  router.push(item.link);
+                                  setSearchFocused(false);
+                                  setSearchQuery('');
+                                }}
+                                className="w-full text-left px-2 py-1.5 rounded-lg transition hover:bg-white/5 flex flex-col"
+                              >
+                                <span className="text-xs font-bold text-white">{item.title}</span>
+                                <span className="text-[10px] text-gray-400 mt-0.5">{item.subtitle}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Notifications bell */}
           <div className="relative" ref={notifRef}>
             <button
@@ -458,7 +588,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   <p className="text-[10px] text-gray-400 truncate mt-0.5">{t(`role.${userRole}`)}</p>
                 </div>
                 <Link
-                  href="/settings/system"
+                  href="/settings"
                   onClick={() => setShowRoleMenu(false)}
                   className={`w-full px-3 py-2 text-left text-xs font-bold transition flex items-center gap-2 ${themeConfig.textSecondary} ${themeConfig.panelHover}`}
                 >
@@ -515,7 +645,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Menus lists */}
           <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1" aria-label={t('nav.main')}>
             {(() => {
-              const orderedMenu = [...MENU].sort((a, b) => {
+              const isAdmin = user?.role === 'admin';
+              const filteredMenu = MENU.filter(group => {
+                if (group.key === 'system' && !isAdmin) return false;
+                return true;
+              });
+              const orderedMenu = [...filteredMenu].sort((a, b) => {
                 return menuOrder.indexOf(a.key) - menuOrder.indexOf(b.key);
               });
               return orderedMenu.map(group => {

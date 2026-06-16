@@ -40,6 +40,23 @@ export async function getVerification(jobNumber: string): Promise<JobVerificatio
   return res.data.data!;
 }
 
+export async function deleteJob(jobNumber: string): Promise<void> {
+  await apiClient.delete(`/api/v1/jobs/${jobNumber}`);
+}
+
+export async function restoreJob(jobNumber: string): Promise<void> {
+  await apiClient.post(`/api/v1/jobs/${jobNumber}/restore`);
+}
+
+export async function permanentDeleteJob(jobNumber: string): Promise<void> {
+  await apiClient.delete(`/api/v1/jobs/${jobNumber}/permanent`);
+}
+
+export async function emptyJobTrash(): Promise<{ deleted: number }> {
+  const res = await apiClient.delete<ApiResponse<{ deleted: number }>>('/api/v1/jobs/trash/empty');
+  return res.data.data!;
+}
+
 export async function getJobLogs(jobNumber: string): Promise<ProductionLogDto[]> {
   const res = await apiClient.get<ApiResponse<ProductionLogDto[]>>(`/api/v1/jobs/${jobNumber}/logs`);
   return res.data.data!;

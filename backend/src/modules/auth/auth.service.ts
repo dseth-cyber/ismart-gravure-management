@@ -74,7 +74,7 @@ export class AuthService {
   static async login(username: string, password: string) {
     const user = await prisma.user.findUnique({ where: { username } });
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       throw new AppError('Invalid username or password', 400);
     }
 
@@ -267,15 +267,18 @@ export class AuthService {
   }
 
   // ── User Management (Admin) ──
-  static async listUsers() {
+  static async listUsers(showDeleted = false) {
     return prisma.user.findMany({
+      where: { deletedAt: showDeleted ? { not: null } : null },
       select: {
         id: true,
         username: true,
+        email: true,
         role: true,
         mfaEnabled: true,
         failedLoginAttempts: true,
         lockedUntil: true,
+        deletedAt: true,
         createdAt: true,
         updatedAt: true,
         lastPasswordChange: true,
@@ -290,6 +293,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        email: true,
         role: true,
         mfaEnabled: true,
         failedLoginAttempts: true,
@@ -303,28 +307,46 @@ export class AuthService {
     return user;
   }
 
-  static async createUser(username: string, password: string, role: string) {
+  static async createUser(username: string, password: string, role: string, email?: string | null) {
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing) throw new AppError('Username already exists', 409);
     this.validatePassword(password);
     const passwordHash = await bcrypt.hash(password, 12);
     return prisma.user.create({
-      data: { username, passwordHash, role: role as any },
-      select: { id: true, username: true, role: true, createdAt: true },
+      data: { username, email: email || null, passwordHash, role: role as any },
+      select: { id: true, username: true, email: true, role: true, createdAt: true },
     });
   }
 
-  static async updateUser(id: string, data: { role?: string; locked?: boolean }) {
+  static async updateUser(id: string, data: { role?: string; locked?: boolean; password?: string; username?: string; email?: string | null; adminPassword?: string; adminId?: string }) {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new AppError('User not found', 404);
+    if (data.adminPassword) {
+      if (!data.adminId) throw new AppError('Admin authentication required', 400);
+      const admin = await prisma.user.findUnique({ where: { id: data.adminId } });
+      if (!admin) throw new AppError('Admin not found', 404);
+      const valid = await bcrypt.compare(data.adminPassword, admin.passwordHash);
+      if (!valid) throw new AppError('Admin password is incorrect', 403);
+    }
+    if (data.username && data.username !== user.username) {
+      const existing = await prisma.user.findUnique({ where: { username: data.username } });
+      if (existing) throw new AppError('Username already taken', 409);
+    }
     const updateData: any = {};
+    if (data.username) updateData.username = data.username;
+    if (data.email !== undefined) updateData.email = data.email;
     if (data.role) updateData.role = data.role;
     if (data.locked === true) updateData.lockedUntil = new Date('2099-12-31');
     if (data.locked === false) updateData.lockedUntil = null;
+    if (data.password) {
+      updateData.passwordHash = await bcrypt.hash(data.password, 12);
+      updateData.passwordHistory = [user.passwordHash];
+      updateData.lastPasswordChange = new Date();
+    }
     return prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, username: true, role: true, lockedUntil: true, updatedAt: true },
+      select: { id: true, username: true, email: true, role: true, lockedUntil: true, updatedAt: true },
     });
   }
 
@@ -334,6 +356,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        email: true,
         role: true,
         mfaEnabled: true,
         createdAt: true,
@@ -345,5 +368,51 @@ export class AuthService {
     });
     if (!user) throw new AppError('User not found', 404);
     return user;
+  }
+
+  static async deleteUser(id: string) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) throw new AppError('User not found', 404);
+    return prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: { id: true, username: true }
+    });
+  }
+
+  static async restoreUser(id: string) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) throw new AppError('User not found', 404);
+    return prisma.user.update({
+      where: { id },
+      data: { deletedAt: null },
+      select: { id: true, username: true }
+    });
+  }
+
+  static async permanentDeleteUser(id: string) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) throw new AppError('User not found', 404);
+    await prisma.userPermission.deleteMany({ where: { userId: id } });
+    await prisma.userScope.deleteMany({ where: { userId: id } });
+    await prisma.refreshToken.deleteMany({ where: { userId: id } });
+    await prisma.user.delete({ where: { id } });
+    return { id, username: user.username };
+  }
+
+  static async emptyUserTrash() {
+    const deletedUsers = await prisma.user.findMany({
+      where: { deletedAt: { not: null } },
+      select: { id: true }
+    });
+    const ids = deletedUsers.map(u => u.id);
+    if (ids.length > 0) {
+      await prisma.userPermission.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.userScope.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.refreshToken.deleteMany({ where: { userId: { in: ids } } });
+      const { count } = await prisma.user.deleteMany({ where: { id: { in: ids } } });
+      return count;
+    }
+    return 0;
   }
 }

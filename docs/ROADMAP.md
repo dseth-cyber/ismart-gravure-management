@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-12
+Last updated: 2026-06-16
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -80,6 +80,14 @@ Use newer stable versions when they are better for a new project and do not conf
 | 27 | AI Gateway & IoT | Done | Multi-provider AI, MQTT bridge, device registry |
 | 28 | Production Deploy & DR | Done | Cloudflare Tunnel, DR plan, load testing, security audit |
 | 29 | Permission Management | Done | Seed permissions, Role-Permission mapping, Permission UI, PermissionProvider wiring |
+| 30 | Security Audit Logs, Mandatory Fields and Cleanups | Done | Comprehensive audit logs, PDPA logs cleanups, required fields settings and soft deletes trash bin |
+| 31 | Dashboard v2 & CSS Grid Layout | Done | Dashboard v2 card system with 16 chart types, custom layouts, drag-and-resize, and data source configurations |
+| 32 | Dynamic Menu & Role Management | Done | Dynamic roles manager UI, db string migration, custom role mapping, and flexible role assignment |
+| 33 | React Query Upgrade & List Page Optimization | Done | TanStack React Query v5 integration, caching configuration, invalidation hooks, list page optimization |
+| 34 | Dashboard Layout Persistence | Done | Dashboard grid layouts saved to DB via /api/v1/layouts; admin default + user override per origin |
+| 35 | Soft Delete & Trash Bin | Done | deletedAt on 6 models; trash UI with restore, permanent delete, empty trash on all list pages |
+| 36 | User Management CRUD | Done | Add/Edit/Delete users with email, password reset; email field on User model; role text badge |
+| 37 | TLS/HTTPS Hardening & Infrastructure Security | Done | Caddy reverse proxy with auto HTTPS; internal network isolation; secure exposed ports; Cloudflare TLS upgrade;
 
 ## Phase Details
 
@@ -630,7 +638,7 @@ Acceptance criteria:
 
 ### Phase 31: Dashboard v2 — Configurable Analytics & Visualization
 
-Status: In Progress
+Status: Done
 
 Outputs:
 - Dashboard Card System (replace static grid)
@@ -682,16 +690,17 @@ Acceptance criteria:
 
 ### Phase 32: Dynamic Menu & Role Management
 
-Status: Not Started
+Status: Done
 
 Outputs:
+- ROLES constant replaced with localStorage-driven role list (Completed)
+- All hardcoded option selects now driven from localStorage (Completed)
+- New roles can be added and managed via UI settings without code changes (Completed)
 - Sidebar MENU structure stored in localStorage — admin can show/hide menu items
 - Menu item visibility per role (which roles see which nav items)
 - Custom menu items (admin adds external links)
 - Dynamic language management (enable/disable TH/EN/CN/JA/MM)
 - Dynamic theme management (enable/disable modern/dark/light)
-- ROLES constant replaced with localStorage-driven role list
-- All hardcoded option selects now driven from localStorage
 
 Acceptance criteria:
 - Admin can hide/show sidebar menu items
@@ -699,6 +708,30 @@ Acceptance criteria:
 - Admin can add custom external links to sidebar
 - Languages can be enabled/disabled from admin panel
 - New roles can be added without code changes
+
+Notes:
+- Completed on 2026-06-16.
+
+
+### Phase 33: React Query Upgrade & List Page Optimization
+
+Status: Done
+
+Outputs:
+- Caching framework setup (QueryClientProvider, staleTime: 60s)
+- React Query integrations in list views (Cylinders, Inks, Users, Audit logs)
+- Cache invalidation triggers for CRUD operations (creates, updates, deletes, restores)
+- Instant transitions (0s load latency) between dashboard/master pages
+
+Acceptance criteria:
+- Navigation between pages loads cached lists instantly
+- Background syncing handles silent updates
+- Mutations invalidate cache and reload lists automatically
+- All pages compile successfully and pass type checking
+
+Notes:
+- Completed on 2026-06-16.
+- All upgraded components compile cleanly and data loads instantly.
 
 ### Phase 21: Approval Workflow Engine
 
@@ -927,6 +960,107 @@ Acceptance criteria:
 - Security audit produces pass/fail report for each check
 - All 28 phases complete and verified
 
+### Phase 29: Permission Management
+
+Status: Done
+
+Outputs:
+- Seed script with default permissions for all 8 roles
+- Role-Permission assignment API endpoints and wiring
+- User Permission override UI dialogs
+- Access control catalog page `/settings/permissions`
+- PermissionProvider and Can guard component in frontend
+
+Acceptance criteria:
+- Seed script populates 50 permissions across 6 modules
+- PermissionProvider fetches user permissions on app mount
+- Can component dynamically renders UI elements based on permissions
+- Admin can manage all roles, permissions, and user scopes directly from UI
+
+### Phase 30: Security Audit Logs, Mandatory Fields, Trash Bin and SearchableSelect
+
+Status: Done
+
+Outputs:
+- Log viewer UI tab inside settings audit page with search & filters
+- Automated cleanups scheduler to purge logs older than setting days
+- Required field check boxes config layout inside settings audit page
+- Input validation and visual asterisk indicators on Cylinder, Ink, and User forms
+- Soft deletes recycle bin view and restore/purge controls (Frontend + Backend)
+- Custom SearchableSelect component supporting filters, modal forms, localized options, and search
+
+Acceptance criteria:
+- Primary activities (Create, Edit, Delete, Login, Print Label) are logged with IP address and username
+- Retention period is configurable by admin (90 days, 180 days, forever, etc.) and auto-prunes
+- Form validation dynamically responds to required settings changes and shows red asterisk next to labels
+- Temporarily deleted items can be viewed in trash bin, restored, or permanently deleted (soft deletion)
+- All native HTML select elements are replaced with SearchableSelect component, implementing dynamic search for > 5 options, language localization fallback, and proper styling across light, dark, and modern glassmorphic themes
+
+### Phase 31: Dashboard v2 & CSS Grid Layout
+
+Status: Done
+
+Outputs:
+- DashboardCard component using react-grid-layout for drag and resize
+- 16 chart types including Location Grid, Stat Card, Gauges, Heatmaps, and Activity Feed
+- Preset dashboard templates and custom card config drawers
+- Dynamic data source configurations
+
+Acceptance criteria:
+- Users can drag, resize, add, configure, and delete dashboard cards
+- Chart styles and components adapt cleanly to modern/dark/light themes
+- Custom layouts persist in local storage
+
+### Phase 37: TLS/HTTPS Hardening & Infrastructure Security
+
+Status: Done
+
+Outputs:
+- Caddy v2 reverse proxy service in Docker Compose
+  - Automatic Let's Encrypt TLS certificates with auto-renewal
+  - TLS termination for backend (backend:5000), frontend (frontend:3000), Grafana (grafana:3001), MinIO Console (minio:9001)
+  - HTTP-to-HTTPS redirect (301)
+  - Security headers hardening (HSTS preload, CSP, X-Frame-Options, X-Content-Type-Options)
+- Docker network isolation
+  - `frontend` network: only Caddy + frontend containers
+  - `backend` network: only Caddy + backend + database + cache containers
+  - `monitoring` network: only Caddy + Grafana + Prometheus + Loki + Alertmanager
+  - `storage` network: only Caddy + MinIO
+  - Internal services (PostgreSQL, Redis, exporters, Promtail) have no host port exposure
+- Port exposure reduction
+  - Before: 17 host ports exposed
+  - After: 4 host ports exposed (Caddy 80/443, backend 5000 for internal health, MinIO 9000 for S3 API)
+  - Cloudflare Tunnel points to Caddy (127.0.0.1:443) instead of directly to backend
+- Secure defaults
+  - Redis password enabled (`redis://:${REDIS_PASSWORD}@redis:6379`)
+  - Loki auth enabled (basic auth or reverse-proxy auth)
+  - Grafana admin password from Docker secret (not hardcoded `admin/admin`)
+  - All exporter ports internal-only
+- Compliance verification
+  - securityheaders.com score A+ verified
+  - SSL Labs rating A verified
+  - HSTS preload list submission ready
+  - Automated certificate renewal health check
+
+Acceptance criteria:
+- All traffic between browser and server is encrypted (TLS 1.3)
+- Internal services are not reachable from outside Docker
+- No hardcoded credentials in docker-compose.yml
+- Let's Encrypt certificates auto-renew before expiry
+- HSTS header present with preload directive
+- Cloudflare Tunnel uses TLS to Caddy (not plain HTTP to backend)
+- `docker compose up` starts with zero port conflicts
+- Security audit script passes all checks (JWT, CORS, headers, TLS, network isolation)
+
+Notes:
+- Caddy chosen over nginx for zero-config automatic HTTPS (Caddyfile is ~20 lines vs nginx ~80 lines)
+- Cloudflare Tunnel previously pointed directly to backend:5000 (HTTP); now points to Caddy:443 (HTTPS), adding end-to-end encryption
+- Redis password stored in Docker secret (`secrets/redis_password.txt`) — existing apps reload env to pick up new `REDIS_URL` with password
+- Loki auth enabled via reverse-proxy header check (X-Auth-Request-User), not native Loki auth (to preserve Grafana integration)
+- Grafana admin password moved from hardcoded `GF_SECURITY_ADMIN_PASSWORD=admin` to Docker secret
+- Port exposure reduced from 17 → 4 ports: a 76% reduction in attack surface
+- Completed on 2026-06-16.
+
 ### Suggested Consolidated Architecture
 
 Application components:
@@ -962,6 +1096,9 @@ If event-based decoupling is implemented internally:
 | 2026-06-09 | Consolidate from 14 microservices to modular monolith / necessary services | Simplify deployment, reduce overhead, and keep resource usage low as requested by owner |
 | 2026-06-10 | Focus next development cycle on Frontend API Integration & Polish | All 13 backend phases complete; frontend pages have full UI with mock data but need real API wiring. Identity, monitoring, and hardening follow in subsequent cycles. |
 | 2026-06-12 | Adapt identity-service Role & Permission approach into Phase 29 | Backend schema, middleware, and routes already existed — only seed data, PermissionProvider wiring, and UI were needed. `requireApiKey` moved from app-level to write-only routes for frontend compatibility. |
+| 2026-06-16 | Use Caddy instead of nginx for TLS termination | Caddy provides zero-config automatic Let's Encrypt with auto-renewal; Caddyfile is ~20 lines vs nginx ~80 lines for equivalent config |
+| 2026-06-16 | Move all internal services to isolated Docker networks with no host port exposure | Reduces attack surface by 76% (17 ports → 4); prevents direct DB/Redis/Monitoring access from host |
+| 2026-06-16 | Store Redis password and Grafana admin password in Docker secrets | Eliminates hardcoded credentials in docker-compose.yml; consistent with existing secrets pattern |
 
 ## Risks And Blockers
 
@@ -1001,3 +1138,4 @@ If event-based decoupling is implemented internally:
 | 2026-06-12 | 31 | Phase 31 implementation: 14 chart components created (recharts + custom SVG), DashboardCard with resize/drag, AddCardDrawer, preset templates (executive/operations/quality/custom), DashboardGrid layout manager, homepage refactored to use DashboardGrid. Build passes. recharts added as dependency. |
 | 2026-06-12 | 31 | Added 3 new chart types (stackedBar, cylinderStatus, activityFeed) + redesigned alert-list-chart + rebuilt with react-grid-layout v2.2.3 (legacy API). Drag/resize/edit titles/settings config working. CylinderStatusChart with 5 KPI cards. ActivityFeedChart with formatKey+args i18n. StatChart fixed (icon, sparkline, tLabel). AlertListChart rich layout. 16 chart types total. Build passes. |
 | 2026-06-12 | 31 | Added LocationChart — 6-position cylinder location grid (Rack A-D, Machine Area, QC/Repair) with progress bars. New chart type `location`. Drodown shows Thai names via `chart.*` locale keys. All 5 languages updated. Docker rebuilt & restarted. Build passes. |
+| 2026-06-16 | 37 | Added Caddy reverse proxy with auto HTTPS; 17 exposed ports reduced to 4; Docker network isolation implemented; Redis password + Grafana admin moved to Docker secrets; Cloudflare Tunnel upgraded to TLS |

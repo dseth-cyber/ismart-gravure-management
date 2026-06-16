@@ -28,6 +28,7 @@ export class JobController {
           plannedDate: result.plannedDate.toISOString(),
           status: result.status as any,
           totalPrinted: result.totalPrinted,
+          deletedAt: result.deletedAt ? result.deletedAt.toISOString() : null,
           createdAt: result.createdAt.toISOString(),
           updatedAt: result.updatedAt.toISOString()
         }
@@ -40,7 +41,8 @@ export class JobController {
 
   static async list(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
-      const jobs = await JobService.list();
+      const showDeleted = req.query.showDeleted === 'true';
+      const jobs = await JobService.list(showDeleted);
       const data: ProductionJobDto[] = jobs.map(j => ({
         id: j.id,
         jobNumber: j.jobNumber,
@@ -50,6 +52,7 @@ export class JobController {
         plannedDate: j.plannedDate.toISOString(),
         status: j.status as any,
         totalPrinted: j.totalPrinted,
+        deletedAt: j.deletedAt ? j.deletedAt.toISOString() : null,
         createdAt: j.createdAt.toISOString(),
         updatedAt: j.updatedAt.toISOString()
       }));
@@ -80,10 +83,76 @@ export class JobController {
           plannedDate: result.plannedDate.toISOString(),
           status: result.status as any,
           totalPrinted: result.totalPrinted,
+          deletedAt: result.deletedAt ? result.deletedAt.toISOString() : null,
           createdAt: result.createdAt.toISOString(),
           updatedAt: result.updatedAt.toISOString()
         }
       };
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      await JobService.delete(req.params.jobNumber as string);
+      await AuditService.record(req, 'production_job.delete', `Deleted production job ${req.params.jobNumber}`);
+      const response: ApiResponse = {
+        status: 'success',
+        statusCode: 200,
+        message: 'Moved to trash'
+      };
+      emitEvent('dashboard:refresh', { type: 'job:deleted', jobNumber: req.params.jobNumber });
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async restore(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const result = await JobService.restore(req.params.jobNumber as string);
+      await AuditService.record(req, 'production_job.restore', `Restored production job ${result.jobNumber}`);
+      const response: ApiResponse = {
+        status: 'success',
+        statusCode: 200,
+        message: 'Restored'
+      };
+      emitEvent('dashboard:refresh', { type: 'job:restored', jobNumber: result.jobNumber });
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async permanentDelete(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      await JobService.permanentDelete(req.params.jobNumber as string);
+      await AuditService.record(req, 'production_job.permanent_delete', `Permanently deleted production job ${req.params.jobNumber}`);
+      const response: ApiResponse = {
+        status: 'success',
+        statusCode: 200,
+        message: 'Permanently deleted'
+      };
+      emitEvent('dashboard:refresh', { type: 'job:permanentDeleted', jobNumber: req.params.jobNumber });
+      return res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async emptyTrash(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { count } = await JobService.emptyTrash();
+      await AuditService.record(req, 'production_job.empty_trash', `Emptied production job trash bin. Purged ${count} job(s)`);
+      const response: ApiResponse = {
+        status: 'success',
+        statusCode: 200,
+        data: { deleted: count },
+        message: 'Trash emptied successfully'
+      };
+      emitEvent('dashboard:refresh', { type: 'job:emptyTrash' });
       return res.status(200).json(response);
     } catch (error) {
       next(error);
@@ -97,7 +166,7 @@ export class JobController {
       // Record audit log
       await AuditService.record(req, 'production_job.update_status', `Updated Production Job ${result.jobNumber} status to ${result.status}`);
 
-      emitEvent('job:status', { jobNumber: result.jobNumber, status: result.status });
+      emitEvent('job:status', { jobNumber:         result.jobNumber, status: result.status });
       emitToJob(result.jobNumber, 'job:status', { jobNumber: result.jobNumber, status: result.status });
 
       const response: ApiResponse<ProductionJobDto> = {
@@ -112,6 +181,7 @@ export class JobController {
           plannedDate: result.plannedDate.toISOString(),
           status: result.status as any,
           totalPrinted: result.totalPrinted,
+          deletedAt: result.deletedAt ? result.deletedAt.toISOString() : null,
           createdAt: result.createdAt.toISOString(),
           updatedAt: result.updatedAt.toISOString()
         }

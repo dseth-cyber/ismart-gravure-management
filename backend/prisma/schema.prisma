@@ -8,18 +8,6 @@ generator client {
   previewFeatures = ["multiSchema"]
 }
 
-enum Role {
-  admin
-  sales
-  planner
-  production
-  qc
-  warehouse
-  inkroom
-  viewer
-
-  @@schema("auth")
-}
 
 model User {
   id                String   @id @default(uuid())
@@ -29,18 +17,21 @@ model User {
   lastPasswordChange DateTime? @default(now())
   failedLoginAttempts Int     @default(0)
   lockedUntil       DateTime?
-  role              Role
+  role              String
+  email             String?
   mfaSecret         String?
   mfaEnabled        Boolean  @default(false)
   mfaBackupCodes    String[]
   ldapDn            String?
   ldapGroups        String[]
+  deletedAt         DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   sessions        RefreshToken[]
   userPermissions UserPermission[]
   userScopes      UserScope[]
+  @@index([deletedAt])
   @@schema("auth")
   @@map("users")
 }
@@ -61,7 +52,7 @@ model Permission {
 
 model RolePermission {
   id           String     @id @default(uuid())
-  role         Role
+  role         String
   permissionId String
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
@@ -123,14 +114,26 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@schema("auth")
+  @@map("system_settings")
+}
+
 model Customer {
   id          String   @id @default(uuid())
   code        String   @unique
   name        String
   contactInfo String?
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([deletedAt])
   @@schema("inventory")
   @@map("customers")
 }
@@ -140,9 +143,11 @@ model Product {
   code         String   @unique
   name         String
   customerCode String
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([deletedAt])
   @@schema("inventory")
   @@map("products")
 }
@@ -169,9 +174,11 @@ model Cylinder {
   lastUsed    DateTime?
   type        String         @default("Dedicated")
   size        String
+  deletedAt   DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  @@index([deletedAt])
   @@schema("inventory")
   @@map("cylinders")
 }
@@ -193,9 +200,11 @@ model InkFormula {
   viscosity   String
   labTarget   String
   solvent     String
+  deletedAt   DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
+  @@index([deletedAt])
   @@schema("inventory")
   @@map("ink_formulas")
 }
@@ -219,9 +228,11 @@ model InkBatch {
   remaining   Float
   operator    String
   status      InkBatchStatus @default(active)
+  deletedAt   DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  @@index([deletedAt])
   @@schema("inventory")
   @@map("ink_batches")
 }
@@ -246,9 +257,11 @@ model SalesOrder {
   unit         String
   dueDate      DateTime
   status       String   @default("pending")
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([deletedAt])
   @@schema("sales")
   @@map("sales_orders")
 }
@@ -262,9 +275,11 @@ model ProductionJob {
   plannedDate  DateTime
   status       JobStatus @default(pending)
   totalPrinted Float     @default(0)
+  deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  @@index([deletedAt])
   @@schema("production")
   @@map("production_jobs")
 }
@@ -319,8 +334,10 @@ model QcInspection {
   adhesionPassed      Boolean
   status              QcStatus @default(pass)
   remarks             String?
+  deletedAt           DateTime?
   createdAt           DateTime @default(now())
 
+  @@index([deletedAt])
   @@schema("production")
   @@map("qc_inspections")
 }
@@ -402,9 +419,11 @@ model NotificationTemplate {
   channels  String[] // ["email", "websocket", "line", "telegram"]
   language  String   @default("en")
   active    Boolean  @default(true)
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([deletedAt])
   @@schema("notify")
   @@map("notification_templates")
 }

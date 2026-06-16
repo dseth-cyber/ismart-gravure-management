@@ -2,14 +2,17 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X, Printer } from 'lucide-react';
+import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X, Printer, Trash2, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { listCylinders, createCylinder, updateCylinder } from '@/lib/services/cylinder';
+import { listCylinders, createCylinder, updateCylinder, restoreCylinder, permanentDeleteCylinder, emptyCylinderTrash, deleteCylinder } from '@/lib/services/cylinder';
+import { ConfirmDialog } from '@/components/shared/app-dialog';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import type { CylinderDto } from '@shared/dto/cylinder/cylinder.dto';
 
 interface CylinderDisplay extends CylinderDto {
@@ -55,6 +58,7 @@ function CylindersPageContent() {
   const { themeConfig } = useTheme();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const tabParam = searchParams.get('tab') || 'list';
   const statusParam = searchParams.get('status');
@@ -90,9 +94,21 @@ function CylindersPageContent() {
     router.replace(`/cylinders?tab=${tab}`);
   };
 
-  const [cylinders, setCylinders] = useState<CylinderDisplay[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // Trash states
+  const [showTrash, setShowTrash] = useState(false);
+  
+  // React Query fetching
+  const { data: cylinders = [], isLoading: loading, error: queryError, refetch } = useQuery<CylinderDisplay[]>({
+    queryKey: ['cylinders', showTrash],
+    queryFn: () => listCylinders({ showDeleted: showTrash ? 'true' : 'false' }),
+  });
+  const error = queryError ? (queryError.message || 'Failed to load cylinders') : '';
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [permanentDeleteConfirmOpen, setPermanentDeleteConfirmOpen] = useState(false);
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<string | null>(null);
+  const [emptyTrashConfirmOpen, setEmptyTrashConfirmOpen] = useState(false);
 
   // Filter states
   const [view, setView] = useState<'table' | 'card'>('table');
@@ -108,21 +124,71 @@ function CylindersPageContent() {
 
   // Add Form state
   const [form, setForm] = useState({ id: '', product: '', customer: '', color: 'BK', type: 'Dedicated', size: '', location: '' });
+  
+  const [requiredFields, setRequiredFields] = useState<string[]>([]);
+  const [validationError, setValidationError] = useState('');
 
-  const fetchCylinders = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await listCylinders();
-      setCylinders(data);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load cylinders');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    const loadRequired = async () => {
+      try {
+        const { listSettings } = await import('@/lib/services/setting');
+        const dbSettings = await listSettings();
+        const setting = dbSettings.find(s => s.key === 'requiredFields.cylinder');
+        if (setting) {
+          setRequiredFields(JSON.parse(setting.value));
+        }
+      } catch (e) {
+        console.error('Failed to load required fields settings', e);
+      }
+    };
+    loadRequired();
   }, []);
 
-  useEffect(() => { fetchCylinders(); }, [fetchCylinders]);
+  const handleDeleteCylinder = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteCylinder(deleteTarget);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleRestoreCylinder = async (id: string) => {
+    try {
+      await restoreCylinder(id);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  const handlePermanentDeleteCylinder = async () => {
+    if (!permanentDeleteTarget) return;
+    try {
+      await permanentDeleteCylinder(permanentDeleteTarget);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setPermanentDeleteConfirmOpen(false);
+      setPermanentDeleteTarget(null);
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    try {
+      await emptyCylinderTrash();
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setEmptyTrashConfirmOpen(false);
+    }
+  };
 
   useEffect(() => {
     const handler = (e: Event) => setPrintTarget((e as CustomEvent).detail as any);
@@ -148,9 +214,23 @@ function CylindersPageContent() {
   };
 
   const handleSaveCylinder = async () => {
+    const missing: string[] = [];
+    requiredFields.forEach(field => {
+      const val = field === 'productCode' ? form.product : (form as any)[field];
+      if (!val || val.trim() === '') {
+        missing.push(field);
+      }
+    });
+
+    if (missing.length > 0) {
+      setValidationError(`${t('common.requiredFieldsMissing') || 'Required fields missing'}: ${missing.map(f => t(`col.${f}`) || t(`cylinder.${f}`) || f).join(', ')}`);
+      return;
+    }
+    setValidationError('');
+
     const colorNameMap: Record<string, string> = { BK: 'Black', CY: 'Cyan', MG: 'Magenta', YL: 'Yellow', WH: 'White', VN: 'Varnish', FL: 'Flavor' };
     try {
-      const newCyl = await createCylinder({
+      await createCylinder({
         id: form.id || `CYL-${form.color}-${Math.floor(100 + Math.random() * 900)}`,
         productCode: form.product || 'UNKNOWN-001',
         color: form.color,
@@ -159,18 +239,19 @@ function CylindersPageContent() {
         type: form.type,
         size: form.size || '800×250',
       });
-      setCylinders(prev => [newCyl, ...prev]);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
       setShowAdd(false);
       setForm({ id: '', product: '', customer: '', color: 'BK', type: 'Dedicated', size: '', location: '' });
     } catch (err: any) {
       console.error('Failed to create cylinder:', err);
+      setValidationError(err?.response?.data?.message || err?.message || 'Failed to create cylinder');
     }
   };
 
   const handleStatusChange = async (cyl: CylinderDisplay, newStatus: string) => {
     try {
       await updateCylinder(cyl.id, { status: newStatus as any });
-      setCylinders(prev => prev.map(x => x.id === cyl.id ? { ...x, status: newStatus as any } : x));
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
       setSelectedCyl(prev => prev ? { ...prev, status: newStatus as any } : null);
     } catch (err: any) {
       console.error('Failed to update cylinder status:', err);
@@ -193,7 +274,7 @@ function CylindersPageContent() {
               <Camera size={15} />
               {t('btn.scan')}
             </button>
-            <button onClick={() => setShowAdd(true)}
+            <button onClick={() => { setShowAdd(true); setValidationError(''); }}
               className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all ${themeConfig.secondaryButton} shadow`}>
               <Plus size={15} />
               {t('btn.add')}
@@ -202,6 +283,22 @@ function CylindersPageContent() {
               <Download size={15} />
               {t('btn.export')}
             </button>
+            <button onClick={() => setShowTrash(v => !v)}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow ${
+                showTrash
+                  ? 'bg-red-600 hover:bg-red-500 text-white font-semibold'
+                  : `${themeConfig.secondaryButton}`
+              }`}>
+              <Trash2 size={15} />
+              {showTrash ? t('common.viewActive') : t('common.trashBin')}
+            </button>
+            {showTrash && cylinders.length > 0 && (
+              <button onClick={() => setEmptyTrashConfirmOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow text-red-400 border border-red-500/30 hover:bg-red-500/10">
+                <Trash2 size={15} />
+                {t('cylinder.emptyTrash')}
+              </button>
+            )}
           </div>
         </div>
 
@@ -283,13 +380,13 @@ function CylindersPageContent() {
               <div className="flex flex-col items-center justify-center py-16 text-rose-400 gap-2">
                 <AlertTriangle size={24} />
                 <p className="text-sm">{error}</p>
-                <button onClick={fetchCylinders} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
+                <button onClick={() => refetch()} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
                   {t('btn.retry')}
                 </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className={`flex flex-col items-center justify-center py-16 ${themeConfig.textSecondary}`}>
-                <p className="text-sm">{t('common.noData')}</p>
+                <p className="text-sm">{showTrash ? t('cylinder.noTrashData') : t('common.noData')}</p>
               </div>
             ) : null}
 
@@ -327,9 +424,9 @@ function CylindersPageContent() {
                           <td className="px-4 py-3">
                             <span className={`text-[10px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{t('cyl.type' + c.type)}</span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1">
-                              <button className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
+                              <button onClick={() => setSelectedCyl(c)} className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`} title={t('common.viewDetails')}>
                                 <Eye size={15} />
                               </button>
                               <button
@@ -339,6 +436,32 @@ function CylindersPageContent() {
                               >
                                 <Printer size={15} />
                               </button>
+                              {showTrash ? (
+                                <>
+                                  <button
+                                    onClick={() => handleRestoreCylinder(c.id)}
+                                    className={`p-1 rounded ${themeConfig.panelHover} text-green-400 hover:text-green-300`}
+                                    title={t('common.restore')}
+                                  >
+                                    <RotateCcw size={15} />
+                                  </button>
+                                  <button
+                                    onClick={() => { setPermanentDeleteTarget(c.id); setPermanentDeleteConfirmOpen(true); }}
+                                    className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
+                                    title={t('common.permanentDelete')}
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => { setDeleteTarget(c.id); setDeleteConfirmOpen(true); }}
+                                  className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
+                                  title={t('common.delete')}
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -357,7 +480,7 @@ function CylindersPageContent() {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-xs font-mono font-medium text-cyan-300">{c.id}</span>
                       <span className={`inline-flex items-center gap-1.2 px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS_COLORS[c.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[c.status]?.text || 'text-gray-400'}`}>
-                        <span className={`w-1 h-1 rounded-full mr-1 ${STATUS_COLORS[c.status]?.dot || 'bg-gray-400'}`} />
+                        <span className={`w-1/5 h-1 rounded-full mr-1 ${STATUS_COLORS[c.status]?.dot || 'bg-gray-400'}`} />
                         {getStatusLabel(c.status)}
                       </span>
                     </div>
@@ -375,7 +498,7 @@ function CylindersPageContent() {
                         <MapPin size={12} className={themeConfig.textSecondary} />
                         <span className={`text-xs ${themeConfig.textSecondary}`}>{c.location}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'cylinder', data: c } })); }}
                           className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary} hover:text-cyan-400`}
@@ -383,6 +506,32 @@ function CylindersPageContent() {
                         >
                           <Printer size={13} />
                         </button>
+                        {showTrash ? (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRestoreCylinder(c.id); }}
+                              className={`p-1 rounded ${themeConfig.panelHover} text-green-400 hover:text-green-300`}
+                              title={t('common.restore')}
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPermanentDeleteTarget(c.id); setPermanentDeleteConfirmOpen(true); }}
+                              className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
+                              title={t('common.permanentDelete')}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(c.id); setDeleteConfirmOpen(true); }}
+                            className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
+                            title={t('common.delete')}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                         <span className="text-xs font-mono text-white">{(c.meter/1000).toFixed(0)}K {t('unit.meter')}</span>
                       </div>
                     </div>
@@ -627,15 +776,20 @@ function CylindersPageContent() {
 
       {/* Add Cylinder Modal */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAdd(false)}></div>
-          <div className={`relative ${themeConfig.panel} rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto`}>
+          <div className={`relative ${themeConfig.panel} rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 overflow-visible`}>
             <div className="flex items-center justify-between mb-5">
               <h3 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('btn.add')} — {t('nav.cylinder')}</h3>
               <button onClick={() => setShowAdd(false)} className={`p-1.5 rounded-lg ${themeConfig.panelHover} ${themeConfig.textSecondary}`}>
                 <X size={18} />
               </button>
             </div>
+            {validationError && (
+              <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+                {validationError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               {[
                 { key: 'id', label: t('col.code'), ph: 'CYL-XX-000' },
@@ -643,41 +797,42 @@ function CylindersPageContent() {
                 { key: 'customer', label: t('col.customer'), ph: 'บริษัท ...' },
                 { key: 'size', label: t('cyl.size'), ph: '800×250' },
                 { key: 'location', label: t('col.location'), ph: 'Rack A-01' },
-              ].map(item => (
-                <div key={item.key} className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                  <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{item.label}</label>
-                  <input
-                    type="text"
-                    value={(form as any)[item.key]}
-                    onChange={e => setForm({ ...form, [item.key]: e.target.value })}
-                    className="bg-transparent text-white text-sm outline-none w-full"
-                    placeholder={item.ph}
-                  />
-                </div>
-              ))}
-              <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>{t('col.color')}</label>
-                <select
+              ].map(item => {
+                const isRequired = item.key === 'product' ? requiredFields.includes('productCode') : requiredFields.includes(item.key);
+                return (
+                  <div key={item.key} className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
+                    <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>
+                      {item.label} {isRequired && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="text"
+                      value={(form as any)[item.key]}
+                      onChange={e => setForm({ ...form, [item.key]: e.target.value })}
+                      className="bg-transparent text-white text-sm outline-none w-full"
+                      placeholder={item.ph}
+                    />
+                  </div>
+                );
+              })}
+              <div className="flex flex-col gap-1 w-full text-slate-100">
+                <SearchableSelect
+                  label={`${t('col.color')}`}
                   value={form.color}
-                  onChange={e => setForm({ ...form, color: e.target.value })}
-                  className="bg-transparent text-white text-sm outline-none w-full"
-                >
-                  {['BK', 'CY', 'MG', 'YL', 'WH', 'VN', 'FL'].map(c => (
-                    <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setForm({ ...form, color: v })}
+                  required={requiredFields.includes('color')}
+                  placeholder={t('common.select')}
+                  options={['BK', 'CY', 'MG', 'YL', 'WH', 'VN', 'FL'].map(c => ({ value: c, label: c }))}
+                />
               </div>
-              <div className={`${themeConfig.badge} rounded-lg px-3 py-2.5 flex flex-col`}>
-                <label className={`text-[10px] ${themeConfig.textSecondary} font-semibold mb-1`}>Type</label>
-                <select
+              <div className="flex flex-col gap-1 w-full text-slate-100">
+                <SearchableSelect
+                  label="Type"
                   value={form.type}
-                  onChange={e => setForm({ ...form, type: e.target.value })}
-                  className="bg-transparent text-white text-sm outline-none w-full"
-                >
-                  {['Dedicated', 'Shared', 'Common', 'Backup'].map(opt => (
-                    <option key={opt} value={opt} className="bg-slate-900 text-white">{t('cyl.type' + opt)}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setForm({ ...form, type: v })}
+                  required={requiredFields.includes('type')}
+                  placeholder={t('common.select')}
+                  options={['Dedicated', 'Shared', 'Common', 'Backup'].map(opt => ({ value: opt, label: t('cyl.type' + opt) }))}
+                />
               </div>
             </div>
             <div className="flex gap-2 mt-5">
@@ -717,9 +872,9 @@ function CylindersPageContent() {
 
       {/* Cylinder Detail Dialog */}
       {selectedCyl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCyl(null)}></div>
-          <div className={`relative ${themeConfig.panel} rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto`}>
+          <div className={`relative ${themeConfig.panel} rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 overflow-visible`}>
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-lg font-bold text-white">{selectedCyl.id}</h3>
@@ -806,6 +961,33 @@ function CylindersPageContent() {
           </div>
         </div>
       )}
+
+      {/* Confirm Deletion Dialog */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        titleKey="common.delete"
+        descriptionKey="cylinder.deleteConfirm"
+        onConfirm={handleDeleteCylinder}
+        onClose={() => { setDeleteConfirmOpen(false); setDeleteTarget(null); }}
+      />
+
+      {/* Confirm Permanent Deletion Dialog */}
+      <ConfirmDialog
+        open={permanentDeleteConfirmOpen}
+        titleKey="common.permanentDelete"
+        descriptionKey="cylinder.permanentDeleteConfirm"
+        onConfirm={handlePermanentDeleteCylinder}
+        onClose={() => { setPermanentDeleteConfirmOpen(false); setPermanentDeleteTarget(null); }}
+      />
+
+      {/* Confirm Empty Trash Dialog */}
+      <ConfirmDialog
+        open={emptyTrashConfirmOpen}
+        titleKey="cylinder.emptyTrash"
+        descriptionKey="cylinder.emptyTrashConfirm"
+        onConfirm={handleEmptyTrash}
+        onClose={() => setEmptyTrashConfirmOpen(false)}
+      />
     </AppLayout>
   );
 }

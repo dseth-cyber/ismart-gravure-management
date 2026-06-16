@@ -9,9 +9,10 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { ColorBadge } from '@/components/shared/color-badge';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const QrScanner = dynamic(() => import('@/components/shared/qr-scanner').then(m => ({ default: m.QrScanner })), { ssr: false });
-import { listJobs } from '@/lib/services/job';
+import { listJobs, deleteJob, restoreJob, permanentDeleteJob, emptyJobTrash } from '@/lib/services/job';
 import { getTraceability } from '@/lib/services/qc';
 import type { ProductionJobDto } from '@shared/dto/job/job.dto';
 import { 
@@ -30,7 +31,9 @@ import {
   List,
   Factory,
   RefreshCw,
-  Plus
+  Plus,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 
 function ProductionPageContent() {
@@ -142,25 +145,20 @@ function ProductionPageContent() {
     { num: 4, label: t('prod.result'), icon: Shield },
   ];
 
+  // Trash bin state
+  const [showTrash, setShowTrash] = useState(false);
+  const [confirmDeleteJob, setConfirmDeleteJob] = useState<string | null>(null);
+  const [confirmPermanentDeleteJob, setConfirmPermanentDeleteJob] = useState<string | null>(null);
+  const [emptyTrashConfirmOpen, setEmptyTrashConfirmOpen] = useState(false);
+  const queryClient = useQueryClient();
+
   // Production Log State
-  const [jobs, setJobs] = useState<ProductionJobDto[]>([]);
-  const [prodLoading, setProdLoading] = useState(true);
-  const [prodError, setProdError] = useState('');
-
-  const fetchJobs = useCallback(async () => {
-    try {
-      setProdLoading(true);
-      setProdError('');
-      const data = await listJobs();
-      setJobs(data);
-    } catch (err: any) {
-      setProdError(err?.message || 'Failed to load jobs');
-    } finally {
-      setProdLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+  const { data: jobs, isLoading: prodLoading, error: prodErrorObj, refetch: fetchJobs } = useQuery<ProductionJobDto[], Error>({
+    queryKey: ['productionJobs', showTrash],
+    queryFn: () => listJobs({ showDeleted: showTrash ? 'true' : 'false' }),
+  });
+  const jobsList = jobs || [];
+  const prodError = prodErrorObj?.message || '';
 
   // Traceability State
   const [dimension, setDimension] = useState('product');
@@ -202,6 +200,48 @@ function ProductionPageContent() {
     }
   };
 
+  // Trash bin handlers
+  const handleDeleteJob = async () => {
+    if (!confirmDeleteJob) return;
+    try {
+      await deleteJob(confirmDeleteJob);
+      setConfirmDeleteJob(null);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+    } catch (err: any) {
+      console.error('Failed to delete job', err);
+    }
+  };
+
+  const handleRestoreJob = async (jobNumber: string) => {
+    try {
+      await restoreJob(jobNumber);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+    } catch (err: any) {
+      console.error('Failed to restore job', err);
+    }
+  };
+
+  const handlePermanentDeleteJob = async () => {
+    if (!confirmPermanentDeleteJob) return;
+    try {
+      await permanentDeleteJob(confirmPermanentDeleteJob);
+      setConfirmPermanentDeleteJob(null);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+    } catch (err: any) {
+      console.error('Failed to permanently delete job', err);
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    try {
+      await emptyJobTrash();
+      setEmptyTrashConfirmOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+    } catch (err: any) {
+      console.error('Failed to empty trash', err);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="grid gap-6">
@@ -209,7 +249,7 @@ function ProductionPageContent() {
           titleKey="prod.title" 
           subtitleKey="prod.subtitle" 
           actions={
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               {['verification', 'log', 'traceability'].map(tKey => (
                 <button
                   key={tKey}
@@ -223,6 +263,26 @@ function ProductionPageContent() {
                   {t(`prod.${tKey === 'log' ? 'prodLog' : tKey}`)}
                 </button>
               ))}
+              <button
+                onClick={() => setShowTrash(v => !v)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow ${
+                  showTrash
+                    ? 'bg-red-600 hover:bg-red-500 text-white font-semibold'
+                    : `${themeConfig.secondaryButton}`
+                }`}
+              >
+                <Trash2 className="h-4 w-4" />
+                {showTrash ? t('common.viewActive') || 'View Active' : t('common.trashBin') || 'Trash Bin'}
+              </button>
+              {showTrash && jobsList.length > 0 && (
+                <button
+                  onClick={() => setEmptyTrashConfirmOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t('common.emptyTrash') || 'Empty Trash'}
+                </button>
+              )}
             </div>
           }
         />
@@ -540,11 +600,11 @@ function ProductionPageContent() {
               <div className="flex flex-col items-center justify-center py-16 text-rose-400 gap-2">
                 <AlertTriangle size={24} />
                 <p className="text-sm">{prodError}</p>
-                <button onClick={fetchJobs} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
+                <button onClick={() => fetchJobs()} className={`px-4 py-2 rounded-lg text-sm font-medium ${themeConfig.primaryButton}`}>
                   {t('btn.retry')}
                 </button>
               </div>
-            ) : jobs.length === 0 ? (
+            ) : jobsList.length === 0 ? (
               <div className={`flex flex-col items-center justify-center py-16 ${themeConfig.textSecondary}`}>
                 <p className="text-sm">{t('common.empty')}</p>
               </div>
@@ -561,10 +621,11 @@ function ProductionPageContent() {
                     <th className="p-3 text-xs font-bold uppercase whitespace-nowrap text-center">{t('col.status')}</th>
                     <th className="p-3 text-xs font-bold uppercase whitespace-nowrap text-right">{t('col.meterRun')}</th>
                     <th className="p-3 text-xs font-bold uppercase whitespace-nowrap text-right">{t('col.date')}</th>
+                    <th className="p-3 text-xs font-bold uppercase whitespace-nowrap text-right">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {jobs.map(job => (
+                  {jobsList.map(job => (
                     <tr key={job.jobNumber} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition`}>
                       <td className={`p-3 font-semibold font-mono ${themeConfig.primaryText}`}>{job.jobNumber}</td>
                       <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{job.productCode}</td>
@@ -578,6 +639,34 @@ function ProductionPageContent() {
                         {job.totalPrinted > 0 ? `${job.totalPrinted.toLocaleString()} ${t('unit.meter')}` : '—'}
                       </td>
                       <td className={`p-3 text-right text-xs ${themeConfig.textMuted}`}>{job.plannedDate ? (typeof job.plannedDate === 'string' ? job.plannedDate : new Date(job.plannedDate).toLocaleDateString()) : '—'}</td>
+                      <td className="p-3 text-right">
+                        {showTrash ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleRestoreJob(job.jobNumber)}
+                              className={`rounded p-1.5 transition ${themeConfig.panelHover}`}
+                              title={t('common.restore') || 'Restore'}
+                            >
+                              <RotateCcw className="h-4 w-4 text-emerald-400" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmPermanentDeleteJob(job.jobNumber)}
+                              className={`rounded p-1.5 transition ${themeConfig.panelHover}`}
+                              title={t('common.deletePermanent') || 'Delete Permanently'}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteJob(job.jobNumber)}
+                            className={`rounded p-1.5 transition ${themeConfig.panelHover}`}
+                            title={t('common.delete') || 'Delete'}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -723,6 +812,74 @@ function ProductionPageContent() {
             )}
           </div>
         )}
+      {confirmDeleteJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setConfirmDeleteJob(null)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.delete') || 'Delete'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              {t('prod.deleteJobConfirm') || `Are you sure you want to delete job "${confirmDeleteJob}"?`}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmDeleteJob(null)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handleDeleteJob}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPermanentDeleteJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setConfirmPermanentDeleteJob(null)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.deletePermanent') || 'Delete Permanently'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              Are you sure you want to permanently delete job "{confirmPermanentDeleteJob}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmPermanentDeleteJob(null)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handlePermanentDeleteJob}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emptyTrashConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setEmptyTrashConfirmOpen(false)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.emptyTrash') || 'Empty Trash'}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              Are you sure you want to empty the jobs trash bin? All deleted jobs will be permanently purged.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEmptyTrashConfirmOpen(false)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handleEmptyTrash}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
+              >
+                {t('common.delete') || 'Empty'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </AppLayout>
   );

@@ -36,8 +36,9 @@ export class JobService {
     });
   }
 
-  static async list() {
+  static async list(showDeleted = false) {
     return prisma.productionJob.findMany({
+      where: { deletedAt: showDeleted ? { not: null } : null },
       orderBy: { plannedDate: 'desc' }
     });
   }
@@ -218,6 +219,35 @@ export class JobService {
     });
 
     return log;
+  }
+
+  static async delete(jobNumber: string) {
+    await this.getByJobNumber(jobNumber);
+    return prisma.productionJob.update({
+      where: { jobNumber },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async restore(jobNumber: string) {
+    await this.getByJobNumber(jobNumber);
+    return prisma.productionJob.update({
+      where: { jobNumber },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async permanentDelete(jobNumber: string) {
+    await this.getByJobNumber(jobNumber);
+    return prisma.productionJob.delete({
+      where: { jobNumber }
+    });
+  }
+
+  static async emptyTrash() {
+    return prisma.productionJob.deleteMany({
+      where: { deletedAt: { not: null } }
+    });
   }
 
   static async listLogs(jobNumber?: string) {
