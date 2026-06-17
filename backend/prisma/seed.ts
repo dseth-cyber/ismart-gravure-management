@@ -1,4 +1,4 @@
-import { Role, CylinderStatus, InkFormulaStatus, InkBatchStatus, JobStatus, QcStatus } from '@prisma/client';
+import { CylinderStatus, InkFormulaStatus, InkBatchStatus, JobStatus, QcStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../src/config/database';
 import { seed as seedPermissions } from './seed-permissions';
@@ -13,14 +13,14 @@ async function main() {
   const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
   const testAccounts = [
-    { username: 'admin', role: Role.admin },
-    { username: 'sales1', role: Role.sales },
-    { username: 'planner1', role: Role.planner },
-    { username: 'operator1', role: Role.production },
-    { username: 'qc1', role: Role.qc },
-    { username: 'warehouse1', role: Role.warehouse },
-    { username: 'inkroom1', role: Role.inkroom },
-    { username: 'viewer1', role: Role.viewer },
+    { username: 'admin', role: 'admin' },
+    { username: 'sales1', role: 'sales' },
+    { username: 'planner1', role: 'planner' },
+    { username: 'operator1', role: 'production' },
+    { username: 'qc1', role: 'qc' },
+    { username: 'warehouse1', role: 'warehouse' },
+    { username: 'inkroom1', role: 'inkroom' },
+    { username: 'viewer1', role: 'viewer' },
   ];
 
   for (const account of testAccounts) {

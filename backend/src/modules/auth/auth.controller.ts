@@ -190,8 +190,8 @@ export class AuthController {
 
   static async createUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const { username, password, role, email } = req.body;
-      const user = await AuthService.createUser(username, password, role, email);
+      const { username, password, role, email, permissions } = req.body;
+      const user = await AuthService.createUser(username, password, role, email, permissions);
       await AuditService.record(req, 'user.create', `Admin created user ${username}`, req.user?.userId, req.user?.username);
       return res.status(201).json({ status: 'success', statusCode: 201, data: user } as ApiResponse);
     } catch (error) {
@@ -201,8 +201,8 @@ export class AuthController {
 
   static async updateUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const { role, locked, password, username, email, adminPassword } = req.body;
-      const user = await AuthService.updateUser(req.params.id as string, { role, locked, password, username, email, adminPassword, adminId: req.user?.userId });
+      const { role, locked, password, username, email, adminPassword, permissions } = req.body;
+      const user = await AuthService.updateUser(req.params.id as string, { role, locked, password, username, email, adminPassword, adminId: req.user?.userId, permissions });
       await AuditService.record(req, 'user.update', `Admin updated user ${user.username}`, req.user?.userId, req.user?.username);
       return res.status(200).json({ status: 'success', statusCode: 200, data: user } as ApiResponse);
     } catch (error) {

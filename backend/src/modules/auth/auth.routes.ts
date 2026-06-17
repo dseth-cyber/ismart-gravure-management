@@ -14,11 +14,17 @@ const mfaEnableSchema = z.object({
   secret: z.string().min(1, 'secret is required'),
 });
 
+const permissionOverrideSchema = z.object({
+  permissionId: z.string().min(1),
+  effect: z.enum(['grant', 'deny']),
+});
+
 const createUserSchema = z.object({
   username: z.string().min(3, 'username must be at least 3 characters'),
   password: z.string().min(8, 'password must be at least 8 characters'),
   role: z.string().min(1, 'role is required'),
   email: z.string().email('invalid email').optional().nullable(),
+  permissions: z.array(permissionOverrideSchema).optional(),
 });
 
 const updateUserSchema = z.object({
@@ -28,6 +34,7 @@ const updateUserSchema = z.object({
   locked: z.boolean().optional(),
   password: z.string().min(8, 'password must be at least 8 characters').optional(),
   adminPassword: z.string().min(1, 'admin password is required').optional(),
+  permissions: z.array(permissionOverrideSchema).optional(),
 });
 
 const mfaVerifySchema = z.object({

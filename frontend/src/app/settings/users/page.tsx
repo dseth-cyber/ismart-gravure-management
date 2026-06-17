@@ -67,10 +67,46 @@ export default function UserManagementPage() {
   const [editRole, setEditRole] = useState('viewer');
   const [requiredFields, setRequiredFields] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
+  const [permissionList, setPermissionList] = useState<{ id: string; name: string; module: string }[]>([]);
+  const [createPermOverrides, setCreatePermOverrides] = useState<Record<string, string>>({});
+  const [editPermOverrides, setEditPermOverrides] = useState<Record<string, string>>({});
+  const [showCreatePerms, setShowCreatePerms] = useState(false);
+  const [showEditPerms, setShowEditPerms] = useState(false);
 
   useEffect(() => {
-    setRoles(getRoles());
+    apiClient.get('/api/v1/permissions/roles').then(res => {
+      const data = res.data.data || [];
+      if (data.length > 0) setRoles(data.map((r: any) => r.name));
+    }).catch(() => {
+      setRoles(getRoles());
+    });
   }, []);
+
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/api/v1/permissions');
+      setPermissionList(res.data.data || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  // Fetch permissions when create dialog opens
+  useEffect(() => {
+    if (dialogOpen && permissionList.length === 0) fetchPermissions();
+  }, [dialogOpen, permissionList.length, fetchPermissions]);
+
+  // Fetch all permissions + user overrides when edit dialog opens
+  useEffect(() => {
+    if (editDialogOpen && editUser) {
+      if (permissionList.length === 0) fetchPermissions();
+      apiClient.get(`/api/v1/permissions/users/${editUser.id}`).then(res => {
+        const overrides: Record<string, string> = {};
+        (res.data.data || []).forEach((up: any) => {
+          overrides[up.permissionId] = up.effect;
+        });
+        setEditPermOverrides(overrides);
+      }).catch(() => {});
+    }
+  }, [editDialogOpen, editUser, permissionList.length, fetchPermissions]);
 
   useEffect(() => {
     const loadRequired = async () => {
@@ -129,9 +165,12 @@ export default function UserManagementPage() {
     }
     const body: any = { username, password, role };
     if (email) body.email = email;
+    const perms = Object.entries(createPermOverrides).filter(([_, v]) => v === 'grant' || v === 'deny').map(([k, v]) => ({ permissionId: k, effect: v }));
+    if (perms.length > 0) body.permissions = perms;
     try {
       await apiClient.post('/api/v1/auth/users', body);
       setDialogOpen(false);
+      setCreatePermOverrides({});
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to create user');
@@ -167,10 +206,13 @@ export default function UserManagementPage() {
     if (email) body.email = email;
     else body.email = null;
     if (password) body.password = password;
+    const perms = Object.entries(editPermOverrides).filter(([_, v]) => v === 'grant' || v === 'deny').map(([k, v]) => ({ permissionId: k, effect: v }));
+    if (perms.length > 0) body.permissions = perms;
     try {
       await apiClient.put(`/api/v1/auth/users/${editUser.id}`, body);
       setEditDialogOpen(false);
       setEditUser(null);
+      setEditPermOverrides({});
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to update user');
@@ -385,6 +427,38 @@ export default function UserManagementPage() {
               />
             </div>
             <div>
+              <button type="button" onClick={() => setShowCreatePerms(!showCreatePerms)} className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted} hover:${themeConfig.textPrimary}`}>
+                {showCreatePerms ? '▾' : '▸'} {t('perm.userOverrides') || 'Permission Overrides'} ({Object.values(createPermOverrides).filter(v => v).length})
+              </button>
+              {showCreatePerms && (
+                <div className={`mt-2 max-h-48 overflow-y-auto rounded-lg border p-2 ${themeConfig.border}`}>
+                  {permissionList.length === 0 ? (
+                    <p className={`text-xs ${themeConfig.textMuted}`}>{t('common.loading')}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {permissionList.map(p => (
+                        <div key={p.id} className="flex items-center gap-2 text-xs">
+                          <input type="checkbox" checked={createPermOverrides[p.id] === 'grant'} onChange={e => {
+                            const next = { ...createPermOverrides };
+                            if (e.target.checked) next[p.id] = 'grant';
+                            else delete next[p.id];
+                            setCreatePermOverrides(next);
+                          }} className="h-3 w-3" />
+                          <span className="flex-1">{p.name}</span>
+                          {createPermOverrides[p.id] === 'grant' && (
+                            <button type="button" onClick={() => {
+                              const next = { ...createPermOverrides, [p.id]: 'deny' };
+                              setCreatePermOverrides(next);
+                            }} className={`text-[10px] ${themeConfig.textMuted} underline`}>{t('perm.deny') || 'deny'}</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>
                 {t('settings.password')} {requiredFields.includes('password') && <span className="text-red-500">*</span>}
               </label>
@@ -431,6 +505,38 @@ export default function UserManagementPage() {
                 placeholder={t('common.select')}
                 options={roles.map((r) => ({ value: r, label: r }))}
               />
+            </div>
+            <div>
+              <button type="button" onClick={() => setShowEditPerms(!showEditPerms)} className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted} hover:${themeConfig.textPrimary}`}>
+                {showEditPerms ? '▾' : '▸'} {t('perm.userOverrides') || 'Permission Overrides'} ({Object.values(editPermOverrides).filter(v => v).length})
+              </button>
+              {showEditPerms && (
+                <div className={`mt-2 max-h-48 overflow-y-auto rounded-lg border p-2 ${themeConfig.border}`}>
+                  {permissionList.length === 0 ? (
+                    <p className={`text-xs ${themeConfig.textMuted}`}>{t('common.loading')}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {permissionList.map(p => (
+                        <div key={p.id} className="flex items-center gap-2 text-xs">
+                          <input type="checkbox" checked={editPermOverrides[p.id] === 'grant'} onChange={e => {
+                            const next = { ...editPermOverrides };
+                            if (e.target.checked) next[p.id] = 'grant';
+                            else delete next[p.id];
+                            setEditPermOverrides(next);
+                          }} className="h-3 w-3" />
+                          <span className="flex-1">{p.name}</span>
+                          {editPermOverrides[p.id] === 'grant' && (
+                            <button type="button" onClick={() => {
+                              const next = { ...editPermOverrides, [p.id]: 'deny' };
+                              setEditPermOverrides(next);
+                            }} className={`text-[10px] ${themeConfig.textMuted} underline`}>{t('perm.deny') || 'deny'}</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <hr className={`border-t ${themeConfig.border}`} />
             <p className={`text-xs font-semibold ${themeConfig.textMuted}`}>{t('settings.changePasswordOpt')}</p>

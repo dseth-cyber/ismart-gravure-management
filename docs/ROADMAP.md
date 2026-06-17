@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-17
+Last updated: 2026-06-17 (Phase 40)
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -1131,6 +1131,40 @@ Notes:
 - common.forbidden, common.forbiddenDesc, common.retry i18n keys were missing from th/cn/ja/mm — added post-release
 - Completed on 2026-06-17 (post-release fixes: 2026-06-17).
 
+## Phase 40 — User-Permission Linking (Role DB Model, Inline Assignment, Batch Override)
+
+This phase links the User Management page with the Permission Management system, closing the gap where user creation and permission assignment were separate workflows.
+
+### Requirements
+- Move role definitions from localStorage to database-backed Role model
+- Allow assigning permission overrides during user creation and editing
+- Support batch grant/deny of multiple permission overrides at once
+
+### Implementation
+**40A — Role DB Model:**
+- Added `Role` model to Prisma schema (`auth.roles` table with id, name, description, isSystem)
+- Seeded 8 default roles (admin, sales, planner, production, qc, warehouse, inkroom, viewer) with `isSystem=true` to protect from deletion
+- Added `GET /api/v1/permissions/roles`, `POST /api/v1/permissions/roles`, `DELETE /api/v1/permissions/roles/:name` endpoints
+- Frontend fetches roles from API; falls back to localStorage if API unavailable
+- `handleAddRole`/`handleDeleteRole` now call API instead of localStorage
+
+**40B — Inline Permission Assignment:**
+- Extended `POST /api/v1/auth/users` and `PUT /api/v1/auth/users/:id` with optional `permissions` array (`{ permissionId, effect }[]`)
+- Backend creates/updates `UserPermission` records alongside user
+- Frontend: Add/Edit User dialogs now include a collapsible "Permission Overrides" section
+- Edit dialog pre-loads existing user overrides from `GET /api/v1/permissions/users/:userId`
+
+**40C — Batch Permission Override:**
+- Added `POST /api/v1/permissions/users/batch-grant` and `POST /api/v1/permissions/users/batch-deny` endpoints
+- Frontend: Overrides tab in Permissions page now has checkboxes + "Grant All"/"Deny All" batch action bar
+
+### Notes
+- Roles listed via API are read from `auth.roles` table (seeded by `prisma/seed-permissions.ts`)
+- Backend `prisma generate` runs in Docker dev stage to keep Prisma client in sync
+- `DATABASE_URL` added to docker-compose backend environment for Prisma CLI access inside container
+- `seed.ts` updated to use string literals for role instead of removed `Role` enum import
+- Build note: `/settings/permissions` page has pre-existing prerender error (useSearchParams without Suspense) unrelated to this phase
+
 ### Suggested Consolidated Architecture
 
 Application components:
@@ -1180,6 +1214,10 @@ If event-based decoupling is implemented internally:
 | 2026-06-16 | Skip mTLS PostgreSQL, Vault, pg_tde for Phase 39 | High complexity-to-value ratio for current stage; revisit when compliance requires it |
 | 2026-06-17 | Allow PUT/DELETE methods in ModSecurity OWASP CRS via tx.allowed_methods override | OWASP CRS default whitelist excludes PUT/DELETE — blocks dashboard layout auto-save (PUT /api/v1/layouts/me) and any other REST write operations |
 | 2026-06-17 | Added missing i18n keys common.forbidden, common.forbiddenDesc, common.retry to th/cn/ja/mm locales | The 403 error dialog title showed raw key name because these keys only existed in en.json |
+| 2026-06-17 | Migrate role definitions from localStorage to database-backed Role model | Eliminates single source of truth problem; roles persisted across sessions and devices; enables API-based role listing for permission assignment |
+| 2026-06-17 | Allow permission override assignment during user creation/editing | Previously required 2-step flow (create user → navigate to overrides tab → grant/deny individually); now inline in the create/edit dialog |
+| 2026-06-17 | Add DATABASE_URL to docker-compose backend env | Needed for Prisma CLI (`prisma db push`, `prisma generate`, `prisma migrate`) to work correctly inside the Docker container |
+| 2026-06-17 | Add npx prisma generate to Docker dev stage | Previously only ran in builder stage; dev stage needs Prisma client for new models |
 
 ## Risks And Blockers
 
@@ -1224,3 +1262,6 @@ If event-based decoupling is implemented internally:
 | 2026-06-16 | 39 | CSP nonce (middleware.ts + helmet update), Coraza WAF (ModSecurity + OWASP CRS), Trivy CI scan, Dependabot, OWASP ZAP weekly scan, SECURITY.md + INCIDENT_RESPONSE.md, anomaly detection Prometheus rules |
 | 2026-06-17 | 39 | Post-release fix: ModSecurity allowed_methods — added PUT/DELETE to OWASP CRS method whitelist (rule 911100 false positive) |
 | 2026-06-17 | 39 | Post-release fix: i18n — added missing common.forbidden/forbiddenDesc/retry keys to th, cn, ja, mm locales |
+| 2026-06-17 | 40A | Role DB Model — Prisma schema Role model, seed, CRUD API, frontend fetch from API |
+| 2026-06-17 | 40B | Inline permission assignment — extended user create/edit with permission overrides array |
+| 2026-06-17 | 40C | Batch permission override — API endpoints + frontend batch grant/deny in overrides tab |

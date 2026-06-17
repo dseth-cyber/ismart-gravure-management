@@ -24,6 +24,25 @@ export class PermissionService {
     return prisma.permission.delete({ where: { id } });
   }
 
+  // ── Role CRUD ──
+  static async listRoles() {
+    return prisma.role.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  static async createRole(name: string, description?: string) {
+    const existing = await prisma.role.findUnique({ where: { name } });
+    if (existing) throw new AppError('Role already exists', 409);
+    return prisma.role.create({ data: { name, description, isSystem: false } });
+  }
+
+  static async deleteRole(name: string) {
+    const role = await prisma.role.findUnique({ where: { name } });
+    if (!role) throw new AppError('Role not found', 404);
+    if (role.isSystem) throw new AppError('Cannot delete system role', 400);
+    await prisma.rolePermission.deleteMany({ where: { role: name as any } });
+    return prisma.role.delete({ where: { name } });
+  }
+
   // ── Role-Permission Mapping ──
   static async getRolePermissions(role: string) {
     const rps = await prisma.rolePermission.findMany({
@@ -71,6 +90,32 @@ export class PermissionService {
     return prisma.userPermission.deleteMany({
       where: { userId, permissionId },
     });
+  }
+
+  static async batchGrantUserPermissions(userId: string, permissionIds: string[]) {
+    let count = 0;
+    for (const permissionId of permissionIds) {
+      await prisma.userPermission.upsert({
+        where: { userId_permissionId: { userId, permissionId } },
+        update: { effect: 'grant' },
+        create: { userId, permissionId, effect: 'grant' },
+      });
+      count++;
+    }
+    return count;
+  }
+
+  static async batchDenyUserPermissions(userId: string, permissionIds: string[]) {
+    let count = 0;
+    for (const permissionId of permissionIds) {
+      await prisma.userPermission.upsert({
+        where: { userId_permissionId: { userId, permissionId } },
+        update: { effect: 'deny' },
+        create: { userId, permissionId, effect: 'deny' },
+      });
+      count++;
+    }
+    return count;
   }
 
   static async getUserPermissions(userId: string) {

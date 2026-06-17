@@ -34,7 +34,10 @@ router.post('/', PermissionController.createPermission);
 router.put('/:id', PermissionController.updatePermission);
 router.delete('/:id', PermissionController.deletePermission);
 
-// Role-permission mapping
+// Role CRUD + role-permission mapping
+router.get('/roles', PermissionController.listRoles);
+router.post('/roles', PermissionController.createRole);
+router.delete('/roles/:name', PermissionController.deleteRole);
 router.get('/roles/:role', PermissionController.getRolePermissions);
 router.post('/roles/assign', validate(roleAssignSchema), PermissionController.assignPermissionToRole);
 router.post('/roles/remove', validate(roleAssignSchema), PermissionController.removePermissionFromRole);
@@ -42,6 +45,8 @@ router.post('/roles/remove', validate(roleAssignSchema), PermissionController.re
 // User permission overrides (admin manages other users)
 router.post('/users/grant', validate(userPermSchema), PermissionController.grantUserPermission);
 router.post('/users/deny', validate(userPermSchema), PermissionController.denyUserPermission);
+router.post('/users/batch-grant', PermissionController.batchGrantUserPermissions);
+router.post('/users/batch-deny', PermissionController.batchDenyUserPermissions);
 router.get('/users/:userId', PermissionController.getUserPermissions);
 
 // Scope management (admin)

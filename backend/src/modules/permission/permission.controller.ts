@@ -100,6 +100,30 @@ export class PermissionController {
     } catch (error) { next(error); }
   }
 
+  static async batchGrantUserPermissions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { userId, permissionIds } = req.body;
+      if (!userId || !permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'userId and permissionIds[] are required' } as ApiResponse);
+      }
+      const results = await PermissionService.batchGrantUserPermissions(userId, permissionIds);
+      await AuditService.record(req, 'permission.batch_grant', `Batch granted ${results} permissions to user ${userId}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, message: `Granted ${results} permissions` } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
+  static async batchDenyUserPermissions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { userId, permissionIds } = req.body;
+      if (!userId || !permissionIds || !Array.isArray(permissionIds) || permissionIds.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'userId and permissionIds[] are required' } as ApiResponse);
+      }
+      const results = await PermissionService.batchDenyUserPermissions(userId, permissionIds);
+      await AuditService.record(req, 'permission.batch_deny', `Batch denied ${results} permissions for user ${userId}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, message: `Denied ${results} permissions` } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
   static async getUserPermissions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
       const userId = String(req.params.userId || req.user?.userId || '');
@@ -120,6 +144,33 @@ export class PermissionController {
       const perms = await getUserPermissions(req.user!.userId, req.user!.role);
       const allowed = matchPermission(permissionName, perms);
       return res.status(200).json({ status: 'success', statusCode: 200, data: { permission: permissionName, allowed } } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
+  // ── Role CRUD ──
+  static async listRoles(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const roles = await PermissionService.listRoles();
+      return res.status(200).json({ status: 'success', statusCode: 200, data: roles } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
+  static async createRole(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { name, description } = req.body;
+      if (!name) return res.status(400).json({ status: 'error', statusCode: 400, message: 'name is required' } as ApiResponse);
+      const role = await PermissionService.createRole(name.toLowerCase().trim(), description);
+      await AuditService.record(req, 'role.create', `Created role: ${name}`);
+      return res.status(201).json({ status: 'success', statusCode: 201, data: role } as ApiResponse);
+    } catch (error) { next(error); }
+  }
+
+  static async deleteRole(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const name = String(req.params.name);
+      await PermissionService.deleteRole(name);
+      await AuditService.record(req, 'role.delete', `Deleted role: ${name}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, message: 'Role deleted' } as ApiResponse);
     } catch (error) { next(error); }
   }
 

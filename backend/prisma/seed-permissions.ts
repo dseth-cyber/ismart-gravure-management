@@ -134,8 +134,29 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
+const DEFAULT_ROLES = [
+  { name: 'admin', description: 'Full system access', isSystem: true },
+  { name: 'sales', description: 'Sales team member', isSystem: true },
+  { name: 'planner', description: 'Production planner', isSystem: true },
+  { name: 'production', description: 'Production operator', isSystem: true },
+  { name: 'qc', description: 'Quality control inspector', isSystem: true },
+  { name: 'warehouse', description: 'Warehouse staff', isSystem: true },
+  { name: 'inkroom', description: 'Ink room operator', isSystem: true },
+  { name: 'viewer', description: 'Read-only access', isSystem: true },
+];
+
 async function seed() {
   console.log('\n=== Seeding Permissions ===\n');
+
+  // 0. Seed roles
+  for (const roleDef of DEFAULT_ROLES) {
+    await prisma.role.upsert({
+      where: { name: roleDef.name },
+      update: { description: roleDef.description, isSystem: roleDef.isSystem },
+      create: roleDef,
+    });
+  }
+  console.log(`Seeded ${DEFAULT_ROLES.length} roles`);
 
   // 1. Create all permissions
   const createdPerms: Record<string, string> = {};

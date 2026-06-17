@@ -57,6 +57,9 @@ export default function PermissionsPage() {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedGrantPerm, setSelectedGrantPerm] = useState('');
 
+  // Overrides tab - batch selection
+  const [selectedOverridePerms, setSelectedOverridePerms] = useState<Set<string>>(new Set());
+
   // Scopes tab
   const [addScopeDialogOpen, setAddScopeDialogOpen] = useState(false);
   const [assignScopeDialogOpen, setAssignScopeDialogOpen] = useState(false);
@@ -139,7 +142,16 @@ export default function PermissionsPage() {
   const userPerms = userPermsData?.userPerms || [];
   const overridePerms = userPermsData?.overridePerms || [];
 
-  // 5. Scopes list
+  // 5. Roles list
+  const { data: rolesData = [] } = useQuery<{ name: string; description: string; isSystem: boolean }[], Error>({
+    queryKey: ['rolesList'],
+    queryFn: async () => {
+      const res = await apiClient.get('/api/v1/permissions/roles');
+      return res.data.data || [];
+    }
+  });
+
+  // 6. Scopes list
   const { data: scopes = [], isLoading: scopeLoading } = useQuery<Scope[], Error>({
     queryKey: ['scopesList'],
     queryFn: async () => {
@@ -148,9 +160,15 @@ export default function PermissionsPage() {
     }
   });
 
+  // Sync roles from API; fallback to localStorage if API fails
   useEffect(() => {
-    setRoles(getRoles());
-  }, []);
+    if (rolesData.length > 0) {
+      setRoles(rolesData.map(r => r.name));
+    } else {
+      const local = getRoles();
+      if (local.length > 0) setRoles(local);
+    }
+  }, [rolesData]);
 
   // Pre-select user from URL param
   useEffect(() => {
@@ -227,6 +245,32 @@ export default function PermissionsPage() {
     } catch { showError(t('perm.error')); }
   };
 
+  const handleBatchGrant = async () => {
+    if (!selectedUser || selectedOverridePerms.size === 0) return;
+    try {
+      await apiClient.post('/api/v1/permissions/users/batch-grant', { userId: selectedUser, permissionIds: [...selectedOverridePerms] });
+      showSuccess(t('perm.assigned'));
+      setSelectedOverridePerms(new Set());
+      queryClient.invalidateQueries({ queryKey: ['userPermissions', selectedUser] });
+    } catch { showError(t('perm.error')); }
+  };
+
+  const handleBatchDeny = async () => {
+    if (!selectedUser || selectedOverridePerms.size === 0) return;
+    try {
+      await apiClient.post('/api/v1/permissions/users/batch-deny', { userId: selectedUser, permissionIds: [...selectedOverridePerms] });
+      showSuccess(t('perm.assigned'));
+      setSelectedOverridePerms(new Set());
+      queryClient.invalidateQueries({ queryKey: ['userPermissions', selectedUser] });
+    } catch { showError(t('perm.error')); }
+  };
+
+  const toggleOverridePerm = (permId: string) => {
+    const next = new Set(selectedOverridePerms);
+    if (next.has(permId)) next.delete(permId); else next.add(permId);
+    setSelectedOverridePerms(next);
+  };
+
   const handleCreateScope = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = e.currentTarget;
@@ -300,7 +344,7 @@ export default function PermissionsPage() {
     }
   };
 
-  const handleAddRole = (e: React.FormEvent) => {
+  const handleAddRole = async (e: React.FormEvent) => {
     e.preventDefault();
     const roleClean = newRoleInput.trim().toLowerCase();
     if (!roleClean) return;
@@ -308,23 +352,29 @@ export default function PermissionsPage() {
       showError(t('perm.roleExists') || 'Role already exists');
       return;
     }
-    const updated = [...roles, roleClean];
-    saveRoles(updated);
-    setRoles(updated);
-    setNewRoleInput('');
-    showSuccess(t('perm.roleAdded') || 'Role added successfully');
+    try {
+      await apiClient.post('/api/v1/permissions/roles', { name: roleClean });
+      setNewRoleInput('');
+      queryClient.invalidateQueries({ queryKey: ['rolesList'] });
+      showSuccess(t('perm.roleAdded') || 'Role added successfully');
+    } catch (err: any) {
+      showError(err?.response?.data?.message || t('perm.error'));
+    }
   };
 
-  const handleDeleteRole = (roleToDelete: string) => {
+  const handleDeleteRole = async (roleToDelete: string) => {
     if (roleToDelete === 'admin' || roleToDelete === 'viewer') {
       showError(t('perm.cannotDeleteSystemRole') || 'Cannot delete system roles');
       return;
     }
     if (confirm(t('perm.confirmDeleteRole') || `Are you sure you want to delete the role "${roleToDelete}"?`)) {
-      const updated = roles.filter(r => r !== roleToDelete);
-      saveRoles(updated);
-      setRoles(updated);
-      showSuccess(t('perm.roleDeleted') || 'Role deleted successfully');
+      try {
+        await apiClient.delete(`/api/v1/permissions/roles/${roleToDelete}`);
+        queryClient.invalidateQueries({ queryKey: ['rolesList'] });
+        showSuccess(t('perm.roleDeleted') || 'Role deleted successfully');
+      } catch (err: any) {
+        showError(err?.response?.data?.message || t('perm.error'));
+      }
     }
   };
 
@@ -477,6 +527,19 @@ export default function PermissionsPage() {
                     <Check className="mr-1 h-3 w-3" /> {t('perm.grant')}
                   </AppButton>
                 </div>
+                {/* Batch override controls */}
+                {selectedOverridePerms.size > 0 && (
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className={`text-xs font-semibold ${themeConfig.textMuted}`}>{selectedOverridePerms.size} selected</span>
+                    <AppButton variant="primary" onClick={handleBatchGrant}>
+                      <Check className="mr-1 h-3 w-3" /> {t('perm.batchGrant') || 'Grant All'}
+                    </AppButton>
+                    <AppButton variant="secondary" onClick={handleBatchDeny}>
+                      <X className="mr-1 h-3 w-3" /> {t('perm.batchDeny') || 'Deny All'}
+                    </AppButton>
+                    <button onClick={() => setSelectedOverridePerms(new Set())} className={`text-xs ${themeConfig.textMuted} underline`}>{t('common.clear') || 'Clear'}</button>
+                  </div>
+                )}
                 <div className="space-y-1">
                   {userPerms.length === 0 ? (
                     <p className={`text-sm ${themeConfig.textMuted}`}>{t('perm.noOverrides')}</p>
@@ -485,13 +548,17 @@ export default function PermissionsPage() {
                     const desc = t('perm.desc.' + name.replace(':', '_')) || up.permission?.description || up.description;
                     return (
                       <div key={up.id} className={`flex items-center justify-between rounded border px-3 py-2 text-sm ${themeConfig.border}`}>
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-semibold">{name}</span>
-                            <StatusBadge status={up.effect === 'deny' ? 'blocked' as StatusKind : 'done' as StatusKind} />
-                            <span className={`text-xs ${themeConfig.textMuted}`}>{up.effect}</span>
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" checked={selectedOverridePerms.has(up.permissionId || up.id)}
+                            onChange={() => toggleOverridePerm(up.permissionId || up.id)} className="h-3 w-3" />
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-semibold">{name}</span>
+                              <StatusBadge status={up.effect === 'deny' ? 'blocked' as StatusKind : 'done' as StatusKind} />
+                              <span className={`text-xs ${themeConfig.textMuted}`}>{up.effect}</span>
+                            </div>
+                            {desc && <span className={`text-[11px] ${themeConfig.textMuted}`}>{desc}</span>}
                           </div>
-                          {desc && <span className={`text-[11px] ${themeConfig.textMuted}`}>{desc}</span>}
                         </div>
                         {up.effect !== 'deny' && (
                           <button onClick={() => handleDenyUser(up.permissionId || up.id)} className={`rounded p-1 text-xs text-red-400 hover:${themeConfig.panelHover}`}>

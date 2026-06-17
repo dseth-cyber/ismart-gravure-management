@@ -307,18 +307,28 @@ export class AuthService {
     return user;
   }
 
-  static async createUser(username: string, password: string, role: string, email?: string | null) {
+  static async createUser(username: string, password: string, role: string, email?: string | null, permissions?: { permissionId: string; effect: string }[]) {
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing) throw new AppError('Username already exists', 409);
     this.validatePassword(password);
     const passwordHash = await bcrypt.hash(password, 12);
-    return prisma.user.create({
+    const user = await prisma.user.create({
       data: { username, email: email || null, passwordHash, role: role as any },
       select: { id: true, username: true, email: true, role: true, createdAt: true },
     });
+    if (permissions && permissions.length > 0) {
+      for (const p of permissions) {
+        await prisma.userPermission.upsert({
+          where: { userId_permissionId: { userId: user.id, permissionId: p.permissionId } },
+          update: { effect: p.effect },
+          create: { userId: user.id, permissionId: p.permissionId, effect: p.effect },
+        });
+      }
+    }
+    return user;
   }
 
-  static async updateUser(id: string, data: { role?: string; locked?: boolean; password?: string; username?: string; email?: string | null; adminPassword?: string; adminId?: string }) {
+  static async updateUser(id: string, data: { role?: string; locked?: boolean; password?: string; username?: string; email?: string | null; adminPassword?: string; adminId?: string; permissions?: { permissionId: string; effect: string }[] }) {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new AppError('User not found', 404);
     if (data.adminPassword) {
@@ -343,11 +353,22 @@ export class AuthService {
       updateData.passwordHistory = [user.passwordHash];
       updateData.lastPasswordChange = new Date();
     }
-    return prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id },
       data: updateData,
       select: { id: true, username: true, email: true, role: true, lockedUntil: true, updatedAt: true },
     });
+    if (data.permissions && data.permissions.length > 0) {
+      await prisma.userPermission.deleteMany({ where: { userId: id } });
+      for (const p of data.permissions) {
+        await prisma.userPermission.upsert({
+          where: { userId_permissionId: { userId: id, permissionId: p.permissionId } },
+          update: { effect: p.effect },
+          create: { userId: id, permissionId: p.permissionId, effect: p.effect },
+        });
+      }
+    }
+    return updated;
   }
 
   static async getUserProfile(userId: string) {
