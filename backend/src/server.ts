@@ -7,7 +7,9 @@ import { NotificationService } from './modules/notification/notification.service
 import { CleanupService } from './modules/cleanup/cleanup.service';
 
 const server = http.createServer(app);
-initRealtime(server);
+initRealtime(server).catch(err => {
+  console.error('[Realtime] Failed to initialize:', err);
+});
 
 server.listen(env.PORT, () => {
   console.log(`=================================`);

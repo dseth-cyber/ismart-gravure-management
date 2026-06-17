@@ -28,7 +28,7 @@ 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
 
 
 git add .
-git commit -m  "กราฟ 15-6-2569 13:37"
+git commit -m  "https 17-6-2569 "
 git push
 
 ถ้าไม่อยากวาง Token ทุกครั้งที่สำรองข้อมูล ให้พิมพ์คำสั่งนี้ใน VM1 หนึ่งครั้งครับ:
@@ -131,3 +131,8 @@ Blur	backdrop-blur-2xl	เบลอพื้นหลังแบบ frosted gla
 🟣 รอตรวจสอบ → bg-violet-500
 🔴 ซ่อมแซม → bg-rose-500
 💡 หมายเหตุ: ถ้าสลับ Theme เป็น Dark หรือ Light ค่าสี/ขอบเหล่านี้จะเปลี่ยนตาม (เช่น Dark ใช้ bg-gray-800/80 border-gray-700, Light ใช้ bg-white/90 border-gray-200) ครับ
+
+
+
+
+user ที่สร้างจากหน้า จัดการผู้ใช้ ยังไม่ลิ้งกับ จัดการสิทธิ์การเข้าถึง

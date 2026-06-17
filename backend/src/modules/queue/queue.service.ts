@@ -22,6 +22,7 @@ try {
 export const redisConnectionOptions = {
   host,
   port,
+  password: env.REDIS_PASSWORD,
   maxRetriesPerRequest: null,
 };
 

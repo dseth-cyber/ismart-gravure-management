@@ -6,7 +6,7 @@ import { env } from '../../config/env';
 
 let io: Server | null = null;
 
-export function initRealtime(httpServer: HttpServer): Server {
+export async function initRealtime(httpServer: HttpServer): Promise<Server> {
   io = new Server(httpServer, {
     cors: {
       origin: '*',
@@ -14,8 +14,9 @@ export function initRealtime(httpServer: HttpServer): Server {
     },
   });
 
-  const pubClient = new Redis(env.REDIS_URL);
-  const subClient = pubClient.duplicate();
+  const pubClient = new Redis(env.REDIS_URL, { lazyConnect: true });
+  const subClient = new Redis(env.REDIS_URL, { lazyConnect: true });
+  await Promise.all([pubClient.connect(), subClient.connect()]);
 
   io.adapter(createAdapter(pubClient, subClient));
 
