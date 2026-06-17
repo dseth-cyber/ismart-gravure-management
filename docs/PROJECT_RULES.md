@@ -33,6 +33,10 @@ These rules are mandatory for all future development of Gravure Management Syste
 25. TLS/HTTPS Enforcement: All external-facing services must be behind a TLS-terminating reverse proxy (Caddy). Internal services (DB, Redis, exporters) must NOT expose ports to the Docker host — they communicate only over Docker internal networks. Cloudflare Tunnel must point to the reverse proxy (TLS), not directly to the backend (HTTP).
 26. Infrastructure Security: Internal services (PostgreSQL, Redis, MinIO, Prometheus, Loki, exporters) must NOT bind to host ports. Redis must always have a password. Grafana admin credentials must come from Docker secrets, never hardcoded. The Docker socket must not be mounted into application containers.
 
+27. Web Application Firewall: All production API traffic must pass through ModSecurity + OWASP CRS (Coraza WAF) for attack detection and blocking. The WAF sits between the reverse proxy and the backend service. API routes proxied through Caddy and frontend server-side rewrites must both route through the WAF container. WAF paranoia level should default to 1 (balanced) and may be increased during active attacks.
+
+28. Anomaly Detection Monitoring: Prometheus must have dedicated alert rules for security anomalies: brute force login attempts (>10 failed logins/min), sudden traffic spikes (>3x baseline), elevated 4xx error rates, WAF block spikes, rate limit exceedances, request size anomalies, concurrent session spikes, and container restart loops. Alert thresholds should be initially conservative to establish baselines, then tightened after 2 weeks of production data.
+
 
 ## Frontend Rules
 

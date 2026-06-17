@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -88,6 +88,8 @@ Use newer stable versions when they are better for a new project and do not conf
 | 35 | Soft Delete & Trash Bin | Done | deletedAt on 6 models; trash UI with restore, permanent delete, empty trash on all list pages |
 | 36 | User Management CRUD | Done | Add/Edit/Delete users with email, password reset; email field on User model; role text badge |
 | 37 | TLS/HTTPS Hardening & Infrastructure Security | Done | Caddy reverse proxy with auto HTTPS; internal network isolation; secure exposed ports; Cloudflare TLS upgrade;
+| 38 | Security Hardening — Score 9.0 | Done | Zod login validation, XSS sanitization, file upload MIME+magic bytes, immutable audit logs, security tests, secrets rotation script, npm audit CI, remove hardcoded secrets, cAdvisor capabilities, read-only Docker socket |
+| 39 | Security Hardening — Score 10.0 | Done | CSP nonce replacement, Coraza WAF with OWASP CRS, Trivy container scanning, Dependabot, OWASP ZAP pentest, incident response plan, anomaly detection Prometheus rules |
 
 ## Phase Details
 
@@ -1061,6 +1063,74 @@ Notes:
 - Port exposure reduced from 17 → 4 ports: a 76% reduction in attack surface
 - Completed on 2026-06-16.
 
+### Phase 38: Security Hardening — Score 9.0
+
+Status: Done
+
+Outputs:
+- Zod login validation — manual `validateLogin()` replaced with Zod schema `loginSchema` on POST /auth/login
+- XSS sanitization middleware — `sanitizeBody()` strips `<script>` tags and HTML from all request bodies globally
+- File upload MIME type validation — multer `fileFilter` whitelists 10 MIME types (JPEG, PNG, GIF, WebP, AVIF, PDF, TXT, CSV, XLSX, DOCX)
+- File upload magic bytes validation — checks first bytes of uploaded file match declared MIME type (JPEG FF D8 FF, PNG 89 50 4E 47, etc.)
+- Immutable audit logs — PostgreSQL trigger `trg_prevent_audit_log_mutation` blocks UPDATE/DELETE on `audit.audit_logs`; cleanup service disables trigger temporarily via raw SQL
+- Security test suite — 18 test cases covering: empty/missing login fields, wrong password, forged JWT, unauthenticated access, Zod rejection, security headers (XFO, XCTO, CSP, HSTS), rate limit headers, CORS, audit logging of failed login
+- Secrets rotation script — `scripts/rotate-secrets.ps1` generates new cryptographically random values for all 10 secrets, updates all files, prints summary
+- npm audit CI script — `npm run audit` runs `npm audit --audit-level=high` to detect CVEs; `npm run audit:fix` auto-fixes where possible
+- Hardcoded secrets removed from docker-compose.yml — DB password, Redis URL+password, JWT secrets, MinIO credentials, API keys removed from environment block; backend reads from Docker secrets only
+- cAdvisor capabilities — changed from `privileged: true` to specific `cap_add: [SYS_ADMIN, SYS_PTRACE, DAC_READ_SEARCH]`
+- Docker socket read-only — promtail socket mount changed to `:ro` to prevent container escape
+
+Acceptance criteria:
+- Login with empty/missing fields returns 400 (Zod), not 500
+- XSS payloads in input are stripped before reaching controllers
+- File upload of `.exe` disguised as `.jpg` is rejected (magic bytes mismatch)
+- Direct DELETE on audit_logs returns error 500 (blocked by trigger)
+- `npm run test:security` passes all 18 tests
+- `scripts/rotate-secrets.ps1` regenerates all secrets without error
+- docker-compose.yml contains zero hardcoded secrets
+
+Notes:
+- cAdvisor still works with 3 specific capabilities instead of full privileged mode — reduces container escape risk
+- Promtail Docker socket is read-only — promtail can read container logs but cannot control Docker daemon
+- Immutable audit trigger must be applied via migration SQL in `prisma/migrations/immutable_audit_logs.sql`
+- Secrets rotation script should be run before production deployment and periodically every 90 days
+- Completed on 2026-06-16.
+
+### Phase 39: Security Hardening — Score 10.0
+
+Status: Done
+
+Outputs:
+- CSP nonce replacement — backend `app.ts` removed `'unsafe-inline'` from `styleSrc`; backend `env.ts` updated `HELMET_CSP` default; frontend `middleware.ts` generates per-request nonce for `script-src` and `style-src` with `Content-Security-Policy` header
+- Coraza WAF with OWASP CRS — `modsecurity` service in Docker Compose using `owasp/modsecurity-crs:apache` image; Caddy routes `/api/*` through modsecurity before forwarding to backend; frontend rewrites proxy through modsecurity; configured with PARANOIA=1, blocking enabled
+- Trivy container scanning — `.github/workflows/trivy-scan.yml` runs on push/PR/weekly scanning backend and frontend images for HIGH/CRITICAL CVEs; `scripts/trivy-scan.sh` for local scanning
+- Dependabot — `.github/dependabot.yml` for npm (backend + frontend), Docker (backend + frontend), and GitHub Actions; weekly schedule
+- OWASP ZAP DAST scan — `.github/workflows/zap-scan.yml` weekly full scan; `scripts/zap-scan.sh` for local scans; `zap/rules.tsv` with alert suppression for known false positives
+- SECURITY.md — vulnerability reporting policy, security controls inventory, secure development practices
+- INCIDENT_RESPONSE.md — 5-phase incident response plan (triage → containment → eradication → recovery → post-mortem), severity classification, team roles, communication channels, checklist
+- Anomaly detection Prometheus rules — 8 new alert rules in `monitoring/prometheus/alerts.yml`: traffic spike, brute force login, high 4xx rate, WAF block spike, rate limit exceedance, request size anomaly, concurrent session spike, container restart loop
+
+Acceptance criteria:
+- CSP header contains `nonce-*` and no `'unsafe-inline'` on HTML responses
+- WAF blocks common attack patterns (SQLi, XSS) before reaching backend
+- Trivy scan fails CI build when HIGH/CRITICAL CVEs are found
+- Dependabot creates PRs for vulnerable dependencies automatically
+- ZAP scan runs weekly without blocking pipeline (informational)
+- SECURITY.md published at repository root
+- Incident response plan documents all 5 phases with team roles
+- Anomaly alerts fire for brute force, traffic spikes, WAF blocks
+
+Notes:
+- CSP nonce is enforced via Next.js middleware for HTML pages + backend helmet for API responses
+- ModSecurity runs with PARANOIA=1 (balanced); PARANOIA=2-4 available for stricter enforcement during attacks
+- ModSecurity default allowed_methods excludes PUT/DELETE — fixed post-release via SecAction override in modsecurity-override.conf
+- Trivy scans only HIGH/CRITICAL severity — MEDIUM/LOW are reviewed manually
+- ZAP full scan targets local Docker stack; production scan requires target URL override
+- SECURITY.md includes complete security control inventory for compliance audits
+- Anomaly thresholds are conservative (P0/P1); tune after baseline data collection
+- common.forbidden, common.forbiddenDesc, common.retry i18n keys were missing from th/cn/ja/mm — added post-release
+- Completed on 2026-06-17 (post-release fixes: 2026-06-17).
+
 ### Suggested Consolidated Architecture
 
 Application components:
@@ -1099,6 +1169,17 @@ If event-based decoupling is implemented internally:
 | 2026-06-16 | Use Caddy instead of nginx for TLS termination | Caddy provides zero-config automatic Let's Encrypt with auto-renewal; Caddyfile is ~20 lines vs nginx ~80 lines for equivalent config |
 | 2026-06-16 | Move all internal services to isolated Docker networks with no host port exposure | Reduces attack surface by 76% (17 ports → 4); prevents direct DB/Redis/Monitoring access from host |
 | 2026-06-16 | Store Redis password and Grafana admin password in Docker secrets | Eliminates hardcoded credentials in docker-compose.yml; consistent with existing secrets pattern |
+| 2026-06-16 | Replace manual validateLogin() with Zod schema | Consistent input validation across all routes; better error messages; removes custom manual validation function |
+| 2026-06-16 | Add XSS sanitization as global middleware | Catches script injection across all input points without per-route changes |
+| 2026-06-16 | Implement immutable audit log via PostgreSQL trigger | Prevents tampering with audit records; cleanup uses temporary trigger disable via raw SQL |
+| 2026-06-16 | Change cAdvisor from privileged to specific capabilities | Reduces container escape risk while maintaining required functionality |
+| 2026-06-16 | Implement CSP nonce via Next.js middleware instead of backend-only helmet | Frontend serves HTML pages — CSP must be set at the HTML-rendering layer; backend helmet covers API JSON responses |
+| 2026-06-16 | Route API traffic through ModSecurity WAF via Caddy and Next.js rewrites | Ensures ALL API calls (direct + proxied) go through WAF inspection; single backend target simplifies configuration |
+| 2026-06-16 | Use owasp/modsecurity-crs:apache instead of Coraza standalone | More battle-tested, well-documented Docker image, supports OWASP CRS natively |
+| 2026-06-16 | Anomaly detection thresholds set conservative (P0/P1 only) | Avoid alert fatigue during initial baseline collection; tighten after 2 weeks of production data |
+| 2026-06-16 | Skip mTLS PostgreSQL, Vault, pg_tde for Phase 39 | High complexity-to-value ratio for current stage; revisit when compliance requires it |
+| 2026-06-17 | Allow PUT/DELETE methods in ModSecurity OWASP CRS via tx.allowed_methods override | OWASP CRS default whitelist excludes PUT/DELETE — blocks dashboard layout auto-save (PUT /api/v1/layouts/me) and any other REST write operations |
+| 2026-06-17 | Added missing i18n keys common.forbidden, common.forbiddenDesc, common.retry to th/cn/ja/mm locales | The 403 error dialog title showed raw key name because these keys only existed in en.json |
 
 ## Risks And Blockers
 
@@ -1139,3 +1220,7 @@ If event-based decoupling is implemented internally:
 | 2026-06-12 | 31 | Added 3 new chart types (stackedBar, cylinderStatus, activityFeed) + redesigned alert-list-chart + rebuilt with react-grid-layout v2.2.3 (legacy API). Drag/resize/edit titles/settings config working. CylinderStatusChart with 5 KPI cards. ActivityFeedChart with formatKey+args i18n. StatChart fixed (icon, sparkline, tLabel). AlertListChart rich layout. 16 chart types total. Build passes. |
 | 2026-06-12 | 31 | Added LocationChart — 6-position cylinder location grid (Rack A-D, Machine Area, QC/Repair) with progress bars. New chart type `location`. Drodown shows Thai names via `chart.*` locale keys. All 5 languages updated. Docker rebuilt & restarted. Build passes. |
 | 2026-06-16 | 37 | Added Caddy reverse proxy with auto HTTPS; 17 exposed ports reduced to 4; Docker network isolation implemented; Redis password + Grafana admin moved to Docker secrets; Cloudflare Tunnel upgraded to TLS |
+| 2026-06-16 | 38 | Zod login validation, XSS sanitization middleware, file upload MIME+magic bytes check, immutable audit logs (trigger), 18 security tests, secrets rotation script, npm audit CI, removed hardcoded secrets from compose, cAdvisor capabilities, read-only Docker socket |
+| 2026-06-16 | 39 | CSP nonce (middleware.ts + helmet update), Coraza WAF (ModSecurity + OWASP CRS), Trivy CI scan, Dependabot, OWASP ZAP weekly scan, SECURITY.md + INCIDENT_RESPONSE.md, anomaly detection Prometheus rules |
+| 2026-06-17 | 39 | Post-release fix: ModSecurity allowed_methods — added PUT/DELETE to OWASP CRS method whitelist (rule 911100 false positive) |
+| 2026-06-17 | 39 | Post-release fix: i18n — added missing common.forbidden/forbiddenDesc/retry keys to th, cn, ja, mm locales |

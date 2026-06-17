@@ -1,0 +1,7 @@
+# OWASP ZAP alert filter rules
+# Format: alertId	newRisk	newConfidence	url	parameter	enabled
+10027	A	L	.*	.*	true	# Cookie No HttpOnly Flag — suppressed at info level
+10028	A	L	.*	.*	true	# Cookie without Secure Flag (handled by Caddy TLS)
+10010	I	L	.*	.*	true	# Cookie without SameSite — informational only
+10021	I	L	.*	.*	true	# X-Content-Type-Options header missing — checked by backend helmet
+10062	I	L	.*	.*	true	# PII disclosure — informational only

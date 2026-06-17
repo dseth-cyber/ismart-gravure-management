@@ -1,0 +1,45 @@
+{
+  # Global options
+  admin off
+  servers {
+    protocols h2 h1
+  }
+}
+
+# Health check endpoint for Caddy itself
+:80 {
+  redir https://{host}{uri} 301
+}
+
+https://localhost, https://frontend.localhost {
+  tls internal
+  reverse_proxy frontend:3000 {
+    header_up Host {host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+}
+
+https://api.localhost {
+  tls internal
+  reverse_proxy modsecurity:8080 {
+    header_up Host {host}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {host}
+  }
+}
+
+https://grafana.localhost {
+  tls internal
+  reverse_proxy grafana:3000 {
+    header_up Host {host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+}
+
+https://minio.localhost {
+  tls internal
+  reverse_proxy minio:9001 {
+    header_up Host {host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+}

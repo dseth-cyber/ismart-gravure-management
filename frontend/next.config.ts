@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
 
-const backendUrl = process.env.BACKEND_URL || 'http://backend:5000';
+const backendUrl = process.env.BACKEND_URL || 'http://modsecurity:8080';
 const allowedOrigins = (process.env.ALLOWED_DEV_ORIGINS || '').split(',').filter(Boolean);
 
 const nextConfig: NextConfig = {

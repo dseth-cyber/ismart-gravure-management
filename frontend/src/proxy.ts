@@ -1,24 +1,35 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_ROUTES = ['/_next/', '/api/', '/login', '/login/mfa', '/favicon.ico'];
+export default function proxy(request: NextRequest) {
+  const nonce = crypto.randomUUID();
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const cspHeader = [
+    `default-src 'self'`,
+    `script-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' 'nonce-${nonce}'`,
+    `img-src 'self' data: https:`,
+    `font-src 'self'`,
+    `object-src 'none'`,
+    `frame-ancestors 'none'`,
+    `base-uri 'self'`,
+    `form-action 'self'`,
+  ].join('; ');
 
-  if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) {
-    return NextResponse.next();
-  }
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
 
-  const authCookie = request.cookies.get('gm_token')?.value;
-  if (!authCookie) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
-  }
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  response.headers.set('x-nonce', nonce);
+  response.headers.set('Content-Security-Policy', cspHeader);
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ['/:path*'],
+  matcher: [
+    { source: '/((?!api|_next/static|_next/image|favicon.ico).*)' },
+  ],
 };

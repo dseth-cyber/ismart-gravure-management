@@ -11,6 +11,7 @@ import { correlationMiddleware } from './middleware/correlation';
 import { loggerMiddleware } from './middleware/logger';
 import { rateLimiter, authRateLimiter } from './middleware/rate-limiter';
 import { errorHandler } from './middleware/error';
+import { sanitizeBody } from './middleware/sanitize';
 import { requireApiKey } from './middleware/api-key';
 import { env } from './config/env';
 import authRoutes from './modules/auth/auth.routes';
@@ -45,7 +46,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
@@ -70,6 +71,7 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '1mb' }));
+app.use(sanitizeBody);
 app.use(correlationMiddleware);
 app.use(loggerMiddleware);
 app.use(metricsMiddleware);
@@ -84,7 +86,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Redis TCP Connectivity Helper
 const checkRedisHealth = (): Promise<'connected' | 'disconnected'> => {
   return new Promise((resolve) => {
-    const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+    const redisUrl = env.REDIS_URL;
     let host = 'redis';
     let port = 6379;
     try {

@@ -10,7 +10,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
-    "test:smoke": "ts-node-dev --respawn=false --transpile-only tests/e2e-smoke.ts"
+    "test:smoke": "ts-node-dev --respawn=false --transpile-only tests/e2e-smoke.ts",
+    "audit": "npm audit --audit-level=high",
+    "audit:fix": "npm audit fix --audit-level=high",
+    "test:security": "ts-node-dev --respawn=false --transpile-only tests/security.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",

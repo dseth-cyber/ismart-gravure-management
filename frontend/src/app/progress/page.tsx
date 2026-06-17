@@ -48,6 +48,8 @@ const phases: Array<{ id: number; nameKey: string; outputKey: string; status: St
   { id: 35, nameKey: 'phase.35.name', outputKey: 'phase.35.output', status: 'done' },
   { id: 36, nameKey: 'phase.36.name', outputKey: 'phase.36.output', status: 'done' },
   { id: 37, nameKey: 'phase.37.name', outputKey: 'phase.37.output', status: 'done' },
+  { id: 38, nameKey: 'phase.38.name', outputKey: 'phase.38.output', status: 'done' },
+  { id: 39, nameKey: 'phase.39.name', outputKey: 'phase.39.output', status: 'done' },
 ];
 
 const rules = [
@@ -63,6 +65,14 @@ const rules = [
   'rule.dashboard_layout',
   'rule.tls_https',
   'rule.infra_security',
+  'rule.xss_sanitize',
+  'rule.file_validation',
+  'rule.audit_immutable',
+  'rule.csp_nonce',
+  'rule.waf',
+  'rule.image_scan',
+  'rule.secrets_vault',
+  'rule.incident_response',
 ];
 
 const architecture = [

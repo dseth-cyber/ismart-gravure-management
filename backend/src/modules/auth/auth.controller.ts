@@ -10,9 +10,6 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const { username, password } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({ status: 'error', statusCode: 400, message: 'Username and password are required' } as ApiResponse);
-      }
 
       const result = await AuthService.login(username, password);
       await AuditService.record(req, 'auth.login', `User ${username} logged in successfully`, result.user?.id, result.user?.username);

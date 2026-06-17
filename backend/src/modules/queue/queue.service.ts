@@ -3,8 +3,9 @@ import { Logger } from '../../utils/logger';
 import { AuditService } from '../audit/audit.service';
 import { Request } from 'express';
 import { incrementQueueJobs } from '../../middleware/metrics';
+import { env } from '../../config/env';
 
-const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+const redisUrl = env.REDIS_URL;
 
 // Setup connection options for BullMQ
 // BullMQ requires maxRetriesPerRequest to be null

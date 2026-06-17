@@ -159,6 +159,9 @@
   "common.trashBin": "ゴミ箱",
   "common.viewActive": "有効なシリンダーを表示",
   "common.viewDetails": "詳細を見る",
+  "common.forbidden": "アクセスが拒否されました",
+  "common.forbiddenDesc": "この機能にアクセスする権限がありません。管理者にお問い合わせください。",
+  "common.retry": "再試行",
   "cyl.all": "全て",
   "cyl.changeStatus": "状態変更",
   "cyl.scanSuccess": "スキャン成功！",
@@ -953,6 +956,41 @@
   "phase.36.output": "Add/Edit/Delete users with email, password reset; email field on User model; role text badge",
   "phase.37.name": "Phase 37: TLS/HTTPS Hardening & Infrastructure Security",
   "phase.37.output": "Caddy reverse proxy with auto HTTPS; internal network isolation; secure exposed ports; Cloudflare TLS upgrade; security audit compliance",
+  "phase.38.name": "Phase 38: Security Hardening — Score 9.0",
+  "phase.38.output": "Zod login validation, XSS sanitization middleware, file upload MIME+magic bytes check, immutable audit logs (trigger), security tests, secrets rotation script, npm audit CI, remove hardcoded secrets, cAdvisor capabilities, read-only Docker socket",
+  "phase.39.name": "Phase 39: 10/10 — Full Security Hardening",
+  "phase.39.output": "CSP nonce replacement, Coraza WAF with OWASP CRS, Trivy container scanning, Dependabot, OWASP ZAP pentest, SECURITY.md + incident response plan, anomaly detection Prometheus rules",
+  "phase.39.details": {
+    "outputs": [
+      "CSP nonce — frontend proxy.ts + backend helmet unsafe-inline removed",
+      "Coraza WAF (ModSecurity + OWASP CRS) in Docker Compose",
+      "Trivy container scanning in CI (GitHub Actions + local script)",
+      "Dependabot config for npm, Docker, GitHub Actions",
+      "OWASP ZAP DAST scan (weekly CI + local)",
+      "SECURITY.md and INCIDENT_RESPONSE.md",
+      "Anomaly detection: 8 Prometheus alert rules",
+      "ModSecurity allowed_methods fix — PUT/DELETE restored for API"
+    ],
+    "criteria": [
+      "CSP header contains nonce-* and no unsafe-inline on HTML responses",
+      "WAF blocks common attack patterns (SQLi, XSS) before reaching backend",
+      "Trivy scan fails CI when HIGH/CRITICAL CVEs found",
+      "Dependabot creates PRs for vulnerable dependencies automatically",
+      "ZAP scan runs weekly",
+      "Incident response plan documents all 5 phases with team roles",
+      "Anomaly alerts fire for brute force, traffic spikes, WAF blocks"
+    ],
+    "notes": [
+      "CSP nonce via Next.js middleware for HTML + backend helmet for API",
+      "ModSecurity at PARANOIA=1 (balanced); increase during attacks",
+      "ModSecurity default allowed_methods excludes PUT/DELETE — fixed via SecAction override",
+      "Trivy scans HIGH/CRITICAL only; MEDIUM/LOW reviewed manually",
+      "ZAP targets local stack; production scan needs URL override",
+      "Anomaly thresholds conservative for baseline collection",
+      "common.forbidden, common.forbiddenDesc, common.retry i18n keys added to th, cn, ja, mm locales",
+      "Completed on 2026-06-17 (post-release fixes: 2026-06-17)."
+    ]
+  },
   "phase.4.details": {
     "outputs": [
       "共通ダイアログコンポーネント (AppDialog, ConfirmDialog, FormDialog)",
@@ -1117,6 +1155,14 @@
   "rule.roadmap_sync": "モジュール、機能、またはサービスが追加されるたびに、ロードマップUIのすべての関連ポイント（フェーズ、アーキテクチャ、ドキュメント）を更新する必要があります",
   "rule.searchable_select": "このプロジェクトでは、すべてのドロップダウン選択にカスタムの SearchableSelect コンポーネントのみを使用します。ブラウザのネイティブ select タグや他の選択コンポーネントの使用は厳禁です。",
   "rule.infra_security": "Internal services (DB, Redis, MinIO, exporters) must NOT expose ports to host. Redis must have a password. Grafana creds from Docker secrets.",
+  "rule.xss_sanitize": "All user input must be sanitized for XSS via middleware before reaching controllers.",
+  "rule.file_validation": "File uploads must validate MIME type AND magic bytes (file content signature) before storage.",
+  "rule.audit_immutable": "Audit logs must be append-only — UPDATE and DELETE are blocked by DB trigger. Cleanup uses temporary trigger disable.",
+  "rule.csp_nonce": "CSP must use nonce or hash for inline scripts/styles — 'unsafe-inline' is not allowed in production.",
+  "rule.image_scan": "All container images must be scanned for CVEs via Trivy before deployment.",
+  "rule.incident_response": "A security incident response plan must exist and be reviewed quarterly.",
+  "rule.secrets_vault": "Secrets must be stored in a dedicated secrets management system (Vault or KMS), not in Docker secret files or env vars.",
+  "rule.waf": "A Web Application Firewall (Coraza with OWASP CRS) must be deployed before the application in production.",
   "rule.tls_https": "All external traffic must go through a TLS-terminating reverse proxy (Caddy). Cloudflare Tunnel must point to the proxy (TLS), not directly to backend (HTTP).",
   "rule.sectionTitle": "守るべきコア原則",
   "rule.theme": "すべてのテーマ依存スタイルは themeConfig から取得する必要があります",

@@ -20,14 +20,6 @@ export function validate(schema: ZodSchema, source: 'body' | 'query' | 'params' 
   };
 }
 
-export function validateLogin(body: unknown) {
-  if (!body || typeof body !== 'object') throw new AppError('Invalid request body', 400);
-  const { username, password } = body as any;
-  if (!username || typeof username !== 'string' || username.length < 1) throw new AppError('username is required (min 1 char)', 400);
-  if (!password || typeof password !== 'string' || password.length < 1) throw new AppError('password is required', 400);
-  return body as { username: string; password: string };
-}
-
 export function validateCreatePermission(body: unknown) {
   if (!body || typeof body !== 'object') throw new AppError('Invalid request body', 400);
   const { name, module, action, description } = body as any;

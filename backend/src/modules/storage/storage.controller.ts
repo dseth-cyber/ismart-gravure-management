@@ -3,6 +3,21 @@ import { StorageService } from './storage.service';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { ApiResponse } from '@shared/dto/auth/auth.dto';
 import { env } from '../../config/env';
+import { AppError } from '../../middleware/error';
+
+const MAGIC_BYTES: Record<string, number[][]> = {
+  'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+  'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+  'image/gif': [[0x47, 0x49, 0x46, 0x38]],
+  'image/webp': [[0x52, 0x49, 0x46, 0x46]],
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
+};
+
+function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  const signatures = MAGIC_BYTES[mimeType];
+  if (!signatures) return true;
+  return signatures.some((sig) => sig.every((byte, i) => buffer[i] === byte));
+}
 
 export class StorageController {
   static async upload(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
@@ -10,6 +25,9 @@ export class StorageController {
       const file = (req as any).file;
       if (!file) {
         return res.status(400).json({ status: 'error', statusCode: 400, message: 'No file uploaded' } as ApiResponse);
+      }
+      if (!validateMagicBytes(file.buffer, file.mimetype)) {
+        return next(new AppError(`File content does not match declared type ${file.mimetype}`, 400));
       }
       const result = await StorageService.uploadFile(file.buffer, file.originalname, file.mimetype, {
         userId: req.user?.userId,

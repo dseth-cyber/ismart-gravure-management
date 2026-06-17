@@ -1,0 +1,46 @@
+name: Trivy Container Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 0'
+
+jobs:
+  trivy-scan:
+    name: Trivy CVE Scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - Dockerfile.backend
+          - Dockerfile.frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          if [ "${{ matrix.image }}" = "Dockerfile.backend" ]; then
+            docker build -f backend/Dockerfile -t gravure-backend:ci backend/
+          else
+            docker build -f frontend/Dockerfile -t gravure-frontend:ci frontend/
+          fi
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ matrix.image == 'Dockerfile.backend' && 'gravure-backend:ci' || 'gravure-frontend:ci' }}
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          output: trivy-report-${{ matrix.image }}.txt
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-report-${{ matrix.image }}
+          path: trivy-report-*.txt

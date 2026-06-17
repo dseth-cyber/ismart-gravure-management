@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import { AuthController } from './auth.controller';
 import { requireAuth, requireRoles } from '../../middleware/auth';
-import { validate, validateLogin } from '../../middleware/validate';
+import { validate } from '../../middleware/validate';
 import { z } from 'zod';
+
+const loginSchema = z.object({
+  username: z.string().min(1, 'username is required'),
+  password: z.string().min(1, 'password is required'),
+});
 
 const mfaEnableSchema = z.object({
   token: z.string().min(1, 'token is required'),
@@ -41,7 +46,7 @@ const refreshSchema = z.object({
 
 const router = Router();
 
-router.post('/login', AuthController.login);
+router.post('/login', validate(loginSchema), AuthController.login);
 router.post('/mfa/verify', validate(mfaVerifySchema), AuthController.verifyMfa);
 router.post('/refresh', validate(refreshSchema), AuthController.refresh);
 router.post('/logout', requireAuth, AuthController.logout);

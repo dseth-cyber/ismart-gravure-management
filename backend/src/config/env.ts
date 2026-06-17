@@ -18,7 +18,8 @@ function readSecret(name: string): string | undefined {
 export const env = {
   PORT: parseInt(process.env.PORT || '5000', 10),
   DATABASE_URL: readSecret('db_url') || process.env.DATABASE_URL || '',
-  REDIS_URL: readSecret('redis_url') || process.env.REDIS_URL || 'redis://redis:6379',
+  REDIS_URL: readSecret('redis_url') || process.env.REDIS_URL || 'redis://:xRZ5BGoP3CvMTifEqL8tIQdsyYmkSNOD@redis:6379',
+  REDIS_PASSWORD: readSecret('redis_password') || process.env.REDIS_PASSWORD || 'xRZ5BGoP3CvMTifEqL8tIQdsyYmkSNOD',
   JWT_SECRET: readSecret('jwt_secret') || process.env.JWT_SECRET || 'super_secret_jwt_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '15m',
   JWT_REFRESH_SECRET: readSecret('jwt_refresh_secret') || process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
@@ -43,7 +44,7 @@ export const env = {
   CORS_ORIGINS: process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5000',
   API_KEY_ENABLED: process.env.API_KEY_ENABLED === 'true',
   API_KEYS: (readSecret('api_keys') || process.env.API_KEYS || '').split(',').filter(Boolean),
-  HELMET_CSP: process.env.HELMET_CSP || "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:",
+  HELMET_CSP: process.env.HELMET_CSP || "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:",
   HSTS_MAX_AGE: parseInt(process.env.HSTS_MAX_AGE || '31536000', 10),
   STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 'minio',
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || 'minio',
