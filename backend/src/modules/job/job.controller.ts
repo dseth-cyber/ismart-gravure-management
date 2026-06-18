@@ -327,6 +327,52 @@ export class JobController {
     }
   }
 
+  static async batchUpdateStatus(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { jobNumbers, status } = req.body;
+      if (!Array.isArray(jobNumbers) || jobNumbers.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'jobNumbers array is required' });
+      }
+      const validStatuses = ['pending', 'verifying', 'active', 'completed', 'hold', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      }
+      const { count } = await JobService.batchUpdateStatus(jobNumbers, status);
+      await AuditService.record(req, 'job.batch_status', `Batch updated ${count} job(s) to ${status}`);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { updated: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchDelete(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { jobNumbers } = req.body;
+      if (!Array.isArray(jobNumbers) || jobNumbers.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'jobNumbers array is required' });
+      }
+      const { count } = await JobService.batchDelete(jobNumbers);
+      await AuditService.record(req, 'job.batch_delete', `Batch deleted ${count} job(s)`);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { deleted: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchRestore(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { jobNumbers } = req.body;
+      if (!Array.isArray(jobNumbers) || jobNumbers.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'jobNumbers array is required' });
+      }
+      const { count } = await JobService.batchRestore(jobNumbers);
+      await AuditService.record(req, 'job.batch_restore', `Batch restored ${count} job(s)`);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { restored: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async listLogs(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const poolJob = (req.params.jobNumber as string) || (req.query.jobNumber as string);

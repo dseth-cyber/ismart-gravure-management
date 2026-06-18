@@ -8,17 +8,17 @@ export class ProductService {
       throw new AppError('Product code, name, and customerCode are required', 400);
     }
 
-    // 1. Check for duplicate product code
-    const existing = await prisma.product.findUnique({
-      where: { code: dto.code }
+    // 1. Check for duplicate product code (exclude soft-deleted)
+    const existing = await prisma.product.findFirst({
+      where: { code: dto.code, deletedAt: null }
     });
     if (existing) {
       throw new AppError(`Product with code ${dto.code} already exists`, 400);
     }
 
-    // 2. Validate customerCode exists (Service-level link)
-    const customer = await prisma.customer.findUnique({
-      where: { code: dto.customerCode }
+    // 2. Validate customerCode exists (exclude soft-deleted)
+    const customer = await prisma.customer.findFirst({
+      where: { code: dto.customerCode, deletedAt: null }
     });
     if (!customer) {
       throw new AppError(`Customer with code ${dto.customerCode} does not exist`, 400);
@@ -83,5 +83,16 @@ export class ProductService {
     return prisma.product.delete({
       where: { id }
     });
+  }
+
+  static async checkExists(field: string, value: string): Promise<boolean> {
+    const allowedFields = ['code'];
+    if (!allowedFields.includes(field)) {
+      throw new AppError(`Field '${field}' is not allowed for existence check`, 400);
+    }
+    const record = await prisma.product.findFirst({
+      where: { [field]: value, deletedAt: null }
+    });
+    return !!record;
   }
 }

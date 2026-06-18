@@ -8,6 +8,7 @@ router.use(requireAuth);
 
 router.post('/', CustomerController.create);
 router.get('/', CustomerController.list);
+router.get('/exists', CustomerController.checkExists);
 router.get('/:id', CustomerController.getById);
 router.put('/:id', CustomerController.update);
 router.delete('/:id', CustomerController.delete);

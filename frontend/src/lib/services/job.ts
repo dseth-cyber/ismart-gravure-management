@@ -57,6 +57,21 @@ export async function emptyJobTrash(): Promise<{ deleted: number }> {
   return res.data.data!;
 }
 
+export async function batchUpdateJobStatus(jobNumbers: string[], status: string): Promise<{ updated: number }> {
+  const res = await apiClient.post<ApiResponse<{ updated: number }>>('/api/v1/jobs/batch/status', { jobNumbers, status });
+  return res.data.data!;
+}
+
+export async function batchDeleteJobs(jobNumbers: string[]): Promise<{ deleted: number }> {
+  const res = await apiClient.post<ApiResponse<{ deleted: number }>>('/api/v1/jobs/batch/delete', { jobNumbers });
+  return res.data.data!;
+}
+
+export async function batchRestoreJobs(jobNumbers: string[]): Promise<{ restored: number }> {
+  const res = await apiClient.post<ApiResponse<{ restored: number }>>('/api/v1/jobs/batch/restore', { jobNumbers });
+  return res.data.data!;
+}
+
 export async function getJobLogs(jobNumber: string): Promise<ProductionLogDto[]> {
   const res = await apiClient.get<ApiResponse<ProductionLogDto[]>>(`/api/v1/jobs/${jobNumber}/logs`);
   return res.data.data!;

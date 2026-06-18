@@ -69,6 +69,7 @@ router.get('/mfa/status', requireAuth, AuthController.mfaStatus);
 // ── User Management (admin) ──
 router.get('/users', requireAuth, requireRoles(['admin']), AuthController.listUsers);
 router.delete('/users/trash/empty', requireAuth, requireRoles(['admin']), AuthController.emptyUserTrash);
+router.get('/users/exists', requireAuth, requireRoles(['admin']), AuthController.checkUserExists);
 router.get('/users/:id', requireAuth, requireRoles(['admin']), AuthController.getUser);
 router.post('/users', requireAuth, requireRoles(['admin']), validate(createUserSchema), AuthController.createUser);
 router.put('/users/:id', requireAuth, requireRoles(['admin']), validate(updateUserSchema), AuthController.updateUser);

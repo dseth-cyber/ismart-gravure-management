@@ -105,4 +105,18 @@ export class CustomerController {
       next(error);
     }
   }
+
+  static async checkExists(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const field = req.query.field as string;
+      const value = req.query.value as string;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await CustomerService.checkExists(field, value);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

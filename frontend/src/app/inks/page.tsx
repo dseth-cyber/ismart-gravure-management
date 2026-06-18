@@ -6,13 +6,19 @@ import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check,
 import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
+import { AppDialog, ConfirmDialog } from '@/components/shared/app-dialog';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { 
   listFormulas, createFormula, listBatches, createBatch, updateBatch,
   deleteFormula, restoreFormula, permanentDeleteFormula, emptyFormulaTrash,
-  deleteBatch, restoreBatch, permanentDeleteBatch, emptyBatchTrash
+  deleteBatch, restoreBatch, permanentDeleteBatch, emptyBatchTrash,
+  batchUpdateFormulaStatus, batchDeleteFormulas, batchRestoreFormulas,
+  batchDeleteBatches, batchRestoreBatches
 } from '@/lib/services/ink';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDebouncedCheck } from '@/lib/hooks/use-debounced-check';
+import { apiClient } from '@/lib/api/client';
+import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import SearchableSelect from '@/components/ui/SearchableSelect';
@@ -105,11 +111,29 @@ function InksPageContent() {
   const [confirmPermanentDeleteBatch, setConfirmPermanentDeleteBatch] = useState<string | null>(null);
   const [emptyBatchTrashConfirm, setEmptyBatchTrashConfirm] = useState(false);
 
+  // Batch selection
+  const [selectedFormulaIds, setSelectedFormulaIds] = useState<string[]>([]);
+  const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
+  const [batchFormulaStatusOpen, setBatchFormulaStatusOpen] = useState(false);
+  const [batchFormulaDeleteOpen, setBatchFormulaDeleteOpen] = useState(false);
+  const [batchFormulaRestoreOpen, setBatchFormulaRestoreOpen] = useState(false);
+  const [batchBatchesDeleteOpen, setBatchBatchesDeleteOpen] = useState(false);
+  const [batchBatchesRestoreOpen, setBatchBatchesRestoreOpen] = useState(false);
+
   // Dynamic Required Fields configurations
   const [requiredFieldsFormula, setRequiredFieldsFormula] = useState<string[]>([]);
   const [requiredFieldsBatch, setRequiredFieldsBatch] = useState<string[]>([]);
   const [formulaError, setFormulaError] = useState('');
   const [batchError, setBatchError] = useState('');
+
+  const codeDuplicateStatus = useDebouncedCheck(
+    formulaForm.code,
+    async (val) => {
+      const res = await apiClient.get(`/api/v1/inks/formulas/exists?field=code&value=${encodeURIComponent(val)}`);
+      return res.data?.data?.exists ?? false;
+    },
+    400
+  );
 
   useEffect(() => {
     const loadRequired = async () => {
@@ -134,6 +158,72 @@ function InksPageContent() {
   }, []);
 
   // Filtering lists
+  // Clear selection when tab, search, or trash state changes
+  useEffect(() => {
+    setSelectedFormulaIds([]);
+    setSelectedBatchIds([]);
+  }, [activeTab, search, showTrashFormulas, showTrashBatches]);
+
+  const handleBatchFormulaStatusChange = async (status: string) => {
+    try {
+      await batchUpdateFormulaStatus(selectedFormulaIds, status);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+      setSelectedFormulaIds([]);
+    } catch (err) {
+      console.error('Failed to batch update formula status', err);
+    } finally {
+      setBatchFormulaStatusOpen(false);
+    }
+  };
+
+  const handleBatchFormulaDelete = async () => {
+    try {
+      await batchDeleteFormulas(selectedFormulaIds);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+      setSelectedFormulaIds([]);
+    } catch (err) {
+      console.error('Failed to batch delete formulas', err);
+    } finally {
+      setBatchFormulaDeleteOpen(false);
+    }
+  };
+
+  const handleBatchFormulaRestore = async () => {
+    try {
+      await batchRestoreFormulas(selectedFormulaIds);
+      queryClient.invalidateQueries({ queryKey: ['formulas'] });
+      setSelectedFormulaIds([]);
+    } catch (err) {
+      console.error('Failed to batch restore formulas', err);
+    } finally {
+      setBatchFormulaRestoreOpen(false);
+    }
+  };
+
+  const handleBatchBatchesDelete = async () => {
+    try {
+      await batchDeleteBatches(selectedBatchIds);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      setSelectedBatchIds([]);
+    } catch (err) {
+      console.error('Failed to batch delete batches', err);
+    } finally {
+      setBatchBatchesDeleteOpen(false);
+    }
+  };
+
+  const handleBatchBatchesRestore = async () => {
+    try {
+      await batchRestoreBatches(selectedBatchIds);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      setSelectedBatchIds([]);
+    } catch (err) {
+      console.error('Failed to batch restore batches', err);
+    } finally {
+      setBatchBatchesRestoreOpen(false);
+    }
+  };
+
   const filteredFormulas = formulas.filter(f => 
     !search || 
     f.code.toLowerCase().includes(search.toLowerCase()) || 
@@ -164,6 +254,10 @@ function InksPageContent() {
   const normalCount = sortedExpiry.filter(b => getUrgency(b.expiryDate).days > 30).length;
 
   const handleSaveFormula = async () => {
+    if (formulaForm.code && codeDuplicateStatus === 'exists') {
+      setFormulaError(t('common.alreadyExists'));
+      return;
+    }
     const missing: string[] = [];
     requiredFieldsFormula.forEach(field => {
       let val = '';
@@ -440,82 +534,159 @@ function InksPageContent() {
         ) : null}
 
         {!loading && !error && activeTab === 'formulas' && (
-          <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.formula'), t('col.product'), t('col.color'), t('col.pantone'), t('col.revision'), t('col.viscosity'), t('col.labTarget'), t('col.status'), t('common.actions') || 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFormulas.map(f => (
-                    <tr key={f.code + f.revision} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border}`}>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{f.code}</td>
-                      <td className="px-4 py-3 text-white">{f.productCode}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-white">
-                          <span className="w-4 h-4 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[f.color] || '#888' }} />
-                          <span>{f.color}</span>
-                        </span>
-                      </td>
-                      <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{f.pantone}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 text-xs font-mono ${f.status === 'active' ? 'text-emerald-400' : themeConfig.textSecondary}`}>
-                          {f.revision} {f.status === 'active' && <Check size={12} />}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-white font-mono text-xs">{f.viscosity}</td>
-                      <td className={`px-4 py-3 ${themeConfig.textSecondary} font-mono text-xs`}>{f.labTarget}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[f.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[f.status]?.text || 'text-gray-400'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[f.status]?.dot || 'bg-gray-400'}`} />
-                          {t(`status.${f.status}`)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-left">
-                        {showTrashFormulas ? (
-                          <div className="flex gap-2">
-                            <button onClick={() => handleRestoreFormula(f.code)} className="text-emerald-400 hover:text-emerald-300">
-                              <RotateCw size={15} />
-                            </button>
-                            <button onClick={() => setConfirmPermanentDeleteFormula(f.code)} className="text-red-500 hover:text-red-400">
+          <div>
+            <BatchToolbar
+              items={filteredFormulas}
+              selectedIds={selectedFormulaIds}
+              onSelectionChange={setSelectedFormulaIds}
+              getId={(f: any) => f.code}
+              showTrash={showTrashFormulas}
+              actions={showTrashFormulas ? [
+                { label: t('common.restore'), icon: <RotateCw size={13} />, variant: 'warning', onClick: () => setBatchFormulaRestoreOpen(true) },
+                { label: t('common.permanentDelete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: () => setBatchFormulaDeleteOpen(true) },
+              ] : [
+                { label: t('ink.changeStatus'), onClick: () => setBatchFormulaStatusOpen(true) },
+                { label: t('common.delete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: () => setBatchFormulaDeleteOpen(true) },
+              ]}
+            />
+            <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={`${themeConfig.tableHead}`}>
+                      <th className="px-4 py-3 w-10">
+                        <BatchSelectAllCheckbox
+                          checked={filteredFormulas.length > 0 && filteredFormulas.every(f => selectedFormulaIds.includes(f.code))}
+                          indeterminate={selectedFormulaIds.length > 0 && !filteredFormulas.every(f => selectedFormulaIds.includes(f.code))}
+                          onChange={() => {
+                            const allIds = filteredFormulas.map(f => f.code);
+                            if (filteredFormulas.every(f => selectedFormulaIds.includes(f.code))) {
+                              setSelectedFormulaIds(prev => prev.filter(id => !allIds.includes(id)));
+                            } else {
+                              setSelectedFormulaIds(prev => [...new Set([...prev, ...allIds])]);
+                            }
+                          }}
+                        />
+                      </th>
+                      {[t('col.formula'), t('col.product'), t('col.color'), t('col.pantone'), t('col.revision'), t('col.viscosity'), t('col.labTarget'), t('col.status'), t('common.actions') || 'Actions'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFormulas.map(f => (
+                      <tr key={f.code + f.revision} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border}`}>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <BatchRowCheckbox
+                            checked={selectedFormulaIds.includes(f.code)}
+                            onChange={() => {
+                              setSelectedFormulaIds(prev =>
+                                prev.includes(f.code) ? prev.filter(id => id !== f.code) : [...prev, f.code]
+                              );
+                            }}
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{f.code}</td>
+                        <td className="px-4 py-3 text-white">{f.productCode}</td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1.5 text-xs text-white">
+                            <span className="w-4 h-4 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[f.color] || '#888' }} />
+                            <span>{f.color}</span>
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{f.pantone}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 text-xs font-mono ${f.status === 'active' ? 'text-emerald-400' : themeConfig.textSecondary}`}>
+                            {f.revision} {f.status === 'active' && <Check size={12} />}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-white font-mono text-xs">{f.viscosity}</td>
+                        <td className={`px-4 py-3 ${themeConfig.textSecondary} font-mono text-xs`}>{f.labTarget}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[f.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[f.status]?.text || 'text-gray-400'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[f.status]?.dot || 'bg-gray-400'}`} />
+                            {t(`status.${f.status}`)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-left">
+                          {showTrashFormulas ? (
+                            <div className="flex gap-2">
+                              <button onClick={() => handleRestoreFormula(f.code)} className="text-emerald-400 hover:text-emerald-300">
+                                <RotateCw size={15} />
+                              </button>
+                              <button onClick={() => setConfirmPermanentDeleteFormula(f.code)} className="text-red-500 hover:text-red-400">
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => handleDeleteFormula(f.code)} className="text-red-400 hover:text-red-300">
                               <Trash2 size={15} />
                             </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => handleDeleteFormula(f.code)} className="text-red-400 hover:text-red-300">
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
         {!loading && !error && activeTab === 'batch' && (
-          <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className={`${themeConfig.tableHead}`}>
-                    {[t('col.batch'), t('col.formula'), t('col.color'), t('ink.mixDate'), t('col.expiry'), t('col.weight'), t('col.remaining'), t('col.operator'), t('col.status'), t('common.actions') || 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBatches.map(b => {
-                    const progress = b.weight > 0 ? (b.remaining / b.weight) * 100 : 0;
-                    return (
-                      <tr key={b.id} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border}`}>
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{b.id}</td>
+          <div>
+            <BatchToolbar
+              items={filteredBatches}
+              selectedIds={selectedBatchIds}
+              onSelectionChange={setSelectedBatchIds}
+              showTrash={showTrashBatches}
+              actions={showTrashBatches ? [
+                { label: t('common.restore'), icon: <RotateCw size={13} />, variant: 'warning', onClick: () => setBatchBatchesRestoreOpen(true) },
+                { label: t('common.permanentDelete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: () => setBatchBatchesDeleteOpen(true) },
+              ] : [
+                { label: t('common.delete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: () => setBatchBatchesDeleteOpen(true) },
+              ]}
+            />
+            <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={`${themeConfig.tableHead}`}>
+                      <th className="px-4 py-3 w-10">
+                        <BatchSelectAllCheckbox
+                          checked={filteredBatches.length > 0 && filteredBatches.every(b => selectedBatchIds.includes(b.id))}
+                          indeterminate={selectedBatchIds.length > 0 && !filteredBatches.every(b => selectedBatchIds.includes(b.id))}
+                          onChange={() => {
+                            const allIds = filteredBatches.map(b => b.id);
+                            if (filteredBatches.every(b => selectedBatchIds.includes(b.id))) {
+                              setSelectedBatchIds(prev => prev.filter(id => !allIds.includes(id)));
+                            } else {
+                              setSelectedBatchIds(prev => [...new Set([...prev, ...allIds])]);
+                            }
+                          }}
+                        />
+                      </th>
+                      {[t('col.batch'), t('col.formula'), t('col.color'), t('ink.mixDate'), t('col.expiry'), t('col.weight'), t('col.remaining'), t('col.operator'), t('col.status'), t('common.actions') || 'Actions'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBatches.map(b => {
+                      const progress = b.weight > 0 ? (b.remaining / b.weight) * 100 : 0;
+                      return (
+                        <tr key={b.id} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border}`}>
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <BatchRowCheckbox
+                              checked={selectedBatchIds.includes(b.id)}
+                              onChange={() => {
+                                setSelectedBatchIds(prev =>
+                                  prev.includes(b.id) ? prev.filter(id => id !== b.id) : [...prev, b.id]
+                                );
+                              }}
+                            />
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs font-semibold text-cyan-300">{b.id}</td>
                         <td className={`px-4 py-3 font-mono text-xs ${themeConfig.textSecondary}`}>{b.formulaCode}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1.5 text-xs text-white">
@@ -572,6 +743,7 @@ function InksPageContent() {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
         )}
 
@@ -761,6 +933,12 @@ function InksPageContent() {
                       className="bg-transparent text-white text-sm outline-none w-full"
                       placeholder={item.ph}
                     />
+                    {item.key === 'code' && codeDuplicateStatus === 'exists' && (
+                      <span className="text-[10px] text-red-400 mt-0.5">{t('common.alreadyExists')}</span>
+                    )}
+                    {item.key === 'code' && codeDuplicateStatus === 'checking' && (
+                      <span className="text-[10px] text-slate-500 mt-0.5">...</span>
+                    )}
                   </div>
                 );
               })}
@@ -1067,6 +1245,66 @@ function InksPageContent() {
           </div>
         </div>
       )}
+
+      {/* Batch Formula Status Dialog */}
+      <AppDialog
+        open={batchFormulaStatusOpen}
+        titleKey="ink.changeStatus"
+        onClose={() => setBatchFormulaStatusOpen(false)}
+      >
+        <div className="grid gap-2">
+          <p className={`text-sm ${themeConfig.textSecondary} mb-1`}>
+            {t('ink.batchFormulaStatusDesc', { count: selectedFormulaIds.length })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {['active', 'superseded'].map(s => (
+              <button
+                key={s}
+                onClick={() => handleBatchFormulaStatusChange(s)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${themeConfig.badge} ${themeConfig.textSecondary} ${themeConfig.panelHover} hover:text-white`}
+              >
+                {t(`status.${s}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </AppDialog>
+
+      {/* Batch Formula Delete Dialog */}
+      <ConfirmDialog
+        open={batchFormulaDeleteOpen}
+        titleKey={showTrashFormulas ? 'common.permanentDelete' : 'common.delete'}
+        descriptionKey={showTrashFormulas ? 'ink.batchFormulaDeleteConfirm' : 'ink.batchFormulaDeleteConfirm'}
+        onConfirm={handleBatchFormulaDelete}
+        onClose={() => setBatchFormulaDeleteOpen(false)}
+      />
+
+      {/* Batch Formula Restore Dialog */}
+      <ConfirmDialog
+        open={batchFormulaRestoreOpen}
+        titleKey="common.restore"
+        descriptionKey="ink.batchFormulaRestoreConfirm"
+        onConfirm={handleBatchFormulaRestore}
+        onClose={() => setBatchFormulaRestoreOpen(false)}
+      />
+
+      {/* Batch Batches Delete Dialog */}
+      <ConfirmDialog
+        open={batchBatchesDeleteOpen}
+        titleKey={showTrashBatches ? 'common.permanentDelete' : 'common.delete'}
+        descriptionKey={showTrashBatches ? 'ink.batchBatchesDeleteConfirm' : 'ink.batchBatchesDeleteConfirm'}
+        onConfirm={handleBatchBatchesDelete}
+        onClose={() => setBatchBatchesDeleteOpen(false)}
+      />
+
+      {/* Batch Batches Restore Dialog */}
+      <ConfirmDialog
+        open={batchBatchesRestoreOpen}
+        titleKey="common.restore"
+        descriptionKey="ink.batchBatchesRestoreConfirm"
+        onConfirm={handleBatchBatchesRestore}
+        onClose={() => setBatchBatchesRestoreOpen(false)}
+      />
     </AppLayout>
   );
 }

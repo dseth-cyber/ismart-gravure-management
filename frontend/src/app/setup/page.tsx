@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -23,8 +23,16 @@ import {
   X, 
   Bell, 
   Check, 
-  Settings 
+  Settings,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/shared/app-dialog';
+import { 
+  listMasterData, createMasterData, updateMasterData, deleteMasterData,
+  restoreMasterData, permanentDeleteMasterData, emptyMasterTrash as emptyMasterTrashApi
+} from '@/lib/services/master-data';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 function SetupPageContent() {
   const { t } = useTranslation();
@@ -67,6 +75,7 @@ function SetupPageContent() {
   const [activeCategory, setActiveCategory] = useState('status');
   const [showAddMasterModal, setShowAddMasterModal] = useState(false);
   const [editMasterItem, setEditMasterItem] = useState<any | null>(null);
+  const [masterDuplicateError, setMasterDuplicateError] = useState('');
 
   const categories = [
     { id: 'status', icon: BarChart3, label: t('setup.statuses'), color: 'from-cyan-500 to-blue-500' },
@@ -79,7 +88,10 @@ function SetupPageContent() {
     { id: 'solvent', icon: FlaskConical, label: t('setup.solvents'), color: 'from-teal-500 to-cyan-500' },
   ];
 
-  const [masterData, setMasterData] = useLocalStorage<Record<string, any[]>>('setup_masterData', {
+  const queryClient = useQueryClient();
+
+  // Seed data constant kept as fallback
+  const SEED_MASTER_DATA: Record<string, any[]> = {
     status: [
       { id: 1, name: 'Available', nameTh: 'พร้อมใช้งาน', color: '#10b981', icon: 'check', active: true },
       { id: 2, name: 'In Production', nameTh: 'ระหว่างผลิต', color: '#3b82f6', icon: 'factory', active: true },
@@ -134,26 +146,143 @@ function SetupPageContent() {
       { id: 3, name: 'IPA', nameTh: 'ไอโซโพรพิลแอลกอฮอล์', boiling: '82°C', active: true },
       { id: 4, name: 'MEK', nameTh: 'เมทิลเอทิลคีโตน', boiling: '80°C', active: true },
     ],
+  };
+
+  const CATEGORIES = ['status', 'cylinderType', 'defectType', 'machine', 'rack', 'supplier', 'inkType', 'solvent'];
+
+  const [masterDataInitialized, setMasterDataInitialized] = useState(false);
+
+  // Load from API — fall back to localStorage seed data
+  const { data: masterData = {} } = useQuery({
+    queryKey: ['masterData'],
+    queryFn: async () => {
+      const result: Record<string, any[]> = {};
+      for (const cat of CATEGORIES) {
+        try {
+          const items = await listMasterData(cat, true);
+          result[cat] = items.map((item: any) => ({
+            id: item.id,
+            _apiId: item.id,
+            name: item.name,
+            nameTh: item.nameTh || '',
+            active: item.active,
+            deletedAt: item.deletedAt ? new Date(item.deletedAt).getTime() : undefined,
+            ...(item.extra || {}),
+          }));
+        } catch {
+          result[cat] = [];
+        }
+      }
+      return result;
+    },
+    staleTime: 30000,
+    retry: 1,
   });
 
-  const toggleMasterActive = (id: number) => {
-    setMasterData(prev => ({
-      ...prev,
-      [activeCategory]: prev[activeCategory].map(item =>
-        item.id === id ? { ...item, active: !item.active } : item
-      ),
-    }));
+  // Seed API if empty after first load
+  useEffect(() => {
+    const anyData = CATEGORIES.some(cat => (masterData[cat]?.length ?? 0) > 0);
+    if (!anyData && !masterDataInitialized) {
+      setMasterDataInitialized(true);
+      const seedAll = async () => {
+        for (const cat of CATEGORIES) {
+          for (const item of SEED_MASTER_DATA[cat] || []) {
+            try {
+              const { id, _apiId, deletedAt, ...rest } = item;
+              await createMasterData({ category: cat, name: item.name, nameTh: item.nameTh, active: item.active, extra: rest });
+            } catch { }
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['masterData'] });
+      };
+      seedAll();
+    }
+  }, [masterData, masterDataInitialized, queryClient]);
+
+  const toggleMasterActive = async (id: string) => {
+    const item = (masterData[activeCategory] || []).find((i: any) => i.id === id);
+    if (!item) return;
+    try {
+      await updateMasterData(id, { active: !item.active });
+      queryClient.invalidateQueries({ queryKey: ['masterData'] });
+    } catch { }
   };
 
-  const deleteMasterItem = (id: number) => {
-    setMasterData(prev => ({
-      ...prev,
-      [activeCategory]: prev[activeCategory].filter(item => item.id !== id),
-    }));
+  const deleteMasterItem = async (id: string) => {
+    try {
+      await deleteMasterData(id);
+      queryClient.invalidateQueries({ queryKey: ['masterData'] });
+      setMasterDeleteTarget(null);
+    } catch { }
   };
+
+  const restoreMasterItem = async (id: string) => {
+    try {
+      await restoreMasterData(id);
+      queryClient.invalidateQueries({ queryKey: ['masterData'] });
+    } catch { }
+  };
+
+  const permanentDeleteMasterItem = async (id: string) => {
+    try {
+      await permanentDeleteMasterData(id);
+      queryClient.invalidateQueries({ queryKey: ['masterData'] });
+      setMasterPermDeleteTarget(null);
+    } catch { }
+  };
+
+  const handleEmptyMasterTrash = async () => {
+    try {
+      await emptyMasterTrashApi(activeCategory);
+      queryClient.invalidateQueries({ queryKey: ['masterData'] });
+      setMasterEmptyTrashOpen(false);
+    } catch { }
+  };
+
+  const handleRulesSoftDelete = () => {
+    if (!rulesDeleteTarget) return;
+    setRules(prev => prev.map(r => r.id === rulesDeleteTarget.id ? { ...r, deletedAt: Date.now() } : r));
+    setRulesDeleteTarget(null);
+  };
+
+  const handleRulesPermanentDelete = () => {
+    if (!rulesPermDeleteTarget) return;
+    setRules(prev => prev.filter(r => r.id !== rulesPermDeleteTarget.id));
+    setRulesPermDeleteTarget(null);
+  };
+
+  const handleRulesEmptyTrash = () => {
+    setRules(prev => prev.filter(r => !r.deletedAt));
+    setRulesEmptyTrashOpen(false);
+  };
+
+  const handleApprovalsSoftDelete = () => {
+    if (!approvalsDeleteTarget) return;
+    setMatrix(prev => prev.map(x => x.id === approvalsDeleteTarget.id ? { ...x, deletedAt: Date.now() } : x));
+    setApprovalsDeleteTarget(null);
+  };
+
+  const handleApprovalsPermanentDelete = () => {
+    if (!approvalsPermDeleteTarget) return;
+    setMatrix(prev => prev.filter(x => x.id !== approvalsPermDeleteTarget.id));
+    setApprovalsPermDeleteTarget(null);
+  };
+
+  const handleApprovalsEmptyTrash = () => {
+    setMatrix(prev => prev.filter(x => !x.deletedAt));
+    setApprovalsEmptyTrashOpen(false);
+  };
+
+  // Master Data trash state
+  const [showMasterTrash, setShowMasterTrash] = useState(false);
+  const [masterDeleteTarget, setMasterDeleteTarget] = useState<any | null>(null);
+  const [masterPermDeleteTarget, setMasterPermDeleteTarget] = useState<any | null>(null);
+  const [masterEmptyTrashOpen, setMasterEmptyTrashOpen] = useState(false);
 
   const currentCategory = categories.find(c => c.id === activeCategory);
-  const currentCategoryItems = masterData[activeCategory] || [];
+  const currentCategoryItems = (masterData[activeCategory] || []).filter(item =>
+    showMasterTrash ? item.deletedAt : !item.deletedAt
+  );
 
   // 2. RULE ENGINE TAB STATE
   const [rules, setRules] = useLocalStorage<any[]>('setup_rules', [
@@ -181,6 +310,7 @@ function SetupPageContent() {
   const [ruleOp, setRuleOp] = useState('<');
   const [ruleVal, setRuleVal] = useState('');
   const [ruleActionDesc, setRuleActionDesc] = useState('');
+  const [ruleDuplicateError, setRuleDuplicateError] = useState('');
 
   const toggleRuleActive = (id: number) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
@@ -189,6 +319,12 @@ function SetupPageContent() {
   const deleteRule = (id: number) => {
     setRules(prev => prev.filter(r => r.id !== id));
   };
+
+  // Rules trash state
+  const [showRulesTrash, setShowRulesTrash] = useState(false);
+  const [rulesDeleteTarget, setRulesDeleteTarget] = useState<any | null>(null);
+  const [rulesPermDeleteTarget, setRulesPermDeleteTarget] = useState<any | null>(null);
+  const [rulesEmptyTrashOpen, setRulesEmptyTrashOpen] = useState(false);
 
   const ruleActionIcons = {
     notify: { icon: Bell, color: 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20' },
@@ -217,6 +353,7 @@ function SetupPageContent() {
 
   const [editApprovalRow, setEditApprovalRow] = useState<any | null>(null);
   const [approvalSteps, setApprovalSteps] = useState<any[]>([]);
+  const [approvalDuplicateError, setApprovalDuplicateError] = useState('');
 
   useEffect(() => {
     if (editApprovalRow && editApprovalRow !== 'new') {
@@ -235,13 +372,19 @@ function SetupPageContent() {
   };
 
   const deleteApprovalRow = (id: number) => {
-    setMatrix(prev => prev.filter(x => x.id !== id));
+    setMatrix(prev => prev.map(x => x.id === id ? { ...x, deletedAt: Date.now() } : x));
     setEditApprovalRow(null);
   };
 
   const toggleApprovalActive = (id: number) => {
     setMatrix(prev => prev.map(x => x.id === id ? { ...x, active: !x.active } : x));
   };
+
+  // Approvals trash state
+  const [showApprovalsTrash, setShowApprovalsTrash] = useState(false);
+  const [approvalsDeleteTarget, setApprovalsDeleteTarget] = useState<any | null>(null);
+  const [approvalsPermDeleteTarget, setApprovalsPermDeleteTarget] = useState<any | null>(null);
+  const [approvalsEmptyTrashOpen, setApprovalsEmptyTrashOpen] = useState(false);
 
   const addApprovalStep = () => {
     setApprovalSteps(prev => [...prev, { step: prev.length + 1, role: 'admin', sla: '24h', type: 'approve' }]);
@@ -300,11 +443,17 @@ function SetupPageContent() {
                   >
                     <Icon size={14} />
                     <span>{cat.label}</span>
-                    <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[10px] ${
-                      active ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'
-                    }`}>
-                      {(masterData[cat.id] || []).length}
-                    </span>
+                    {showMasterTrash && cat.id === activeCategory ? (
+                      <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-400">
+                        {(masterData[cat.id] || []).filter((i: any) => i.deletedAt).length}
+                      </span>
+                    ) : (
+                      <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[10px] ${
+                        active ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'
+                      }`}>
+                        {(masterData[cat.id] || []).filter((i: any) => !i.deletedAt).length}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -317,13 +466,37 @@ function SetupPageContent() {
                   <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{currentCategory?.label}</h3>
                   <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
                 </div>
-                <button
-                  onClick={() => setShowAddMasterModal(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
-                >
-                  <Plus size={14} />
-                  {t('btn.add')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowMasterTrash(v => !v)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow ${
+                      showMasterTrash
+                        ? 'bg-red-600 hover:bg-red-500 text-white'
+                        : `${themeConfig.secondaryButton}`
+                    }`}
+                  >
+                    <Trash2 size={14} />
+                    {showMasterTrash ? t('common.viewActive') : t('common.trashBin')}
+                  </button>
+                  {showMasterTrash && currentCategoryItems.length > 0 && (
+                    <button
+                      onClick={() => setMasterEmptyTrashOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                    >
+                      <Trash2 size={14} />
+                      {t('setup.emptyTrash')}
+                    </button>
+                  )}
+                  {!showMasterTrash && (
+                    <button
+                      onClick={() => setShowAddMasterModal(true)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
+                    >
+                      <Plus size={14} />
+                      {t('btn.add')}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2.5">
@@ -360,35 +533,64 @@ function SetupPageContent() {
                     </div>
 
                     {/* Action Toggle sliders */}
-                    <button 
-                      onClick={() => toggleMasterActive(item.id)}
-                      className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${
-                        item.active ? 'bg-emerald-500' : 'bg-gray-600'
-                      }`}
-                    >
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                        item.active ? 'left-5' : 'left-0.5'
-                      }`}></div>
-                    </button>
+                    {!showMasterTrash && (
+                      <button 
+                        onClick={() => toggleMasterActive(item.id)}
+                        className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${
+                          item.active ? 'bg-emerald-500' : 'bg-gray-600'
+                        }`}
+                      >
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
+                          item.active ? 'left-5' : 'left-0.5'
+                        }`}></div>
+                      </button>
+                    )}
 
                     {/* Edit item action */}
-                    <button 
-                      onClick={() => setEditMasterItem(item)}
-                      className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}
-                    >
-                      <Edit size={14} />
-                    </button>
+                    {!showMasterTrash && (
+                      <button 
+                        onClick={() => setEditMasterItem(item)}
+                        className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}
+                      >
+                        <Edit size={14} />
+                      </button>
+                    )}
 
-                    {/* Delete item action */}
-                    <button 
-                      onClick={() => deleteMasterItem(item.id)}
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"
-                    >
-                      <X size={14} />
-                    </button>
+                    {/* Delete / Restore actions */}
+                    {showMasterTrash ? (
+                      <>
+                        <button 
+                          onClick={() => restoreMasterItem(item.id)}
+                          className="p-1.5 rounded-lg hover:bg-white/10 text-emerald-400 hover:text-emerald-300"
+                          title={t('common.restore')}
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                        <button 
+                          onClick={() => setMasterPermDeleteTarget(item)}
+                          className="p-1.5 rounded-lg hover:bg-white/10 text-rose-500 hover:text-rose-400"
+                          title={t('common.permanentDelete')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        onClick={() => setMasterDeleteTarget(item)}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
+              {currentCategoryItems.length === 0 && (
+                <div className={`text-center py-8 text-xs ${themeConfig.textMuted}`}>
+                  {showMasterTrash ? t('setup.noTrashData') : 'No items'}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -447,36 +649,66 @@ function SetupPageContent() {
                       <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => { setWorkflowSubTab('rules'); setRuleActionType('notify'); setShowAddRuleModal(true); }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
-                      >
-                        <Plus size={14} />
-                        {t('setup.addRule')}
-                      </button>
-                      <button
-                        onClick={() => setEditApprovalRow('new')}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow ${themeConfig.secondaryButton}`}
-                      >
-                        <Plus size={14} />
-                        {t('btn.add')} {t('setup.approval')}
-                      </button>
+                      {!showRulesTrash && (
+                        <button
+                          onClick={() => { setWorkflowSubTab('rules'); setRuleActionType('notify'); setShowAddRuleModal(true); }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
+                        >
+                          <Plus size={14} />
+                          {t('setup.addRule')}
+                        </button>
+                      )}
+                      {!showApprovalsTrash && (
+                        <button
+                          onClick={() => setEditApprovalRow('new')}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow ${themeConfig.secondaryButton}`}
+                        >
+                          <Plus size={14} />
+                          {t('btn.add')} {t('setup.approval')}
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   {/* Rules section */}
                   <div className="mb-6">
-                    <h4 className={`text-sm font-bold ${themeConfig.textSecondary} mb-3 flex items-center gap-2`}>
-                      <Layers size={14} />
-                      {t('setup.ruleEngine')}
-                    </h4>
-                    {rules.map(rule => (
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className={`text-sm font-bold ${themeConfig.textSecondary} flex items-center gap-2`}>
+                        <Layers size={14} />
+                        {t('setup.ruleEngine')}
+                      </h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowRulesTrash(v => !v)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                            showRulesTrash
+                              ? 'bg-red-600 text-white'
+                              : `${themeConfig.badge} ${themeConfig.panelHover} ${themeConfig.textSecondary}`
+                          }`}
+                        >
+                          <Trash2 size={12} />
+                          {showRulesTrash ? t('common.viewActive') : t('common.trashBin')}
+                        </button>
+                        {showRulesTrash && rules.filter(r => r.deletedAt).length > 0 && (
+                          <button
+                            onClick={() => setRulesEmptyTrashOpen(true)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                          >
+                            <Trash2 size={12} />
+                            {t('setup.emptyTrash')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {rules.filter(r => showRulesTrash ? r.deletedAt : !r.deletedAt).map(rule => (
                       <div key={rule.id} className={`p-4 rounded-xl border border-white/5 transition bg-white/5 mb-2 ${!rule.active ? 'opacity-40' : ''}`}>
                         <div className="flex items-start gap-4">
-                          <button onClick={() => toggleRuleActive(rule.id)}
-                            className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${rule.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
-                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${rule.active ? 'left-5' : 'left-0.5'}`}></div>
-                          </button>
+                          {!showRulesTrash && (
+                            <button onClick={() => toggleRuleActive(rule.id)}
+                              className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${rule.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${rule.active ? 'left-5' : 'left-0.5'}`}></div>
+                            </button>
+                          )}
                           <div className="flex-1 min-w-0">
                             <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-2.5`}>{rule.name}</h4>
                             <div className={`flex items-center gap-2 p-2.5 rounded-lg mb-2.5 bg-black/20 border ${themeConfig.border}`}>
@@ -494,7 +726,14 @@ function SetupPageContent() {
                               })}
                             </div>
                           </div>
-                          <button onClick={() => deleteRule(rule.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"><X size={15} /></button>
+                          {showRulesTrash ? (
+                            <div className="flex gap-1">
+                              <button onClick={() => { setRules(prev => prev.map(r => r.id === rule.id ? { ...r, deletedAt: undefined } : r)); }} className="p-1.5 rounded-lg hover:bg-white/10 text-emerald-400 hover:text-emerald-300" title={t('common.restore')}><RotateCcw size={15} /></button>
+                              <button onClick={() => setRulesPermDeleteTarget(rule)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-500 hover:text-rose-400" title={t('common.permanentDelete')}><Trash2 size={15} /></button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setRulesDeleteTarget(rule)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300" title={t('common.delete')}><Trash2 size={15} /></button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -502,10 +741,34 @@ function SetupPageContent() {
 
                   {/* Approvals section */}
                   <div>
-                    <h4 className={`text-sm font-bold ${themeConfig.textSecondary} mb-3 flex items-center gap-2`}>
-                      <Settings size={14} />
-                      {t('setup.approvalMatrix')}
-                    </h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className={`text-sm font-bold ${themeConfig.textSecondary} flex items-center gap-2`}>
+                        <Settings size={14} />
+                        {t('setup.approvalMatrix')}
+                      </h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowApprovalsTrash(v => !v)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                            showApprovalsTrash
+                              ? 'bg-red-600 text-white'
+                              : `${themeConfig.badge} ${themeConfig.panelHover} ${themeConfig.textSecondary}`
+                          }`}
+                        >
+                          <Trash2 size={12} />
+                          {showApprovalsTrash ? t('common.viewActive') : t('common.trashBin')}
+                        </button>
+                        {showApprovalsTrash && matrix.filter(m => m.deletedAt).length > 0 && (
+                          <button
+                            onClick={() => setApprovalsEmptyTrashOpen(true)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                          >
+                            <Trash2 size={12} />
+                            {t('setup.emptyTrash')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
@@ -519,7 +782,7 @@ function SetupPageContent() {
                         </tr>
                       </thead>
                       <tbody>
-                        {matrix.map(m => (
+                        {matrix.filter(m => showApprovalsTrash ? m.deletedAt : !m.deletedAt).map(m => (
                           <tr key={m.id} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition ${!m.active ? 'opacity-45' : ''}`}>
                             <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{m.event}</td>
                             <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-cyan-300">{m.refType}</span></td>
@@ -542,12 +805,24 @@ function SetupPageContent() {
                               </div>
                             </td>
                             <td className="p-3 text-center">
-                              <button onClick={() => toggleApprovalActive(m.id)} className={`w-10 h-5 rounded-full transition-all relative inline-block ${m.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
-                                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.active ? 'left-5' : 'left-0.5'}`}></div>
-                              </button>
+                              {!showApprovalsTrash && (
+                                <button onClick={() => toggleApprovalActive(m.id)} className={`w-10 h-5 rounded-full transition-all relative inline-block ${m.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.active ? 'left-5' : 'left-0.5'}`}></div>
+                                </button>
+                              )}
                             </td>
                             <td className="p-3 text-right">
-                              <button onClick={() => setEditApprovalRow(m)} className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}><Edit size={14} /></button>
+                              {showApprovalsTrash ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => { setMatrix(prev => prev.map(x => x.id === m.id ? { ...x, deletedAt: undefined } : x)); }} className="p-1.5 rounded-lg hover:bg-white/10 text-emerald-400 hover:text-emerald-300" title={t('common.restore')}><RotateCcw size={14} /></button>
+                                  <button onClick={() => setApprovalsPermDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-500 hover:text-rose-400" title={t('common.permanentDelete')}><Trash2 size={14} /></button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => setEditApprovalRow(m)} className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}><Edit size={14} /></button>
+                                  <button onClick={() => setApprovalsDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300" title={t('common.delete')}><Trash2 size={14} /></button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -590,26 +865,52 @@ function SetupPageContent() {
                       <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.ruleEngine')}</h3>
                       <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
                     </div>
-                    <button onClick={() => {
-                      setRuleName('');
-                      setRuleField(fieldOptions[0] || 'ink.daysToExpiry');
-                      setRuleOp(opOptions[0] || '<');
-                      setRuleVal('');
-                      setRuleActionType('notify');
-                      setRuleActionDesc('');
-                      setShowAddRuleModal(true);
-                    }} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
-                      <Plus size={14} />{t('setup.addRule')}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowRulesTrash(v => !v)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow ${
+                          showRulesTrash
+                            ? 'bg-red-600 hover:bg-red-500 text-white'
+                            : `${themeConfig.secondaryButton}`
+                        }`}
+                      >
+                        <Trash2 size={14} />
+                        {showRulesTrash ? t('common.viewActive') : t('common.trashBin')}
+                      </button>
+                      {showRulesTrash && rules.filter(r => r.deletedAt).length > 0 && (
+                        <button
+                          onClick={() => setRulesEmptyTrashOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                        >
+                          <Trash2 size={14} />
+                          {t('setup.emptyTrash')}
+                        </button>
+                      )}
+                      {!showRulesTrash && (
+                        <button onClick={() => {
+                          setRuleName('');
+                          setRuleField(fieldOptions[0] || 'ink.daysToExpiry');
+                          setRuleOp(opOptions[0] || '<');
+                          setRuleVal('');
+                          setRuleActionType('notify');
+                          setRuleActionDesc('');
+                          setShowAddRuleModal(true);
+                        }} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
+                          <Plus size={14} />{t('setup.addRule')}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-4">
-                    {rules.map(rule => (
+                    {rules.filter(r => showRulesTrash ? r.deletedAt : !r.deletedAt).map(rule => (
                       <div key={rule.id} className={`p-4 rounded-xl border border-white/5 transition bg-white/5 ${!rule.active ? 'opacity-40' : ''}`}>
                         <div className="flex items-start gap-4">
-                          <button onClick={() => toggleRuleActive(rule.id)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${rule.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
-                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${rule.active ? 'left-5' : 'left-0.5'}`}></div>
-                          </button>
+                          {!showRulesTrash && (
+                            <button onClick={() => toggleRuleActive(rule.id)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 mt-1 ${rule.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${rule.active ? 'left-5' : 'left-0.5'}`}></div>
+                            </button>
+                          )}
                           <div className="flex-1 min-w-0">
                             <h4 className={`text-sm font-bold ${themeConfig.textPrimary} mb-2.5`}>{rule.name}</h4>
                             <div className={`flex items-center gap-2 p-2.5 rounded-lg mb-2.5 bg-black/20 border ${themeConfig.border}`}>
@@ -627,7 +928,14 @@ function SetupPageContent() {
                               })}
                             </div>
                           </div>
-                          <button onClick={() => deleteRule(rule.id)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300"><X size={15} /></button>
+                          {showRulesTrash ? (
+                            <div className="flex gap-1">
+                              <button onClick={() => { setRules(prev => prev.map(r => r.id === rule.id ? { ...r, deletedAt: undefined } : r)); }} className="p-1.5 rounded-lg hover:bg-white/10 text-emerald-400 hover:text-emerald-300" title={t('common.restore')}><RotateCcw size={15} /></button>
+                              <button onClick={() => setRulesPermDeleteTarget(rule)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-500 hover:text-rose-400" title={t('common.permanentDelete')}><Trash2 size={15} /></button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setRulesDeleteTarget(rule)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300" title={t('common.delete')}><Trash2 size={15} /></button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -644,9 +952,33 @@ function SetupPageContent() {
                     <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('setup.approvalMatrix')}</h3>
                     <p className={`text-xs ${themeConfig.textMuted}`}>{t('setup.manageItems')}</p>
                   </div>
-                  <button onClick={() => setEditApprovalRow('new')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
-                    <Plus size={14} />{t('btn.add')}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowApprovalsTrash(v => !v)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow ${
+                        showApprovalsTrash
+                          ? 'bg-red-600 hover:bg-red-500 text-white'
+                          : `${themeConfig.secondaryButton}`
+                      }`}
+                    >
+                      <Trash2 size={14} />
+                      {showApprovalsTrash ? t('common.viewActive') : t('common.trashBin')}
+                    </button>
+                    {showApprovalsTrash && matrix.filter(m => m.deletedAt).length > 0 && (
+                      <button
+                        onClick={() => setApprovalsEmptyTrashOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                      >
+                        <Trash2 size={14} />
+                        {t('setup.emptyTrash')}
+                      </button>
+                    )}
+                    {!showApprovalsTrash && (
+                      <button onClick={() => setEditApprovalRow('new')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}>
+                        <Plus size={14} />{t('btn.add')}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -662,7 +994,7 @@ function SetupPageContent() {
                       </tr>
                     </thead>
                     <tbody>
-                      {matrix.map(m => (
+                      {matrix.filter(m => showApprovalsTrash ? m.deletedAt : !m.deletedAt).map(m => (
                         <tr key={m.id} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition ${!m.active ? 'opacity-45' : ''}`}>
                           <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{m.event}</td>
                           <td className="p-3"><span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-cyan-300">{m.refType}</span></td>
@@ -684,12 +1016,24 @@ function SetupPageContent() {
                             </div>
                           </td>
                           <td className="p-3 text-center">
-                            <button onClick={() => toggleApprovalActive(m.id)} className={`w-10 h-5 rounded-full transition-all relative inline-block ${m.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
-                              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.active ? 'left-5' : 'left-0.5'}`}></div>
-                            </button>
-                          </td>
+                              {!showApprovalsTrash && (
+                                <button onClick={() => toggleApprovalActive(m.id)} className={`w-10 h-5 rounded-full transition-all relative inline-block ${m.active ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.active ? 'left-5' : 'left-0.5'}`}></div>
+                                </button>
+                              )}
+                            </td>
                           <td className="p-3 text-right">
-                            <button onClick={() => setEditApprovalRow(m)} className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}><Edit size={14} /></button>
+                            {showApprovalsTrash ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={() => { setMatrix(prev => prev.map(x => x.id === m.id ? { ...x, deletedAt: undefined } : x)); }} className="p-1.5 rounded-lg hover:bg-white/10 text-emerald-400 hover:text-emerald-300" title={t('common.restore')}><RotateCcw size={14} /></button>
+                                <button onClick={() => setApprovalsPermDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-500 hover:text-rose-400" title={t('common.permanentDelete')}><Trash2 size={14} /></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={() => setEditApprovalRow(m)} className={`p-1.5 rounded-lg hover:bg-white/10 ${themeConfig.textSecondary}`}><Edit size={14} /></button>
+                                <button onClick={() => setApprovalsDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-white/10 text-rose-400 hover:text-rose-300" title={t('common.delete')}><Trash2 size={14} /></button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -714,7 +1058,12 @@ function SetupPageContent() {
               </button>
             </div>
             
-            <div className="space-y-4">
+             <div className="space-y-4">
+              {masterDuplicateError && (
+                <div className="p-3 rounded-lg text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                  {masterDuplicateError}
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>Name (EN)</label>
                 <input 
@@ -746,28 +1095,32 @@ function SetupPageContent() {
 
             <div className="flex gap-2 mt-6 justify-end">
               <button 
-                onClick={() => setShowAddMasterModal(false)}
+                onClick={() => { setShowAddMasterModal(false); setMasterDuplicateError(''); }}
                 className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}
               >
                 {t('btn.cancel')}
               </button>
               <button 
-                onClick={() => {
+                onClick={async () => {
                   const enInput = document.getElementById('master-en-name') as HTMLInputElement;
                   const thInput = document.getElementById('master-th-name') as HTMLInputElement;
                   const descInput = document.getElementById('master-desc') as HTMLInputElement;
-                  if (enInput?.value) {
-                    setMasterData(prev => ({
-                      ...prev,
-                      [activeCategory]: [...prev[activeCategory], { 
-                        id: Date.now(), 
-                        name: enInput.value, 
-                        nameTh: thInput.value, 
-                        desc: descInput.value, 
-                        active: true 
-                      }],
-                    }));
+                  setMasterDuplicateError('');
+                  const name = enInput?.value?.trim();
+                  if (!name) return;
+                  const existing = (masterData[activeCategory] || []).find(
+                    (i: any) => !i.deletedAt && i.name?.toLowerCase() === name.toLowerCase()
+                  );
+                  if (existing) {
+                    setMasterDuplicateError(`"${name}" ${t('common.alreadyExists') || 'already exists'} in ${currentCategory?.label}`);
+                    return;
+                  }
+                  try {
+                    await createMasterData({ category: activeCategory, name, nameTh: thInput?.value?.trim() || undefined, extra: { desc: descInput?.value?.trim() || '' } });
+                    queryClient.invalidateQueries({ queryKey: ['masterData'] });
                     setShowAddMasterModal(false);
+                  } catch (err: any) {
+                    setMasterDuplicateError(err?.response?.data?.message || err?.message || t('common.alreadyExists'));
                   }
                 }}
                 className={`px-5 py-2 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
@@ -792,6 +1145,11 @@ function SetupPageContent() {
             </div>
 
             <div className="space-y-4">
+              {ruleDuplicateError && (
+                <div className="p-3 rounded-lg text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                  {ruleDuplicateError}
+                </div>
+              )}
               {/* Name */}
               <div className="grid gap-1.5">
                 <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>{t('setup.ruleName')}</label>
@@ -877,30 +1235,35 @@ function SetupPageContent() {
 
             <div className="flex gap-2 mt-6 justify-end">
               <button 
-                onClick={() => setShowAddRuleModal(false)}
+                onClick={() => { setShowAddRuleModal(false); setRuleDuplicateError(''); }}
                 className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}
               >
                 {t('btn.cancel')}
               </button>
               <button 
                 onClick={() => {
-                  if (ruleName.trim()) {
-                    setRules(prev => [...prev, {
-                      id: Date.now(),
-                      name: ruleName.trim(),
-                      active: true,
-                      condition: {
-                        field: ruleField,
-                        op: ruleOp,
-                        value: ruleVal
-                      },
-                      actions: [{
-                        type: ruleActionType,
-                        [ruleActionType === 'notify' ? 'target' : 'desc']: ruleActionDesc
-                      }]
-                    }]);
-                    setShowAddRuleModal(false);
+                  setRuleDuplicateError('');
+                  const name = ruleName.trim();
+                  if (!name) return;
+                  if (rules.some(r => !r.deletedAt && r.name.toLowerCase() === name.toLowerCase())) {
+                    setRuleDuplicateError(`"${name}" ${t('common.alreadyExists') || 'already exists'}`);
+                    return;
                   }
+                  setRules(prev => [...prev, {
+                    id: Date.now(),
+                    name: name,
+                    active: true,
+                    condition: {
+                      field: ruleField,
+                      op: ruleOp,
+                      value: ruleVal
+                    },
+                    actions: [{
+                      type: ruleActionType,
+                      [ruleActionType === 'notify' ? 'target' : 'desc']: ruleActionDesc
+                    }]
+                  }]);
+                  setShowAddRuleModal(false);
                 }}
                 className={`px-5 py-2 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
               >
@@ -926,6 +1289,11 @@ function SetupPageContent() {
             </div>
 
             <div className="space-y-4">
+              {approvalDuplicateError && (
+                <div className="p-3 rounded-lg text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                  {approvalDuplicateError}
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <label className={`text-[10px] font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>{t('setup.event')}</label>
                 <input 
@@ -1019,35 +1387,45 @@ function SetupPageContent() {
             <div className="flex gap-2 mt-6 justify-end">
               {editApprovalRow !== 'new' && (
                 <button 
-                  onClick={() => deleteApprovalRow(editApprovalRow.id)}
+                  onClick={() => { setMatrix(prev => prev.map(x => x.id === editApprovalRow.id ? { ...x, deletedAt: Date.now() } : x)); setEditApprovalRow(null); }}
                   className="px-3 py-2 rounded-lg text-xs font-bold text-white shadow bg-rose-600 hover:bg-rose-500 transition mr-auto"
                 >
-                  <X size={15} /> ลบ
+                  <Trash2 size={15} /> {t('common.delete')}
                 </button>
               )}
               <button 
-                onClick={() => setEditApprovalRow(null)}
+                onClick={() => { setEditApprovalRow(null); setApprovalDuplicateError(''); }}
                 className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}
               >
                 {t('btn.cancel')}
               </button>
               <button 
                 onClick={() => {
+                  setApprovalDuplicateError('');
                   const evInput = document.getElementById('approval-event') as HTMLInputElement;
                   const refTypeInput = document.getElementById('approval-reftype') as HTMLInputElement;
                   const roleChecks = document.querySelectorAll<HTMLInputElement>('[data-role]');
                   const visibleToRoles = Array.from(roleChecks).filter(c => c.checked).map(c => c.dataset.role || '');
-
-                  if (evInput?.value) {
-                    saveApprovalRow({
-                      id: editApprovalRow === 'new' ? null : editApprovalRow.id,
-                      event: evInput.value,
-                      refType: refTypeInput.value,
-                      steps: approvalSteps,
-                      visibleToRoles,
-                      active: editApprovalRow === 'new' ? true : editApprovalRow.active
-                    });
+                  const eventName = evInput?.value?.trim();
+                  if (!eventName) return;
+                  const isNew = editApprovalRow === 'new';
+                  const duplicate = matrix.find(m =>
+                    !m.deletedAt &&
+                    m.event.toLowerCase() === eventName.toLowerCase() &&
+                    (isNew || m.id !== editApprovalRow.id)
+                  );
+                  if (duplicate) {
+                    setApprovalDuplicateError(`"${eventName}" ${t('common.alreadyExists') || 'already exists'}`);
+                    return;
                   }
+                  saveApprovalRow({
+                    id: isNew ? null : editApprovalRow.id,
+                    event: eventName,
+                    refType: refTypeInput?.value?.trim() || '',
+                    steps: approvalSteps,
+                    visibleToRoles,
+                    active: isNew ? true : editApprovalRow.active
+                  });
                 }}
                 className={`px-5 py-2 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
               >
@@ -1057,6 +1435,75 @@ function SetupPageContent() {
           </div>
         </div>
       )}
+
+      {/* Master Data Confirm Dialogs */}
+      <ConfirmDialog
+        open={!!masterDeleteTarget}
+        titleKey="common.delete"
+        descriptionKey="setup.deleteConfirm"
+        onConfirm={() => { if (masterDeleteTarget) deleteMasterItem(masterDeleteTarget.id); }}
+        onClose={() => setMasterDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={!!masterPermDeleteTarget}
+        titleKey="common.permanentDelete"
+        descriptionKey="setup.permanentDeleteConfirm"
+        onConfirm={() => { if (masterPermDeleteTarget) permanentDeleteMasterItem(masterPermDeleteTarget.id); }}
+        onClose={() => setMasterPermDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={masterEmptyTrashOpen}
+        titleKey="setup.emptyTrash"
+        descriptionKey="setup.emptyTrashConfirm"
+        onConfirm={handleEmptyMasterTrash}
+        onClose={() => setMasterEmptyTrashOpen(false)}
+      />
+
+      {/* Rules Confirm Dialogs */}
+      <ConfirmDialog
+        open={!!rulesDeleteTarget}
+        titleKey="common.delete"
+        descriptionKey="setup.deleteConfirm"
+        onConfirm={handleRulesSoftDelete}
+        onClose={() => setRulesDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={!!rulesPermDeleteTarget}
+        titleKey="common.permanentDelete"
+        descriptionKey="setup.permanentDeleteConfirm"
+        onConfirm={handleRulesPermanentDelete}
+        onClose={() => setRulesPermDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={rulesEmptyTrashOpen}
+        titleKey="setup.emptyTrash"
+        descriptionKey="setup.emptyTrashConfirm"
+        onConfirm={handleRulesEmptyTrash}
+        onClose={() => setRulesEmptyTrashOpen(false)}
+      />
+
+      {/* Approvals Confirm Dialogs */}
+      <ConfirmDialog
+        open={!!approvalsDeleteTarget}
+        titleKey="common.delete"
+        descriptionKey="setup.deleteConfirm"
+        onConfirm={handleApprovalsSoftDelete}
+        onClose={() => setApprovalsDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={!!approvalsPermDeleteTarget}
+        titleKey="common.permanentDelete"
+        descriptionKey="setup.permanentDeleteConfirm"
+        onConfirm={handleApprovalsPermanentDelete}
+        onClose={() => setApprovalsPermDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={approvalsEmptyTrashOpen}
+        titleKey="setup.emptyTrash"
+        descriptionKey="setup.emptyTrashConfirm"
+        onConfirm={handleApprovalsEmptyTrash}
+        onClose={() => setApprovalsEmptyTrashOpen(false)}
+      />
     </AppLayout>
   );
 }

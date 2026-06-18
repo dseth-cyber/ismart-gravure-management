@@ -53,6 +53,31 @@ export async function deleteBatch(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/inks/batches/${id}`);
 }
 
+export async function batchUpdateFormulaStatus(codes: string[], status: string): Promise<{ updated: number }> {
+  const res = await apiClient.post<ApiResponse<{ updated: number }>>('/api/v1/inks/formulas/batch/status', { codes, status });
+  return res.data.data!;
+}
+
+export async function batchDeleteFormulas(codes: string[]): Promise<{ deleted: number }> {
+  const res = await apiClient.post<ApiResponse<{ deleted: number }>>('/api/v1/inks/formulas/batch/delete', { codes });
+  return res.data.data!;
+}
+
+export async function batchRestoreFormulas(codes: string[]): Promise<{ restored: number }> {
+  const res = await apiClient.post<ApiResponse<{ restored: number }>>('/api/v1/inks/formulas/batch/restore', { codes });
+  return res.data.data!;
+}
+
+export async function batchDeleteBatches(ids: string[]): Promise<{ deleted: number }> {
+  const res = await apiClient.post<ApiResponse<{ deleted: number }>>('/api/v1/inks/batches/batch/delete', { ids });
+  return res.data.data!;
+}
+
+export async function batchRestoreBatches(ids: string[]): Promise<{ restored: number }> {
+  const res = await apiClient.post<ApiResponse<{ restored: number }>>('/api/v1/inks/batches/batch/restore', { ids });
+  return res.data.data!;
+}
+
 export async function restoreFormula(code: string): Promise<void> {
   await apiClient.post(`/api/v1/inks/formulas/${code}/restore`);
 }

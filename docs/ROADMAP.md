@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-17 (Phase 40)
+Last updated: 2026-06-17 (Phase 42)
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -90,6 +90,9 @@ Use newer stable versions when they are better for a new project and do not conf
 | 37 | TLS/HTTPS Hardening & Infrastructure Security | Done | Caddy reverse proxy with auto HTTPS; internal network isolation; secure exposed ports; Cloudflare TLS upgrade;
 | 38 | Security Hardening — Score 9.0 | Done | Zod login validation, XSS sanitization, file upload MIME+magic bytes, immutable audit logs, security tests, secrets rotation script, npm audit CI, remove hardcoded secrets, cAdvisor capabilities, read-only Docker socket |
 | 39 | Security Hardening — Score 10.0 | Done | CSP nonce replacement, Coraza WAF with OWASP CRS, Trivy container scanning, Dependabot, OWASP ZAP pentest, incident response plan, anomaly detection Prometheus rules |
+| 40 | Role DB & Permission Overrides | Done | Role model in DB, inline permission overrides, batch grant/deny API |
+| 41 | Sidebar Permission Filtering & Menu Visibility | Done | Permission-based sidebar filtering, admin-configurable menu visibility per role, page-level access guard |
+| 42 | Batch Permission UX — Module-level, Multi-user, Search & Filter | Done | Select All per module in user dialog, batch Add/Remove All per role module, multi-user batch grant/deny, search + module filter in all permission lists |
 
 ## Phase Details
 
@@ -1165,16 +1168,92 @@ This phase links the User Management page with the Permission Management system,
 - `seed.ts` updated to use string literals for role instead of removed `Role` enum import
 - Build note: `/settings/permissions` page has pre-existing prerender error (useSearchParams without Suspense) unrelated to this phase
 
-### Suggested Consolidated Architecture
+## Phase 41 — Sidebar Permission Filtering & Menu Visibility
 
-Application components:
-1. `frontend` (Next.js 16 Web App)
-2. `backend` (Modular Monolith with modules: Auth, Customer, Product, Cylinder, Ink, Order, Production, Inventory, QC)
+This phase closes the sidebar (Phase 31 decision log: "Sidebar MENU, languages, and roles to be made configurable via localStorage") by adding granular permission-based filtering to sidebar navigation, admin-configurable menu visibility per role, and a page-level access guard.
 
-Shared infrastructure:
-- Redis (cache/queues)
-- PostgreSQL database
-- Optional: Object Storage (like MinIO) for artwork upload files
+### Requirements
+- Sidebar should show/hide menu items based on user's effective permissions (default behavior)
+- Admin should be able to override visibility per role (force-show/hide regardless of permissions)
+- Users navigating directly to a page URL they don't have permission for should see an "Access Denied" page instead of a 403 popup
+
+### Implementation
+
+**41A — Permission-based sidebar filtering:**
+- Added `perm` field to each `MenuItem` and `MenuGroup` in the `MENU` constant in `app-layout.tsx`
+- Permission mapping: overview→`reports:view`, cylinder→`cylinders:read`, ink→`inks:read`, production→`jobs:read`, system→adminOnly
+- Sub-items: production.verification→`jobs:verify`, settings.userMgt→`auth:users.read`, settings.permissions→`permissions:manage`, settings.auditLogs→`audit:read`
+- Filter logic uses `usePermission().check()` to filter groups and items; hides group entirely if all items are filtered out
+- Admin-only (`system` group) still uses `user?.role === 'admin'` check
+- Created `MenuGroup` and `MenuItem` TypeScript types for the MENU constant
+
+**41B — Admin-configurable menu visibility:**
+- Added "Menu" section to `/settings/system` page with role selector and per-group show/hide toggles
+- Visibility overrides stored as JSON in `system_settings` table under key `menu_visibility`
+- Format: `{ "roleName": { "menuGroupKey": "show"|"hide" } }`
+- Admin can reset to defaults (clear all overrides) or save changes
+- Fetch via existing `GET /api/v1/settings`, save via `PUT /api/v1/settings`
+- Sidebar applies `menuVisibility` overrides as a secondary filter on top of permission check
+
+**41C — Page-level access guard:**
+- Created `RouteGuard` component embedded in `AppLayout` that maps pathname to required permission
+- Permission map: `/`→`reports:view`, `/cylinders`→`cylinders:read`, `/production`→`jobs:read`, `/settings/users`→`auth:users.read`, `/settings/permissions`→`permissions:manage`, `/settings/audit`→`audit:read`
+- Displays centered "Access Denied" panel with `ShieldAlert` icon when user lacks permission
+- Login, progress, and approvals routes are excluded from guard
+- Also created standalone `PageGuard` component in `lib/permission/page-guard.tsx` for per-page wrapping use
+
+### Notes
+- Permission-based filtering is the default; admin overrides only apply when explicitly configured
+- The `menu_visibility` settings are global (not per-user) and apply across all users of the selected role
+- Route permission mapping should be kept in sync with MENU definition and backend permission requirements
+- `usePermission.loading` is respected to prevent flash of hidden/shown content
+
+## Phase 42 — Batch Permission UX (Module-level, Multi-user, Search & Filter)
+
+This phase addresses the pain points identified in the Phase 41 review: individual permission assignment is too slow when managing many permissions. Adds module-level batch operations, multi-user batch grant/deny, and search/filter to all permission lists.
+
+### Requirements
+- Permission assignment per user should support "Select All" per module (not click one-by-one)
+- Role permission templates should allow "Add All" / "Remove All" per module
+- Ability to grant the same permissions to multiple users at once
+- Search and module filter in every permission list
+
+### Implementation
+
+**42A — Module-level batch in User Dialog:**
+- Created reusable `PermissionSelector` component (`components/shared/permission-selector.tsx`)
+- Groups permissions by module with collapsible sections
+- Each module header has a "Select All" checkbox that toggles all permissions in that module
+- Search input + module filter dropdown at top of selector
+- "Clear" button per module when all are selected
+- Replaces the old flat checkbox list in both Create User and Edit User dialogs
+
+**42B — Permission Template per Role (batch per-module):**
+- Role-Permissions tab now groups assigned & available permissions by module
+- Each module in "Assigned" column has "Remove All" button
+- Each module in "Available" column has "Add All" button
+- Search input + module filter dropdown with all available modules
+- Dedicated `handleModuleGrantAll` / `handleModuleRemoveAll` API handlers with Promise.all
+
+**42C — Multi-User Batch Grant:**
+- Overrides tab now shows user checkboxes (up to 20) for selecting multiple users
+- Selected users count displayed alongside selected permissions count
+- "Grant to N users" / "Deny for N users" buttons appear when multiple users selected
+- Uses existing `/api/v1/permissions/users/batch-grant` and `batch-deny` endpoints
+- `handleMultiUserBatch` calls API with Promise.all for all selected users + permission IDs
+
+**42D — Search + Module Filter:**
+- All Permissions tab: search input + module dropdown, filters table rows
+- Role-Perms tab: search + module filter (filters both Assigned and Available columns)
+- Overrides tab: search + module filter filters the override permissions list
+- User Dialog: PermissionSelector has built-in search + module filter
+- Computed `allModules`, `roleModules`, `availModules` for dynamic dropdowns
+
+### Notes
+- `PermissionSelector` component is reusable for any permission override UI context
+- Multi-user batch uses existing batch-grant/batch-deny endpoints (no backend changes needed)
+- API calls use Promise.all for speed; could be optimized with a dedicated multi-user endpoint if needed
+- Search is case-insensitive and matches against permission name and module
 
 ## Event Naming (Optional)
 
@@ -1218,6 +1297,12 @@ If event-based decoupling is implemented internally:
 | 2026-06-17 | Allow permission override assignment during user creation/editing | Previously required 2-step flow (create user → navigate to overrides tab → grant/deny individually); now inline in the create/edit dialog |
 | 2026-06-17 | Add DATABASE_URL to docker-compose backend env | Needed for Prisma CLI (`prisma db push`, `prisma generate`, `prisma migrate`) to work correctly inside the Docker container |
 | 2026-06-17 | Add npx prisma generate to Docker dev stage | Previously only ran in builder stage; dev stage needs Prisma client for new models |
+| 2026-06-17 | Default sidebar filter by permission + allow admin override per role | Type "เราควรให้ ซ่อน/แสดงตามสิทธิ หรือว่า มีสิทธิหรือไม่มีก็ สามารถ ซ่อน/แสดง ได้เพื่อความยืดหยุ่นของระบบ" — decision: default = permission-based hide/show, admin can override per role via /settings/system → Menu section |
+| 2026-06-17 | Store menu visibility overrides in system_settings table | Already has GET/PUT API endpoints, no schema migration needed, follows existing pattern for key-value configs |
+| 2026-06-17 | RouteGuard embedded in AppLayout instead of per-page PageGuard | Avoids modifying every page file; single entry point maps pathname → required permission; PageGuard also available for per-page granular control |
+| 2026-06-17 | Created reusable PermissionSelector component for user dialog permission overrides | Both Create and Edit User dialogs had duplicated checkbox-per-permission UI; extract into shared component with search, module filter, and Select All per module |
+| 2026-06-17 | Group role-perms tab by module with Add All / Remove All per module | Previously all permissions were in a flat list — admin had to click each one individually; module grouping enables bulk operations |
+| 2026-06-17 | Multi-user batch grant uses Promise.all over existing single-user API endpoints | Avoids backend changes; multi-user endpoint could be added later if performance becomes an issue |
 
 ## Risks And Blockers
 
@@ -1265,3 +1350,10 @@ If event-based decoupling is implemented internally:
 | 2026-06-17 | 40A | Role DB Model — Prisma schema Role model, seed, CRUD API, frontend fetch from API |
 | 2026-06-17 | 40B | Inline permission assignment — extended user create/edit with permission overrides array |
 | 2026-06-17 | 40C | Batch permission override — API endpoints + frontend batch grant/deny in overrides tab |
+| 2026-06-17 | 41A | Permission-based sidebar filtering — perm field on MENU items, filter with usePermission().check() |
+| 2026-06-17 | 41B | Admin-configurable menu visibility — Menu section in /settings/system, stored in system_settings |
+| 2026-06-17 | 41C | Page-level access guard — RouteGuard in AppLayout + standalone PageGuard component |
+| 2026-06-17 | 42A | Module-level batch in User Dialog — PermissionSelector component with Select All per module |
+| 2026-06-17 | 42B | Batch per-module for role permissions — Add All / Remove All per module in role-perms tab |
+| 2026-06-17 | 42C | Multi-user batch grant — user checkboxes in overrides tab, grant/deny to multiple users at once |
+| 2026-06-17 | 42D | Search + Module Filter — search and module dropdown in All Permissions, Role-Perms, Overrides tabs, and User dialog |

@@ -191,4 +191,67 @@ export class CylinderController {
       next(error);
     }
   }
+
+  static async batchUpdateStatus(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { ids, status } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'ids array is required' });
+      }
+      const validStatuses: CylinderStatus[] = ['available', 'inProduction', 'reserved', 'repair', 'inspection', 'hold'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      }
+      const { count } = await CylinderService.batchUpdateStatus(ids, status);
+      await AuditService.record(req, 'cylinder.batch_status', `Batch updated ${count} cylinder(s) to ${status}`);
+      emitEvent('dashboard:refresh', { type: 'cylinder:batchStatus', ids, status });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { updated: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchDelete(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'ids array is required' });
+      }
+      const { count } = await CylinderService.batchDelete(ids);
+      await AuditService.record(req, 'cylinder.batch_delete', `Batch deleted ${count} cylinder(s)`);
+      emitEvent('dashboard:refresh', { type: 'cylinder:batchDeleted', ids });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { deleted: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchRestore(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'ids array is required' });
+      }
+      const { count } = await CylinderService.batchRestore(ids);
+      await AuditService.record(req, 'cylinder.batch_restore', `Batch restored ${count} cylinder(s)`);
+      emitEvent('dashboard:refresh', { type: 'cylinder:batchRestored', ids });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { restored: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async checkExists(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const field = req.query.field as string;
+      const value = req.query.value as string;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await CylinderService.checkExists(field, value);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -7,9 +7,12 @@ import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
 import { useTheme } from '@/lib/theme/theme-provider';
-import { listCylinders, createCylinder, updateCylinder, restoreCylinder, permanentDeleteCylinder, emptyCylinderTrash, deleteCylinder } from '@/lib/services/cylinder';
-import { ConfirmDialog } from '@/components/shared/app-dialog';
+import { listCylinders, createCylinder, updateCylinder, restoreCylinder, permanentDeleteCylinder, emptyCylinderTrash, deleteCylinder, batchUpdateCylinderStatus, batchDeleteCylinders, batchRestoreCylinders } from '@/lib/services/cylinder';
+import { ConfirmDialog, AppDialog } from '@/components/shared/app-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDebouncedCheck } from '@/lib/hooks/use-debounced-check';
+import { apiClient } from '@/lib/api/client';
+import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import SearchableSelect from '@/components/ui/SearchableSelect';
@@ -110,6 +113,12 @@ function CylindersPageContent() {
   const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<string | null>(null);
   const [emptyTrashConfirmOpen, setEmptyTrashConfirmOpen] = useState(false);
 
+  // Batch selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchRestoreOpen, setBatchRestoreOpen] = useState(false);
+
   // Filter states
   const [view, setView] = useState<'table' | 'card'>('table');
   const [search, setSearch] = useState('');
@@ -127,6 +136,15 @@ function CylindersPageContent() {
   
   const [requiredFields, setRequiredFields] = useState<string[]>([]);
   const [validationError, setValidationError] = useState('');
+
+  const idDuplicateStatus = useDebouncedCheck(
+    form.id,
+    async (val) => {
+      const res = await apiClient.get(`/api/v1/cylinders/exists?field=id&value=${encodeURIComponent(val)}`);
+      return res.data?.data?.exists ?? false;
+    },
+    400
+  );
 
   useEffect(() => {
     const loadRequired = async () => {
@@ -214,6 +232,10 @@ function CylindersPageContent() {
   };
 
   const handleSaveCylinder = async () => {
+    if (form.id && idDuplicateStatus === 'exists') {
+      setValidationError(t('common.alreadyExists'));
+      return;
+    }
     const missing: string[] = [];
     requiredFields.forEach(field => {
       const val = field === 'productCode' ? form.product : (form as any)[field];
@@ -245,6 +267,47 @@ function CylindersPageContent() {
     } catch (err: any) {
       console.error('Failed to create cylinder:', err);
       setValidationError(err?.response?.data?.message || err?.message || 'Failed to create cylinder');
+    }
+  };
+
+  // Clear selection when filter changes
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [search, filterStatus, showTrash]);
+
+  const handleBatchStatusChange = async (status: string) => {
+    try {
+      await batchUpdateCylinderStatus(selectedIds, status);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+      setSelectedIds([]);
+    } catch (err: any) {
+      console.error('Failed to batch update status:', err);
+    } finally {
+      setBatchStatusOpen(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      await batchDeleteCylinders(selectedIds);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+      setSelectedIds([]);
+    } catch (err: any) {
+      console.error('Failed to batch delete:', err);
+    } finally {
+      setBatchDeleteOpen(false);
+    }
+  };
+
+  const handleBatchRestore = async () => {
+    try {
+      await batchRestoreCylinders(selectedIds);
+      queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+      setSelectedIds([]);
+    } catch (err: any) {
+      console.error('Failed to batch restore:', err);
+    } finally {
+      setBatchRestoreOpen(false);
     }
   };
 
@@ -391,83 +454,122 @@ function CylindersPageContent() {
             ) : null}
 
             {!loading && !error && view === 'table' && (
-              <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className={`${themeConfig.tableHead}`}>
-                        {[t('col.code'), t('col.color'), t('col.product'), t('col.customer'), t('col.status'), t('col.location'), t('col.meterRun'), t('col.type'), t('col.action')].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map(c => (
-                        <tr key={c.id} onClick={() => setSelectedCyl(c)} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border} cursor-pointer`}>
-                          <td className="px-4 py-3 font-medium text-cyan-300 font-mono text-xs">{c.id}</td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center gap-1.5 text-xs">
-                              <span className="w-3.5 h-3.5 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[c.color] || '#888' }} />
-                              <span>{c.colorName}</span>
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-white">{c.product || c.productCode}</td>
-                          <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.customer || '—'}</td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[c.status]?.text || 'text-gray-400'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[c.status]?.dot || 'bg-gray-400'}`} />
-                              {getStatusLabel(c.status)}
-                            </span>
-                          </td>
-                          <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.location}</td>
-                          <td className="px-4 py-3 text-white font-mono text-xs">{c.meter.toLocaleString()} {t('unit.meter')}</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{t('cyl.type' + c.type)}</span>
-                          </td>
-                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => setSelectedCyl(c)} className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`} title={t('common.viewDetails')}>
-                                <Eye size={15} />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'cylinder', data: c } })); }}
-                                className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`}
-                                title="Print Label"
-                              >
-                                <Printer size={15} />
-                              </button>
-                              {showTrash ? (
-                                <>
+              <div>
+                <BatchToolbar
+                  items={filtered}
+                  selectedIds={selectedIds}
+                  onSelectionChange={setSelectedIds}
+                  showTrash={showTrash}
+                  actions={showTrash ? [
+                    { label: t('common.restore'), icon: <RotateCcw size={13} />, variant: 'warning', onClick: (ids) => { setBatchRestoreOpen(true); } },
+                    { label: t('common.permanentDelete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: (ids) => { setBatchDeleteOpen(true); } },
+                  ] : [
+                    { label: t('cyl.changeStatus'), onClick: () => setBatchStatusOpen(true) },
+                    { label: t('common.delete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: (ids) => { setBatchDeleteOpen(true); } },
+                  ]}
+                />
+                <div className={`rounded-xl overflow-hidden ${themeConfig.panel}`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className={`${themeConfig.tableHead}`}>
+                          <th className="px-4 py-3 w-10">
+                            <BatchSelectAllCheckbox
+                              checked={filtered.length > 0 && filtered.every(c => selectedIds.includes(c.id))}
+                              indeterminate={selectedIds.length > 0 && !filtered.every(c => selectedIds.includes(c.id))}
+                              onChange={() => {
+                                const allIds = filtered.map(c => c.id);
+                                if (filtered.every(c => selectedIds.includes(c.id))) {
+                                  setSelectedIds(prev => prev.filter(id => !allIds.includes(id)));
+                                } else {
+                                  setSelectedIds(prev => [...new Set([...prev, ...allIds])]);
+                                }
+                              }}
+                            />
+                          </th>
+                          {[t('col.code'), t('col.color'), t('col.product'), t('col.customer'), t('col.status'), t('col.location'), t('col.meterRun'), t('col.type'), t('col.action')].map(h => (
+                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold whitespace-nowrap">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map(c => (
+                          <tr key={c.id} onClick={() => setSelectedCyl(c)} className={`${themeConfig.tableRow} transition-colors border-t ${themeConfig.border} cursor-pointer`}>
+                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                              <BatchRowCheckbox
+                                checked={selectedIds.includes(c.id)}
+                                onChange={() => {
+                                  setSelectedIds(prev =>
+                                    prev.includes(c.id) ? prev.filter(id => id !== c.id) : [...prev, c.id]
+                                  );
+                                }}
+                              />
+                            </td>
+                            <td className="px-4 py-3 font-medium text-cyan-300 font-mono text-xs">{c.id}</td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center gap-1.5 text-xs">
+                                <span className="w-3.5 h-3.5 rounded-sm border border-white/20" style={{ backgroundColor: COLOR_MAP[c.color] || '#888' }} />
+                                <span>{c.colorName}</span>
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-white">{c.product || c.productCode}</td>
+                            <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.customer || '—'}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]?.bg || 'bg-gray-500/20'} ${STATUS_COLORS[c.status]?.text || 'text-gray-400'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[c.status]?.dot || 'bg-gray-400'}`} />
+                                {getStatusLabel(c.status)}
+                              </span>
+                            </td>
+                            <td className={`px-4 py-3 ${themeConfig.textSecondary} text-xs`}>{c.location}</td>
+                            <td className="px-4 py-3 text-white font-mono text-xs">{c.meter.toLocaleString()} {t('unit.meter')}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full ${themeConfig.badge} ${themeConfig.textSecondary}`}>{t('cyl.type' + c.type)}</span>
+                            </td>
+                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => setSelectedCyl(c)} className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`} title={t('common.viewDetails')}>
+                                  <Eye size={15} />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('print-label', { detail: { type: 'cylinder', data: c } })); }}
+                                  className={`p-1 rounded ${themeConfig.panelHover} ${themeConfig.textSecondary}`}
+                                  title="Print Label"
+                                >
+                                  <Printer size={15} />
+                                </button>
+                                {showTrash ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleRestoreCylinder(c.id)}
+                                      className={`p-1 rounded ${themeConfig.panelHover} text-green-400 hover:text-green-300`}
+                                      title={t('common.restore')}
+                                    >
+                                      <RotateCcw size={15} />
+                                    </button>
+                                    <button
+                                      onClick={() => { setPermanentDeleteTarget(c.id); setPermanentDeleteConfirmOpen(true); }}
+                                      className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
+                                      title={t('common.permanentDelete')}
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </>
+                                ) : (
                                   <button
-                                    onClick={() => handleRestoreCylinder(c.id)}
-                                    className={`p-1 rounded ${themeConfig.panelHover} text-green-400 hover:text-green-300`}
-                                    title={t('common.restore')}
-                                  >
-                                    <RotateCcw size={15} />
-                                  </button>
-                                  <button
-                                    onClick={() => { setPermanentDeleteTarget(c.id); setPermanentDeleteConfirmOpen(true); }}
+                                    onClick={() => { setDeleteTarget(c.id); setDeleteConfirmOpen(true); }}
                                     className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
-                                    title={t('common.permanentDelete')}
+                                    title={t('common.delete')}
                                   >
                                     <Trash2 size={15} />
                                   </button>
-                                </>
-                              ) : (
-                                <button
-                                  onClick={() => { setDeleteTarget(c.id); setDeleteConfirmOpen(true); }}
-                                  className={`p-1 rounded ${themeConfig.panelHover} text-red-500 hover:text-red-400`}
-                                  title={t('common.delete')}
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
@@ -811,6 +913,12 @@ function CylindersPageContent() {
                       className="bg-transparent text-white text-sm outline-none w-full"
                       placeholder={item.ph}
                     />
+                    {item.key === 'id' && idDuplicateStatus === 'exists' && (
+                      <span className="text-[10px] text-red-400 mt-0.5">{t('common.alreadyExists')}</span>
+                    )}
+                    {item.key === 'id' && idDuplicateStatus === 'checking' && (
+                      <span className="text-[10px] text-slate-500 mt-0.5">...</span>
+                    )}
                   </div>
                 );
               })}
@@ -987,6 +1095,49 @@ function CylindersPageContent() {
         descriptionKey="cylinder.emptyTrashConfirm"
         onConfirm={handleEmptyTrash}
         onClose={() => setEmptyTrashConfirmOpen(false)}
+      />
+
+      {/* Batch Status Change Dialog */}
+      <AppDialog
+        open={batchStatusOpen}
+        titleKey="cyl.changeStatus"
+        onClose={() => setBatchStatusOpen(false)}
+      >
+        <div className="grid gap-2">
+          <p className={`text-sm ${themeConfig.textSecondary} mb-1`}>
+            {t('cylinder.batchStatusDesc', { count: selectedIds.length })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {['available', 'reserved', 'inProduction', 'inspection', 'repair', 'hold'].map(s => (
+              <button
+                key={s}
+                onClick={() => handleBatchStatusChange(s)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${themeConfig.badge} ${themeConfig.textSecondary} ${themeConfig.panelHover} hover:text-white`}
+              >
+                {getStatusLabel(s)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </AppDialog>
+
+      {/* Batch Delete Dialog */}
+      <ConfirmDialog
+        open={batchDeleteOpen}
+        titleKey="common.delete"
+        descriptionKey="cylinder.batchDeleteConfirm"
+        onConfirm={showTrash ? handleBatchDelete : handleBatchDelete}
+        onClose={() => setBatchDeleteOpen(false)}
+        confirmKey={showTrash ? 'common.permanentDelete' : 'common.delete'}
+      />
+
+      {/* Batch Restore Dialog */}
+      <ConfirmDialog
+        open={batchRestoreOpen}
+        titleKey="common.restore"
+        descriptionKey="cylinder.batchRestoreConfirm"
+        onConfirm={handleBatchRestore}
+        onClose={() => setBatchRestoreOpen(false)}
       />
     </AppLayout>
   );

@@ -8,22 +8,25 @@ export class OrderService {
       throw new AppError('Missing required sales order fields', 400);
     }
 
-    const existing = await prisma.salesOrder.findUnique({
-      where: { orderNumber: dto.orderNumber }
+    // Check duplicate orderNumber (exclude soft-deleted)
+    const existing = await prisma.salesOrder.findFirst({
+      where: { orderNumber: dto.orderNumber, deletedAt: null }
     });
     if (existing) {
       throw new AppError(`Sales order with number ${dto.orderNumber} already exists`, 400);
     }
 
-    const customer = await prisma.customer.findUnique({
-      where: { code: dto.customerCode }
+    // Validate customer exists (exclude soft-deleted)
+    const customer = await prisma.customer.findFirst({
+      where: { code: dto.customerCode, deletedAt: null }
     });
     if (!customer) {
       throw new AppError(`Customer with code ${dto.customerCode} not found`, 400);
     }
 
-    const product = await prisma.product.findUnique({
-      where: { code: dto.productCode }
+    // Validate product exists (exclude soft-deleted)
+    const product = await prisma.product.findFirst({
+      where: { code: dto.productCode, deletedAt: null }
     });
     if (!product) {
       throw new AppError(`Product with code ${dto.productCode} not found`, 400);

@@ -24,6 +24,23 @@ export class PermissionService {
     return prisma.permission.delete({ where: { id } });
   }
 
+  // ── Exists checks ──
+  static async checkPermissionExists(field: string, value: string): Promise<boolean> {
+    if (field === 'name') {
+      const perm = await prisma.permission.findUnique({ where: { name: value } });
+      return !!perm;
+    }
+    return false;
+  }
+
+  static async checkRoleExists(field: string, value: string): Promise<boolean> {
+    if (field === 'name') {
+      const role = await prisma.role.findUnique({ where: { name: value } });
+      return !!role;
+    }
+    return false;
+  }
+
   // ── Role CRUD ──
   static async listRoles() {
     return prisma.role.findMany({ orderBy: { name: 'asc' } });

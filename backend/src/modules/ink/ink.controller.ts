@@ -379,4 +379,111 @@ export class InkController {
       next(error);
     }
   }
+
+  static async batchUpdateFormulaStatus(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { codes, status } = req.body;
+      if (!Array.isArray(codes) || codes.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'codes array is required' });
+      }
+      const validStatuses: InkFormulaStatus[] = ['active', 'superseded'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      }
+      const { count } = await InkService.batchUpdateFormulaStatus(codes, status);
+      await AuditService.record(req, 'ink.batch_formula_status', `Batch updated ${count} formula(s) to ${status}`);
+      emitEvent('dashboard:refresh', { type: 'ink:batchFormulaStatus', codes, status });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { updated: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchDeleteFormulas(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { codes } = req.body;
+      if (!Array.isArray(codes) || codes.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'codes array is required' });
+      }
+      const { count } = await InkService.batchDeleteFormulas(codes);
+      await AuditService.record(req, 'ink.batch_formula_delete', `Batch deleted ${count} formula(s)`);
+      emitEvent('dashboard:refresh', { type: 'ink:batchFormulaDeleted', codes });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { deleted: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchRestoreFormulas(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { codes } = req.body;
+      if (!Array.isArray(codes) || codes.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'codes array is required' });
+      }
+      const { count } = await InkService.batchRestoreFormulas(codes);
+      await AuditService.record(req, 'ink.batch_formula_restore', `Batch restored ${count} formula(s)`);
+      emitEvent('dashboard:refresh', { type: 'ink:batchFormulaRestored', codes });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { restored: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchDeleteBatches(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'ids array is required' });
+      }
+      const { count } = await InkService.batchDeleteBatches(ids);
+      await AuditService.record(req, 'ink.batch_batch_delete', `Batch deleted ${count} batch(es)`);
+      emitEvent('dashboard:refresh', { type: 'ink:batchBatchDeleted', ids });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { deleted: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async batchRestoreBatches(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'ids array is required' });
+      }
+      const { count } = await InkService.batchRestoreBatches(ids);
+      await AuditService.record(req, 'ink.batch_batch_restore', `Batch restored ${count} batch(es)`);
+      emitEvent('dashboard:refresh', { type: 'ink:batchBatchRestored', ids });
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { restored: count } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async checkFormulaExists(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const field = req.query.field as string;
+      const value = req.query.value as string;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await InkService.checkFormulaExists(field, value);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async checkBatchExists(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const field = req.query.field as string;
+      const value = req.query.value as string;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await InkService.checkBatchExists(field, value);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

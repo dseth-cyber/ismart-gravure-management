@@ -9,10 +9,12 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { ColorBadge } from '@/components/shared/color-badge';
+import { AppDialog } from '@/components/shared/app-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
 
 const QrScanner = dynamic(() => import('@/components/shared/qr-scanner').then(m => ({ default: m.QrScanner })), { ssr: false });
-import { listJobs, deleteJob, restoreJob, permanentDeleteJob, emptyJobTrash } from '@/lib/services/job';
+import { listJobs, deleteJob, restoreJob, permanentDeleteJob, emptyJobTrash, batchUpdateJobStatus, batchDeleteJobs, batchRestoreJobs } from '@/lib/services/job';
 import { getTraceability } from '@/lib/services/qc';
 import type { ProductionJobDto } from '@shared/dto/job/job.dto';
 import { 
@@ -150,6 +152,10 @@ function ProductionPageContent() {
   const [confirmDeleteJob, setConfirmDeleteJob] = useState<string | null>(null);
   const [confirmPermanentDeleteJob, setConfirmPermanentDeleteJob] = useState<string | null>(null);
   const [emptyTrashConfirmOpen, setEmptyTrashConfirmOpen] = useState(false);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchRestoreOpen, setBatchRestoreOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Production Log State
@@ -209,6 +215,47 @@ function ProductionPageContent() {
       queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
     } catch (err: any) {
       console.error('Failed to delete job', err);
+    }
+  };
+
+  // Clear selection when trash state changes
+  useEffect(() => {
+    setSelectedJobIds([]);
+  }, [showTrash]);
+
+  const handleBatchStatusChange = async (status: string) => {
+    try {
+      await batchUpdateJobStatus(selectedJobIds, status);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+      setSelectedJobIds([]);
+    } catch (err: any) {
+      console.error('Failed to batch update job status', err);
+    } finally {
+      setBatchStatusOpen(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      await batchDeleteJobs(selectedJobIds);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+      setSelectedJobIds([]);
+    } catch (err: any) {
+      console.error('Failed to batch delete jobs', err);
+    } finally {
+      setBatchDeleteOpen(false);
+    }
+  };
+
+  const handleBatchRestore = async () => {
+    try {
+      await batchRestoreJobs(selectedJobIds);
+      queryClient.invalidateQueries({ queryKey: ['productionJobs'] });
+      setSelectedJobIds([]);
+    } catch (err: any) {
+      console.error('Failed to batch restore jobs', err);
+    } finally {
+      setBatchRestoreOpen(false);
     }
   };
 
@@ -609,10 +656,39 @@ function ProductionPageContent() {
                 <p className="text-sm">{t('common.empty')}</p>
               </div>
             ) : (
+            <>
+              <BatchToolbar
+                items={jobsList}
+                selectedIds={selectedJobIds}
+                onSelectionChange={setSelectedJobIds}
+                showTrash={showTrash}
+                getId={(j: any) => j.jobNumber}
+                actions={showTrash ? [
+                  { label: t('common.restore'), icon: <RotateCcw size={13} />, variant: 'warning', onClick: () => setBatchRestoreOpen(true) },
+                  { label: t('common.permanentDelete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: () => setBatchDeleteOpen(true) },
+                ] : [
+                  { label: t('prod.changeStatus'), onClick: () => setBatchStatusOpen(true) },
+                  { label: t('common.delete'), icon: <Trash2 size={13} />, variant: 'danger', onClick: () => setBatchDeleteOpen(true) },
+                ]}
+              />
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className={`border-b ${themeConfig.border} ${themeConfig.tableHead}`}>
+                    <th className="p-3 w-10">
+                      <BatchSelectAllCheckbox
+                        checked={jobsList.length > 0 && jobsList.every(j => selectedJobIds.includes(j.jobNumber))}
+                        indeterminate={selectedJobIds.length > 0 && !jobsList.every(j => selectedJobIds.includes(j.jobNumber))}
+                        onChange={() => {
+                          const allIds = jobsList.map(j => j.jobNumber);
+                          if (jobsList.every(j => selectedJobIds.includes(j.jobNumber))) {
+                            setSelectedJobIds(prev => prev.filter(id => !allIds.includes(id)));
+                          } else {
+                            setSelectedJobIds(prev => [...new Set([...prev, ...allIds])]);
+                          }
+                        }}
+                      />
+                    </th>
                     <th className="p-3 text-xs font-bold uppercase whitespace-nowrap">{t('col.job')}</th>
                     <th className="p-3 text-xs font-bold uppercase whitespace-nowrap">{t('col.product')}</th>
                     <th className="p-3 text-xs font-bold uppercase whitespace-nowrap">{t('col.customer')}</th>
@@ -627,6 +703,16 @@ function ProductionPageContent() {
                 <tbody>
                   {jobsList.map(job => (
                     <tr key={job.jobNumber} className={`border-b ${themeConfig.border} ${themeConfig.tableRow} transition`}>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <BatchRowCheckbox
+                          checked={selectedJobIds.includes(job.jobNumber)}
+                          onChange={() => {
+                            setSelectedJobIds(prev =>
+                              prev.includes(job.jobNumber) ? prev.filter(id => id !== job.jobNumber) : [...prev, job.jobNumber]
+                            );
+                          }}
+                        />
+                      </td>
                       <td className={`p-3 font-semibold font-mono ${themeConfig.primaryText}`}>{job.jobNumber}</td>
                       <td className={`p-3 font-semibold ${themeConfig.textPrimary}`}>{job.productCode}</td>
                       <td className={`p-3 text-xs ${themeConfig.textSecondary}`}>—</td>
@@ -672,6 +758,7 @@ function ProductionPageContent() {
                 </tbody>
               </table>
             </div>
+            </>
             )}
           </div>
         )}
@@ -875,6 +962,74 @@ function ProductionPageContent() {
                 className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500"
               >
                 {t('common.delete') || 'Empty'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Status Dialog */}
+      <AppDialog
+        open={batchStatusOpen}
+        titleKey="prod.changeStatus"
+        onClose={() => setBatchStatusOpen(false)}
+      >
+        <div className="grid gap-2">
+          <p className={`text-sm ${themeConfig.textSecondary} mb-1`}>
+            {t('prod.batchStatusDesc', { count: selectedJobIds.length })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {['pending', 'verifying', 'active', 'completed', 'hold', 'cancelled'].map(s => (
+              <button
+                key={s}
+                onClick={() => handleBatchStatusChange(s)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${themeConfig.badge} ${themeConfig.textSecondary} ${themeConfig.panelHover} hover:text-white`}
+              >
+                <StatusBadge status={s as StatusKind} />
+              </button>
+            ))}
+          </div>
+        </div>
+      </AppDialog>
+
+      {/* Batch Delete Dialog */}
+      {batchDeleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setBatchDeleteOpen(false)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>
+              {showTrash ? t('common.permanentDelete') : t('common.delete')}
+            </h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              {t('prod.batchDeleteConfirm', { count: selectedJobIds.length })}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setBatchDeleteOpen(false)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button onClick={handleBatchDelete} className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-red-600 hover:bg-red-500">
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Restore Dialog */}
+      {batchRestoreOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className={`absolute inset-0 ${themeConfig.dialogOverlay}`} onClick={() => setBatchRestoreOpen(false)}></div>
+          <div className={`relative rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 ${themeConfig.dialog}`}>
+            <h3 className={`text-lg font-bold ${themeConfig.textPrimary} mb-3`}>{t('common.restore')}</h3>
+            <p className={`text-sm ${themeConfig.textSecondary} mb-6`}>
+              {t('prod.batchRestoreConfirm', { count: selectedJobIds.length })}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setBatchRestoreOpen(false)} className={`px-4 py-2 rounded-lg text-xs font-bold ${themeConfig.secondaryButton}`}>
+                {t('btn.cancel')}
+              </button>
+              <button onClick={handleBatchRestore} className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow bg-emerald-600 hover:bg-emerald-500">
+                {t('common.confirm')}
               </button>
             </div>
           </div>

@@ -607,3 +607,22 @@ model DashboardLayout {
   @@map("dashboard_layouts")
 }
 
+model MasterDataItem {
+  id        String   @id @default(uuid())
+  category  String   // e.g. "status", "cylinderType", "defectType", "machine", "rack", "supplier", "inkType", "solvent"
+  name      String
+  nameTh    String?
+  active    Boolean  @default(true)
+  extra     Json?   // Category-specific fields (color, icon, severity, type, line, zone, capacity, contact, boiling, etc.)
+  sortOrder Int     @default(0)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, name])
+  @@index([category])
+  @@index([deletedAt])
+  @@schema("auth")
+  @@map("master_data_items")
+}
+

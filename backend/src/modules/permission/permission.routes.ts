@@ -30,6 +30,7 @@ router.get('/scopes/user/me', PermissionController.getUserScopes);
 router.use(requireRoles(['admin']));
 
 // Permissions CRUD (admin)
+router.get('/exists', PermissionController.checkPermissionExists);
 router.post('/', PermissionController.createPermission);
 router.put('/:id', PermissionController.updatePermission);
 router.delete('/:id', PermissionController.deletePermission);
@@ -37,6 +38,7 @@ router.delete('/:id', PermissionController.deletePermission);
 // Role CRUD + role-permission mapping
 router.get('/roles', PermissionController.listRoles);
 router.post('/roles', PermissionController.createRole);
+router.get('/roles/exists', PermissionController.checkRoleExists);
 router.delete('/roles/:name', PermissionController.deleteRole);
 router.get('/roles/:role', PermissionController.getRolePermissions);
 router.post('/roles/assign', validate(roleAssignSchema), PermissionController.assignPermissionToRole);

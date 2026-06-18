@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -11,9 +11,11 @@ import { StatusBadge, type StatusKind } from '@/components/shared/status-badge';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { apiClient } from '@/lib/api/client';
 import { Plus, Lock, Unlock, RotateCw, Edit, Shield, Trash2 } from 'lucide-react';
+import { PermissionSelector } from '@/components/shared/permission-selector';
 import { getRoles } from '@/lib/constants/roles';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDebouncedCheck } from '@/lib/hooks/use-debounced-check';
 
 interface User {
   id: string;
@@ -68,10 +70,30 @@ export default function UserManagementPage() {
   const [requiredFields, setRequiredFields] = useState<string[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
   const [permissionList, setPermissionList] = useState<{ id: string; name: string; module: string }[]>([]);
+  const [createUsername, setCreateUsername] = useState('');
+  const [editUsername, setEditUsername] = useState('');
   const [createPermOverrides, setCreatePermOverrides] = useState<Record<string, string>>({});
   const [editPermOverrides, setEditPermOverrides] = useState<Record<string, string>>({});
   const [showCreatePerms, setShowCreatePerms] = useState(false);
   const [showEditPerms, setShowEditPerms] = useState(false);
+
+  const createUsernameStatus = useDebouncedCheck(
+    createUsername,
+    async (val) => {
+      const res = await apiClient.get(`/api/v1/auth/users/exists?field=username&value=${encodeURIComponent(val)}`);
+      return res.data?.data?.exists ?? false;
+    },
+    400
+  );
+
+  const editUsernameStatus = useDebouncedCheck(
+    editUsername,
+    async (val) => {
+      const res = await apiClient.get(`/api/v1/auth/users/exists?field=username&value=${encodeURIComponent(val)}`);
+      return res.data?.data?.exists ?? false;
+    },
+    400
+  );
 
   useEffect(() => {
     apiClient.get('/api/v1/permissions/roles').then(res => {
@@ -137,8 +159,12 @@ export default function UserManagementPage() {
 
   const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (createUsername && createUsernameStatus === 'exists') {
+      setError(t('common.alreadyExists'));
+      return;
+    }
     const form = e.currentTarget;
-    const username = (form.username as any).value;
+    const username = createUsername;
     const email = (form.email as any).value;
     const role = (form.role as any).value;
     const password = (form.password as any).value;
@@ -180,8 +206,12 @@ export default function UserManagementPage() {
   const handleEditUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editUser) return;
+    if (editUsername !== editUser.username && editUsernameStatus === 'exists') {
+      setError(t('common.alreadyExists'));
+      return;
+    }
     const form = e.currentTarget;
-    const username = (form.username as any).value;
+    const username = editUsername;
     const email = (form.email as any).value;
     const role = (form.role as any).value;
     const password = (form.password as any).value;
@@ -268,7 +298,7 @@ export default function UserManagementPage() {
           subtitleKey="settings.userMgtDesc"
           actions={
             <div className="flex items-center gap-2">
-              <AppButton variant="primary" onClick={() => { setEditUser(null); setCreateRole('viewer'); setDialogOpen(true); }}>
+              <AppButton variant="primary" onClick={() => { setEditUser(null); setCreateRole('viewer'); setCreateUsername(''); setDialogOpen(true); }}>
                 <Plus className="mr-1.5 h-4 w-4" /> {t('settings.addUser')}
               </AppButton>
               <AppButton
@@ -359,7 +389,7 @@ export default function UserManagementPage() {
                       ) : (
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => { setEditUser(u); setEditRole(u.role); setEditDialogOpen(true); }}
+                            onClick={() => { setEditUser(u); setEditRole(u.role); setEditUsername(u.username); setEditDialogOpen(true); }}
                             className={`rounded p-1.5 transition ${themeConfig.panelHover}`}
                             title={t('common.edit')}
                           >
@@ -399,14 +429,16 @@ export default function UserManagementPage() {
         <AppDialog
           open={dialogOpen}
           titleKey="settings.addUser"
-          onClose={() => { setDialogOpen(false); setError(''); }}
+          onClose={() => { setDialogOpen(false); setError(''); setCreateUsername(''); }}
         >
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>
                 {t('settings.username')} {requiredFields.includes('username') && <span className="text-red-500">*</span>}
               </label>
-              <input name="username" minLength={3} required={requiredFields.includes('username')} className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm ${themeConfig.border} ${themeConfig.panel}`} />
+              <input name="username" value={createUsername} onChange={e => setCreateUsername(e.target.value)} minLength={3} required={requiredFields.includes('username')} className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm ${themeConfig.border} ${themeConfig.panel}`} />
+              {createUsernameStatus === 'exists' && <span className="text-[10px] text-red-400 mt-0.5 block">{t('common.alreadyExists')}</span>}
+              {createUsernameStatus === 'checking' && <span className="text-[10px] text-slate-500 mt-0.5 block">...</span>}
             </div>
             <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>
@@ -431,30 +463,12 @@ export default function UserManagementPage() {
                 {showCreatePerms ? '▾' : '▸'} {t('perm.userOverrides') || 'Permission Overrides'} ({Object.values(createPermOverrides).filter(v => v).length})
               </button>
               {showCreatePerms && (
-                <div className={`mt-2 max-h-48 overflow-y-auto rounded-lg border p-2 ${themeConfig.border}`}>
-                  {permissionList.length === 0 ? (
-                    <p className={`text-xs ${themeConfig.textMuted}`}>{t('common.loading')}</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {permissionList.map(p => (
-                        <div key={p.id} className="flex items-center gap-2 text-xs">
-                          <input type="checkbox" checked={createPermOverrides[p.id] === 'grant'} onChange={e => {
-                            const next = { ...createPermOverrides };
-                            if (e.target.checked) next[p.id] = 'grant';
-                            else delete next[p.id];
-                            setCreatePermOverrides(next);
-                          }} className="h-3 w-3" />
-                          <span className="flex-1">{p.name}</span>
-                          {createPermOverrides[p.id] === 'grant' && (
-                            <button type="button" onClick={() => {
-                              const next = { ...createPermOverrides, [p.id]: 'deny' };
-                              setCreatePermOverrides(next);
-                            }} className={`text-[10px] ${themeConfig.textMuted} underline`}>{t('perm.deny') || 'deny'}</button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="mt-2">
+                  <PermissionSelector
+                    permissions={permissionList}
+                    overrides={createPermOverrides}
+                    onChange={setCreatePermOverrides}
+                  />
                 </div>
               )}
             </div>
@@ -478,15 +492,17 @@ export default function UserManagementPage() {
         <AppDialog
           open={editDialogOpen}
           titleKey="settings.editUser"
-          onClose={() => { setEditDialogOpen(false); setEditUser(null); }}
+          onClose={() => { setEditDialogOpen(false); setEditUser(null); setEditUsername(''); }}
         >
           <form onSubmit={handleEditUser} className="space-y-4">
             <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>
                 {t('settings.username')} {requiredFields.includes('username') && <span className="text-red-500">*</span>}
               </label>
-              <input name="username" defaultValue={editUser?.username || ''} minLength={3} required={requiredFields.includes('username')}
+              <input name="username" value={editUsername} onChange={e => setEditUsername(e.target.value)} minLength={3} required={requiredFields.includes('username')}
                 className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm ${themeConfig.border} ${themeConfig.panel}`} />
+              {editUsernameStatus === 'exists' && <span className="text-[10px] text-red-400 mt-0.5 block">{t('common.alreadyExists')}</span>}
+              {editUsernameStatus === 'checking' && <span className="text-[10px] text-slate-500 mt-0.5 block">...</span>}
             </div>
             <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>
@@ -511,30 +527,12 @@ export default function UserManagementPage() {
                 {showEditPerms ? '▾' : '▸'} {t('perm.userOverrides') || 'Permission Overrides'} ({Object.values(editPermOverrides).filter(v => v).length})
               </button>
               {showEditPerms && (
-                <div className={`mt-2 max-h-48 overflow-y-auto rounded-lg border p-2 ${themeConfig.border}`}>
-                  {permissionList.length === 0 ? (
-                    <p className={`text-xs ${themeConfig.textMuted}`}>{t('common.loading')}</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {permissionList.map(p => (
-                        <div key={p.id} className="flex items-center gap-2 text-xs">
-                          <input type="checkbox" checked={editPermOverrides[p.id] === 'grant'} onChange={e => {
-                            const next = { ...editPermOverrides };
-                            if (e.target.checked) next[p.id] = 'grant';
-                            else delete next[p.id];
-                            setEditPermOverrides(next);
-                          }} className="h-3 w-3" />
-                          <span className="flex-1">{p.name}</span>
-                          {editPermOverrides[p.id] === 'grant' && (
-                            <button type="button" onClick={() => {
-                              const next = { ...editPermOverrides, [p.id]: 'deny' };
-                              setEditPermOverrides(next);
-                            }} className={`text-[10px] ${themeConfig.textMuted} underline`}>{t('perm.deny') || 'deny'}</button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="mt-2">
+                  <PermissionSelector
+                    permissions={permissionList}
+                    overrides={editPermOverrides}
+                    onChange={setEditPermOverrides}
+                  />
                 </div>
               )}
             </div>
@@ -551,7 +549,7 @@ export default function UserManagementPage() {
                 className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm ${themeConfig.border} ${themeConfig.panel}`} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <AppButton variant="ghost" type="button" onClick={() => { setEditDialogOpen(false); setEditUser(null); }}>{t('common.cancel')}</AppButton>
+              <AppButton variant="ghost" type="button" onClick={() => { setEditDialogOpen(false); setEditUser(null); setEditUsername(''); }}>{t('common.cancel')}</AppButton>
               <AppButton variant="primary" type="submit">{t('common.save')}</AppButton>
             </div>
           </form>

@@ -31,6 +31,7 @@ import {
   FlaskConical,
   Clock,
   ShieldCheck,
+  ShieldAlert,
   GitBranch,
   Search
 } from 'lucide-react';
@@ -38,6 +39,8 @@ import { useTheme } from '@/lib/theme/theme-provider';
 import type { ThemeName } from '@/lib/theme/theme-config';
 import { persistLanguage } from '@/lib/i18n/i18n-provider';
 import { languages, type Language } from '@/lib/i18n/settings';
+import { usePermission } from '@/lib/permission/can';
+import { apiClient } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useRealtimeEvent } from '@/lib/realtime/use-realtime';
 import { listNotifications, type AlertNotification } from '@/lib/services/notification';
@@ -50,17 +53,22 @@ const LANG_META = [
   { code: 'mm', label: 'မြန်မာ', flag: '🇲🇲', short: 'MM' },
 ];
 
-const MENU = [
+type MenuItem = { key: string; labelKey: string; href: string; icon: any; perm?: string; adminOnly?: boolean };
+type MenuGroup = { key: string; labelKey: string; icon: any; perm?: string; adminOnly?: boolean; items: MenuItem[] };
+
+const MENU: MenuGroup[] = [
   { 
     key: 'overview', 
     labelKey: 'nav.overview',
     icon: BarChart3,
+    perm: 'reports:view',
     items: [{ key: 'dashboard', labelKey: 'nav.dashboard', href: '/', icon: BarChart3 }] 
   },
   { 
     key: 'cylinder', 
     labelKey: 'nav.cylinder',
     icon: Layers,
+    perm: 'cylinders:read',
     items: [
       { key: 'cylinderList', labelKey: 'nav.cylinderList', href: '/cylinders?tab=list', icon: List },
       { key: 'cylinderStatus', labelKey: 'nav.cylinderStatus', href: '/cylinders?tab=status', icon: BarChart3 },
@@ -72,6 +80,7 @@ const MENU = [
     key: 'ink', 
     labelKey: 'nav.ink',
     icon: Droplet,
+    perm: 'inks:read',
     items: [
       { key: 'inkFormula', labelKey: 'nav.inkFormula', href: '/inks?tab=formulas', icon: FlaskConical },
       { key: 'inkBatch', labelKey: 'nav.inkBatch', href: '/inks?tab=batch', icon: List },
@@ -83,8 +92,9 @@ const MENU = [
     key: 'production', 
     labelKey: 'nav.production',
     icon: Factory,
+    perm: 'jobs:read',
     items: [
-      { key: 'verification', labelKey: 'nav.verification', href: '/production?tab=verification', icon: ShieldCheck },
+      { key: 'verification', labelKey: 'nav.verification', href: '/production?tab=verification', icon: ShieldCheck, perm: 'jobs:verify' },
       { key: 'prodLog', labelKey: 'nav.prodLog', href: '/production?tab=log', icon: List },
       { key: 'traceability', labelKey: 'nav.traceability', href: '/production?tab=traceability', icon: GitBranch },
     ] 
@@ -93,14 +103,16 @@ const MENU = [
     key: 'system', 
     labelKey: 'nav.settings',
     icon: Shield,
+    adminOnly: true,
     items: [
       { key: 'settings', labelKey: 'nav.masterSetup', href: '/setup?tab=master', icon: Settings },
       { key: 'ruleEngine', labelKey: 'nav.ruleEngine', href: '/setup?tab=rules', icon: Shield },
       { key: 'approvalMatrix', labelKey: 'nav.approvalMatrix', href: '/setup?tab=approvals', icon: User },
-      { key: 'userMgt', labelKey: 'nav.userMgt', href: '/settings/users', icon: User },
-      { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield },
+      { key: 'userMgt', labelKey: 'nav.userMgt', href: '/settings/users', icon: User, perm: 'auth:users.read' },
+      { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield, perm: 'permissions:manage' },
       { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell },
-      { key: 'auditLogs', labelKey: 'settings.auditLogs', href: '/settings/audit', icon: History },
+      { key: 'auditLogs', labelKey: 'settings.auditLogs', href: '/settings/audit', icon: History, perm: 'audit:read' },
+      { key: 'duplicateReport', labelKey: 'Duplicate Report', href: '/reports/duplicates', icon: ShieldAlert, perm: 'reports:view' },
     ] 
   },
   {
@@ -175,6 +187,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   
   // Map production role key to role.production for localization compatibility
   const userRole = user?.role === 'production' ? 'operator' : (user?.role || 'viewer');
+
+  // Permission-based menu filtering
+  const { check, loading: permLoading } = usePermission();
+  const [menuVisibility, setMenuVisibility] = useState<Record<string, Record<string, 'show' | 'hide'>>>({});
+
+  useEffect(() => {
+    apiClient.get('/api/v1/settings')
+      .then(res => {
+        if (res.data?.status === 'success' && res.data.data) {
+          const settings = res.data.data;
+          const mv = settings.find((s: any) => s.key === 'menu_visibility');
+          if (mv?.value) {
+            try { setMenuVisibility(JSON.parse(mv.value)); } catch {}
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Notifications
   const [notifications, setNotifications] = useState<AlertNotification[]>([]);
@@ -646,9 +676,22 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1" aria-label={t('nav.main')}>
             {(() => {
               const isAdmin = user?.role === 'admin';
+              const roleOverrides = menuVisibility[userRole] || {};
               const filteredMenu = MENU.filter(group => {
-                if (group.key === 'system' && !isAdmin) return false;
-                return true;
+                // Check admin-only groups
+                if (group.adminOnly && !isAdmin) return false;
+                // Check permission-based filter (skip for admin — admin can see everything)
+                if (group.perm && !permLoading && !check(group.perm) && !isAdmin) return false;
+                // Check role override
+                const override = roleOverrides[group.key];
+                if (override === 'hide') return false;
+                // Filter out items the user can't access
+                const visibleItems = group.items.filter(item => {
+                  if (item.adminOnly && !isAdmin) return false;
+                  if (item.perm && !permLoading && !check(item.perm) && !isAdmin) return false;
+                  return true;
+                });
+                return visibleItems.length > 0;
               });
               const orderedMenu = [...filteredMenu].sort((a, b) => {
                 return menuOrder.indexOf(a.key) - menuOrder.indexOf(b.key);
@@ -815,11 +858,55 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Content Panel Area */}
         <main className="flex-1 overflow-y-auto p-5 sm:p-6 pb-16 sm:pb-6 relative z-10">
-          {children}
+          <RouteGuard pathname={pathname}>{children}</RouteGuard>
         </main>
       </div>
     </div>
   );
+}
+
+/** Route-to-permission mapping for page-level access guard */
+const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; permission: string }> = [
+  { pattern: /^\/$/, permission: 'reports:view' },
+  { pattern: /^\/cylinders/, permission: 'cylinders:read' },
+  { pattern: /^\/inks/, permission: 'inks:read' },
+  { pattern: /^\/production/, permission: 'jobs:read' },
+  { pattern: /^\/settings\/users/, permission: 'auth:users.read' },
+  { pattern: /^\/settings\/permissions/, permission: 'permissions:manage' },
+  { pattern: /^\/settings\/audit/, permission: 'audit:read' },
+];
+
+function RouteGuard({ pathname, children }: { pathname: string; children: React.ReactNode }) {
+  const { check, loading } = usePermission();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  // Skip guard for non-authenticated routes
+  if (pathname.startsWith('/login') || pathname.startsWith('/progress') || pathname.startsWith('/approvals')) {
+    return <>{children}</>;
+  }
+
+  const match = ROUTE_PERMISSIONS.find(r => r.pattern.test(pathname));
+  if (!match) return <>{children}</>;
+
+  // Admin always has access to everything (skip loading check too)
+  if (isAdmin) return <>{children}</>;
+
+  if (loading) return null;
+
+  if (!check(match.permission)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <ShieldAlert className="w-16 h-16 text-red-400" />
+        <h2 className="text-xl font-bold text-red-400">Access Denied</h2>
+        <p className="text-sm text-gray-400 max-w-md text-center">
+          You do not have permission to access this page.
+        </p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

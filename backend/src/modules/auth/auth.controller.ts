@@ -264,6 +264,17 @@ export class AuthController {
     }
   }
 
+  static async checkUserExists(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { field, value } = req.query;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await AuthService.checkUserExists(field as string, value as string);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) { next(error); }
+  }
+
   static async emptyUserTrash(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
       const count = await AuthService.emptyUserTrash();

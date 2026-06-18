@@ -8,6 +8,9 @@ router.use(requireAuth);
 
 router.post('/', JobController.create);
 router.get('/', JobController.list);
+router.post('/batch/status', JobController.batchUpdateStatus);
+router.post('/batch/delete', JobController.batchDelete);
+router.post('/batch/restore', JobController.batchRestore);
 router.delete('/trash/empty', JobController.emptyTrash);
 router.get('/logs', JobController.listLogs);
 

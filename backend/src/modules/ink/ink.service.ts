@@ -12,17 +12,17 @@ export class InkService {
       throw new AppError('Formula code, productCode, color, pantone, viscosity, labTarget, and solvent are required', 400);
     }
 
-    // 1. Check duplicate code
-    const existing = await prisma.inkFormula.findUnique({
-      where: { code: dto.code }
+    // 1. Check duplicate code (exclude soft-deleted)
+    const existing = await prisma.inkFormula.findFirst({
+      where: { code: dto.code, deletedAt: null }
     });
     if (existing) {
       throw new AppError(`Formula with code ${dto.code} already exists`, 400);
     }
 
-    // 2. Validate productCode exists (skip if not found — allow demo/dev creation)
-    const product = await prisma.product.findUnique({
-      where: { code: dto.productCode }
+    // 2. Validate productCode exists (exclude soft-deleted)
+    const product = await prisma.product.findFirst({
+      where: { code: dto.productCode, deletedAt: null }
     });
     if (!product) {
       console.warn(`Product with code ${dto.productCode} does not exist — creating formula without product reference`);
@@ -118,18 +118,18 @@ export class InkService {
       throw new AppError('Batch id, color, expiryDate, weight, and operator are required', 400);
     }
 
-    // 1. Check duplicate ID
-    const existing = await prisma.inkBatch.findUnique({
-      where: { id: dto.id }
+    // 1. Check duplicate ID (exclude soft-deleted)
+    const existing = await prisma.inkBatch.findFirst({
+      where: { id: dto.id, deletedAt: null }
     });
     if (existing) {
       throw new AppError(`Ink batch with ID ${dto.id} already exists`, 400);
     }
 
-    // 2. Validate formulaCode and productCode if provided (skip if not found — allow demo/dev creation)
+    // 2. Validate formulaCode if provided (exclude soft-deleted)
     if (dto.formulaCode) {
-      const formula = await prisma.inkFormula.findUnique({
-        where: { code: dto.formulaCode }
+      const formula = await prisma.inkFormula.findFirst({
+        where: { code: dto.formulaCode, deletedAt: null }
       });
       if (!formula) {
         console.warn(`Formula with code ${dto.formulaCode} does not exist — creating batch without formula reference`);
@@ -228,5 +228,62 @@ export class InkService {
     return prisma.inkBatch.deleteMany({
       where: { deletedAt: { not: null } }
     });
+  }
+
+  static async batchUpdateFormulaStatus(codes: string[], status: InkFormulaStatus) {
+    return prisma.inkFormula.updateMany({
+      where: { code: { in: codes }, deletedAt: null },
+      data: { status }
+    });
+  }
+
+  static async batchDeleteFormulas(codes: string[]) {
+    return prisma.inkFormula.updateMany({
+      where: { code: { in: codes }, deletedAt: null },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async batchRestoreFormulas(codes: string[]) {
+    return prisma.inkFormula.updateMany({
+      where: { code: { in: codes }, deletedAt: { not: null } },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async batchDeleteBatches(ids: string[]) {
+    return prisma.inkBatch.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async batchRestoreBatches(ids: string[]) {
+    return prisma.inkBatch.updateMany({
+      where: { id: { in: ids }, deletedAt: { not: null } },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async checkFormulaExists(field: string, value: string): Promise<boolean> {
+    const allowedFields = ['code'];
+    if (!allowedFields.includes(field)) {
+      throw new AppError(`Field '${field}' is not allowed for formula existence check`, 400);
+    }
+    const record = await prisma.inkFormula.findFirst({
+      where: { [field]: value, deletedAt: null }
+    });
+    return !!record;
+  }
+
+  static async checkBatchExists(field: string, value: string): Promise<boolean> {
+    const allowedFields = ['id'];
+    if (!allowedFields.includes(field)) {
+      throw new AppError(`Field '${field}' is not allowed for batch existence check`, 400);
+    }
+    const record = await prisma.inkBatch.findFirst({
+      where: { [field]: value, deletedAt: null }
+    });
+    return !!record;
   }
 }

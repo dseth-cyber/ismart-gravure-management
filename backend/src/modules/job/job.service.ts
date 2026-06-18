@@ -10,15 +10,17 @@ export class JobService {
       throw new AppError('Missing required production job fields', 400);
     }
 
-    const existing = await prisma.productionJob.findUnique({
-      where: { jobNumber: dto.jobNumber }
+    // Check duplicate jobNumber (exclude soft-deleted)
+    const existing = await prisma.productionJob.findFirst({
+      where: { jobNumber: dto.jobNumber, deletedAt: null }
     });
     if (existing) {
       throw new AppError(`Production job ${dto.jobNumber} already exists`, 400);
     }
 
-    const product = await prisma.product.findUnique({
-      where: { code: dto.productCode }
+    // Validate product exists (exclude soft-deleted)
+    const product = await prisma.product.findFirst({
+      where: { code: dto.productCode, deletedAt: null }
     });
     if (!product) {
       throw new AppError(`Product with code ${dto.productCode} not found`, 400);
@@ -247,6 +249,27 @@ export class JobService {
   static async emptyTrash() {
     return prisma.productionJob.deleteMany({
       where: { deletedAt: { not: null } }
+    });
+  }
+
+  static async batchUpdateStatus(jobNumbers: string[], status: JobStatus) {
+    return prisma.productionJob.updateMany({
+      where: { jobNumber: { in: jobNumbers }, deletedAt: null },
+      data: { status }
+    });
+  }
+
+  static async batchDelete(jobNumbers: string[]) {
+    return prisma.productionJob.updateMany({
+      where: { jobNumber: { in: jobNumbers }, deletedAt: null },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async batchRestore(jobNumbers: string[]) {
+    return prisma.productionJob.updateMany({
+      where: { jobNumber: { in: jobNumbers }, deletedAt: { not: null } },
+      data: { deletedAt: null }
     });
   }
 

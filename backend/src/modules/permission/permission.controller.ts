@@ -147,6 +147,29 @@ export class PermissionController {
     } catch (error) { next(error); }
   }
 
+  // ── Exists checks ──
+  static async checkPermissionExists(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { field, value } = req.query;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await PermissionService.checkPermissionExists(field as string, value as string);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) { next(error); }
+  }
+
+  static async checkRoleExists(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const { field, value } = req.query;
+      if (!field || !value) {
+        return res.status(400).json({ status: 'error', statusCode: 400, message: 'field and value query params required' });
+      }
+      const exists = await PermissionService.checkRoleExists(field as string, value as string);
+      return res.status(200).json({ status: 'success', statusCode: 200, data: { exists } });
+    } catch (error) { next(error); }
+  }
+
   // ── Role CRUD ──
   static async listRoles(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {

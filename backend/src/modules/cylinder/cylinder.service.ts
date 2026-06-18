@@ -8,9 +8,9 @@ export class CylinderService {
       throw new AppError('Cylinder id, productCode, color, colorName, location, and size are required', 400);
     }
 
-    // 1. Check for duplicate id
-    const existing = await prisma.cylinder.findUnique({
-      where: { id: dto.id }
+    // 1. Check for duplicate id (exclude soft-deleted)
+    const existing = await prisma.cylinder.findFirst({
+      where: { id: dto.id, deletedAt: null }
     });
     if (existing) {
       throw new AppError(`Cylinder with ID ${dto.id} already exists`, 400);
@@ -114,5 +114,37 @@ export class CylinderService {
     return prisma.cylinder.deleteMany({
       where: { deletedAt: { not: null } }
     });
+  }
+
+  static async batchUpdateStatus(ids: string[], status: CylinderStatus) {
+    return prisma.cylinder.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { status }
+    });
+  }
+
+  static async batchDelete(ids: string[]) {
+    return prisma.cylinder.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { deletedAt: new Date() }
+    });
+  }
+
+  static async batchRestore(ids: string[]) {
+    return prisma.cylinder.updateMany({
+      where: { id: { in: ids }, deletedAt: { not: null } },
+      data: { deletedAt: null }
+    });
+  }
+
+  static async checkExists(field: string, value: string): Promise<boolean> {
+    const allowedFields = ['id'];
+    if (!allowedFields.includes(field)) {
+      throw new AppError(`Field '${field}' is not allowed for existence check`, 400);
+    }
+    const record = await prisma.cylinder.findFirst({
+      where: { [field]: value, deletedAt: null }
+    });
+    return !!record;
   }
 }

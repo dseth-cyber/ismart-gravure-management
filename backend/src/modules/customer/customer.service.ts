@@ -8,8 +8,8 @@ export class CustomerService {
       throw new AppError('Customer code and name are required', 400);
     }
 
-    const existing = await prisma.customer.findUnique({
-      where: { code: dto.code }
+    const existing = await prisma.customer.findFirst({
+      where: { code: dto.code, deletedAt: null }
     });
 
     if (existing) {
@@ -69,5 +69,16 @@ export class CustomerService {
     return prisma.customer.delete({
       where: { id }
     });
+  }
+
+  static async checkExists(field: string, value: string): Promise<boolean> {
+    const allowedFields = ['code'];
+    if (!allowedFields.includes(field)) {
+      throw new AppError(`Field '${field}' is not allowed for existence check`, 400);
+    }
+    const record = await prisma.customer.findFirst({
+      where: { [field]: value, deletedAt: null }
+    });
+    return !!record;
   }
 }

@@ -308,7 +308,7 @@ export class AuthService {
   }
 
   static async createUser(username: string, password: string, role: string, email?: string | null, permissions?: { permissionId: string; effect: string }[]) {
-    const existing = await prisma.user.findUnique({ where: { username } });
+    const existing = await prisma.user.findFirst({ where: { username, deletedAt: null } });
     if (existing) throw new AppError('Username already exists', 409);
     this.validatePassword(password);
     const passwordHash = await bcrypt.hash(password, 12);
@@ -339,7 +339,7 @@ export class AuthService {
       if (!valid) throw new AppError('Admin password is incorrect', 403);
     }
     if (data.username && data.username !== user.username) {
-      const existing = await prisma.user.findUnique({ where: { username: data.username } });
+      const existing = await prisma.user.findFirst({ where: { username: data.username, deletedAt: null, id: { not: id } } });
       if (existing) throw new AppError('Username already taken', 409);
     }
     const updateData: any = {};
@@ -419,6 +419,14 @@ export class AuthService {
     await prisma.refreshToken.deleteMany({ where: { userId: id } });
     await prisma.user.delete({ where: { id } });
     return { id, username: user.username };
+  }
+
+  static async checkUserExists(field: string, value: string): Promise<boolean> {
+    if (field === 'username') {
+      const user = await prisma.user.findFirst({ where: { username: value, deletedAt: null } });
+      return !!user;
+    }
+    return false;
   }
 
   static async emptyUserTrash() {

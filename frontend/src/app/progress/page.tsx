@@ -50,6 +50,9 @@ const phases: Array<{ id: number; nameKey: string; outputKey: string; status: St
   { id: 37, nameKey: 'phase.37.name', outputKey: 'phase.37.output', status: 'done' },
   { id: 38, nameKey: 'phase.38.name', outputKey: 'phase.38.output', status: 'done' },
   { id: 39, nameKey: 'phase.39.name', outputKey: 'phase.39.output', status: 'done' },
+  { id: 40, nameKey: 'phase.40.name', outputKey: 'phase.40.output', status: 'done' },
+  { id: 41, nameKey: 'phase.41.name', outputKey: 'phase.41.output', status: 'done' },
+  { id: 42, nameKey: 'phase.42.name', outputKey: 'phase.42.output', status: 'done' },
 ];
 
 const rules = [
@@ -73,6 +76,11 @@ const rules = [
   'rule.image_scan',
   'rule.secrets_vault',
   'rule.incident_response',
+  'rule.duplicate_check_api',
+  'rule.soft_delete_backend',
+  'rule.master_data_api',
+  'rule.fuzzy_duplicate_report',
+  'rule.audit_parse_fix',
 ];
 
 const architecture = [
@@ -260,7 +268,7 @@ export default function ProgressPage() {
                 {t('phase.details.outputs')}
               </h4>
               <ul className="space-y-2 text-sm leading-6">
-                {(t(`phase.${selectedPhaseId}.details.outputs`, { returnObjects: true }) as unknown as string[] || []).map((output, idx) => (
+                {(Array.isArray(t(`phase.${selectedPhaseId}.details.outputs`, { returnObjects: true })) ? t(`phase.${selectedPhaseId}.details.outputs`, { returnObjects: true }) as string[] : []).map((output, idx) => (
                   <li key={idx} className={`flex items-start ${themeConfig.textSecondary}`}>
                     <code className={`text-xs px-1.5 py-0.5 rounded border font-mono mr-1.5 shrink-0 ${themeConfig.badge}`}>
                       {output}
@@ -276,7 +284,7 @@ export default function ProgressPage() {
                 {t('phase.details.criteria')}
               </h4>
               <ul className="space-y-2 text-sm leading-6">
-                {(t(`phase.${selectedPhaseId}.details.criteria`, { returnObjects: true }) as unknown as string[] || []).map((criterion, idx) => (
+                {(Array.isArray(t(`phase.${selectedPhaseId}.details.criteria`, { returnObjects: true })) ? t(`phase.${selectedPhaseId}.details.criteria`, { returnObjects: true }) as string[] : []).map((criterion, idx) => (
                   <li key={idx} className={`flex items-start gap-2 ${themeConfig.textSecondary}`}>
                     <span className="text-emerald-400 font-bold shrink-0">✓</span>
                     <span>{criterion}</span>
@@ -291,7 +299,7 @@ export default function ProgressPage() {
                 {t('phase.details.notes')}
               </h4>
               <ul className="space-y-1.5 text-sm leading-6">
-                {(t(`phase.${selectedPhaseId}.details.notes`, { returnObjects: true }) as unknown as string[] || []).map((note, idx) => (
+                {(Array.isArray(t(`phase.${selectedPhaseId}.details.notes`, { returnObjects: true })) ? t(`phase.${selectedPhaseId}.details.notes`, { returnObjects: true }) as string[] : []).map((note, idx) => (
                   <li key={idx} className={`flex items-start gap-2 ${themeConfig.textMuted}`}>
                     <span className={`${themeConfig.primaryText} shrink-0`}>•</span>
                     <span>{note}</span>

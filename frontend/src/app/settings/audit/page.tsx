@@ -97,6 +97,226 @@ export default function AuditSettingsPage() {
       return t('audit.details.order_create', { orderId: orderCreateMatch[1], productCode: orderCreateMatch[2] }) || details;
     }
 
+    // 12. Granted permission {permName} to user {username}
+    const grantUserMatch = details.match(/^Granted permission (.*) to user (.*)$/);
+    if (grantUserMatch) {
+      return t('audit.details.permission.grant_user', { permission: grantUserMatch[1], username: grantUserMatch[2] }) || details;
+    }
+
+    // 13. Denied permission {permName} to user {username}
+    const denyUserMatch = details.match(/^Denied permission (.*) to user (.*)$/);
+    if (denyUserMatch) {
+      return t('audit.details.permission.deny_user', { permission: denyUserMatch[1], username: denyUserMatch[2] }) || details;
+    }
+
+    // 14. Assigned permission {permName} to role {roleName}
+    const assignRoleMatch = details.match(/^Assigned permission (.*) to role (.*)$/);
+    if (assignRoleMatch) {
+      return t('audit.details.permission.assign_role', { permission: assignRoleMatch[1], role: assignRoleMatch[2] }) || details;
+    }
+
+    // 15. Removed permission {permName} from role {roleName}
+    const removeRoleMatch = details.match(/^Removed permission (.*) from role (.*)$/);
+    if (removeRoleMatch) {
+      return t('audit.details.permission.remove_role', { permission: removeRoleMatch[1], role: removeRoleMatch[2] }) || details;
+    }
+
+    // 16. Updated setting {key} to {value}
+    const settingsUpdateMatch = details.match(/^Updated setting (.*) to (.*)$/);
+    if (settingsUpdateMatch) {
+      return t('audit.details.settings.update', { key: settingsUpdateMatch[1], value: settingsUpdateMatch[2] }) || details;
+    }
+
+    // 17. Cylinder actions: Created/Updated/Deleted/Restored/Permanently deleted cylinder {id}
+    const cylinderActionMatch = details.match(/^(Created|Updated|Deleted|Restored|Permanently deleted) cylinder (.*)$/);
+    if (cylinderActionMatch) {
+      const action = cylinderActionMatch[1];
+      const id = cylinderActionMatch[2];
+      const key = `audit.details.cylinder.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      return t(key, { id }) || details;
+    }
+
+    // 18. Cylinder batch actions: Batch updated/deleted/restored {count} cylinder(s) [to {status}]
+    const cylinderBatchMatch = details.match(/^Batch (updated|deleted|restored) (\d+) cylinder\(s\)(?: to (\w+))?$/);
+    if (cylinderBatchMatch) {
+      const action = cylinderBatchMatch[1];
+      const count = cylinderBatchMatch[2];
+      const status = cylinderBatchMatch[3];
+      const key = `audit.details.cylinder.batch_${action}`;
+      return t(key, { count, ...(status ? { status } : {}) }) || details;
+    }
+
+    // 19. Emptied cylinder trash bin. Purged {count} cylinder(s)
+    const cylinderEmptyTrashMatch = details.match(/^Emptied cylinder trash bin. Purged (\d+) cylinder\(s\)$/);
+    if (cylinderEmptyTrashMatch) {
+      return t('audit.details.cylinder.empty_trash', { count: cylinderEmptyTrashMatch[1] }) || details;
+    }
+
+    // 20. Ink formula actions: Created/Updated/Deleted/Restored/Permanently deleted ink formula {code}
+    const formulaActionMatch = details.match(/^(Created|Updated|Deleted|Restored|Permanently deleted) ink formula (.*)$/);
+    if (formulaActionMatch) {
+      const action = formulaActionMatch[1];
+      const code = formulaActionMatch[2];
+      const key = `audit.details.formula.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      return t(key, { code }) || details;
+    }
+
+    // 21. Ink batch actions: Created/Updated/Deleted/Restored/Permanently deleted ink batch {id}
+    const batchActionMatch = details.match(/^(Created|Updated|Deleted|Restored|Permanently deleted) ink batch (.*)$/);
+    if (batchActionMatch) {
+      const action = batchActionMatch[1];
+      const id = batchActionMatch[2];
+      const key = `audit.details.batch.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      return t(key, { id }) || details;
+    }
+
+    // 22. User actions: Admin created/updated/deleted/restored/permanently deleted user {username}
+    const userActionMatch = details.match(/^Admin (created|updated|deleted|restored|permanently deleted) user (.*)$/);
+    if (userActionMatch) {
+      const action = userActionMatch[1];
+      const username = userActionMatch[2];
+      const key = `audit.details.user.${action === 'permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      return t(key, { username }) || details;
+    }
+
+    // 23. Admin emptied user trash bin. Purged {count} user(s)
+    const userEmptyTrashMatch = details.match(/^Admin emptied user trash bin. Purged (\d+) user\(s\)$/);
+    if (userEmptyTrashMatch) {
+      return t('audit.details.user.empty_trash', { count: userEmptyTrashMatch[1] }) || details;
+    }
+
+    // 24. Production job deleted/restored/permanently deleted
+    const jobActionMatch = details.match(/^(Deleted|Restored|Permanently deleted) production job (.*)$/);
+    if (jobActionMatch) {
+      const action = jobActionMatch[1];
+      const jobNumber = jobActionMatch[2];
+      const key = `audit.details.production_job.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      return t(key, { jobNumber }) || details;
+    }
+
+    // 25. Emptied production job trash/bin. Purged {count} job(s)
+    const jobEmptyTrashMatch = details.match(/^Emptied production job trash bin. Purged (\d+) job\(s\)$/);
+    if (jobEmptyTrashMatch) {
+      return t('audit.details.production_job.empty_trash', { count: jobEmptyTrashMatch[1] }) || details;
+    }
+
+    // 26. Job batch actions: Batch updated/deleted/restored {count} job(s) [to {status}]
+    const jobBatchMatch = details.match(/^Batch (updated|deleted|restored) (\d+) job\(s\)(?: to (\w+))?$/);
+    if (jobBatchMatch) {
+      const action = jobBatchMatch[1];
+      const count = jobBatchMatch[2];
+      const status = jobBatchMatch[3];
+      const key = `audit.details.job.batch_${action}`;
+      return t(key, { count, ...(status ? { status } : {}) }) || details;
+    }
+
+    // 27. Ink batch formula actions: Batch updated/deleted/restored {count} formula(s) [to {status}]
+    const inkFormulaBatchMatch = details.match(/^Batch (updated|deleted|restored) (\d+) formula\(s\)(?: to (\w+))?$/);
+    if (inkFormulaBatchMatch) {
+      const action = inkFormulaBatchMatch[1];
+      const count = inkFormulaBatchMatch[2];
+      const status = inkFormulaBatchMatch[3];
+      const key = `audit.details.ink.batch_formula_${action}`;
+      return t(key, { count, ...(status ? { status } : {}) }) || details;
+    }
+
+    // 28. Ink batch batch actions: Batch deleted/restored {count} batch(es)
+    const inkBatchBatchMatch = details.match(/^Batch (deleted|restored) (\d+) batch\(es\)$/);
+    if (inkBatchBatchMatch) {
+      const action = inkBatchBatchMatch[1];
+      const count = inkBatchBatchMatch[2];
+      const key = `audit.details.ink.batch_batch_${action}`;
+      return t(key, { count }) || details;
+    }
+
+    // 29. Sales Order status update / deleted
+    const salesOrderMatch = details.match(/^Updated Sales Order (.*) status to (.*)$/);
+    if (salesOrderMatch) {
+      return t('audit.details.sales_order.update_status', { orderNumber: salesOrderMatch[1], status: salesOrderMatch[2] }) || details;
+    }
+    const salesOrderDeleteMatch = details.match(/^Deleted Sales Order (.*)$/);
+    if (salesOrderDeleteMatch) {
+      return t('audit.details.sales_order.delete', { orderNumber: salesOrderDeleteMatch[1] }) || details;
+    }
+
+    // 30. Permission/Role/Scope actions: Created/Updated/Deleted {type}: {name}
+    const genericCrudMatch = details.match(/^(Created|Updated|Deleted) (permission|role|scope): (.*)$/);
+    if (genericCrudMatch) {
+      const action = genericCrudMatch[1].toLowerCase();
+      const entity = genericCrudMatch[2];
+      const name = genericCrudMatch[3];
+      const key = `audit.details.${entity}.${action}`;
+      return t(key, { name }) || details;
+    }
+
+    // 31. Permission batch actions: Batch granted/denied {count} permissions to/for user {userId}
+    const batchGrantMatch = details.match(/^Batch granted (\d+) permissions to user (.*)$/);
+    if (batchGrantMatch) {
+      return t('audit.details.permission.batch_grant', { count: batchGrantMatch[1], userId: batchGrantMatch[2] }) || details;
+    }
+    const batchDenyMatch = details.match(/^Batch denied (\d+) permissions for user (.*)$/);
+    if (batchDenyMatch) {
+      return t('audit.details.permission.batch_deny', { count: batchDenyMatch[1], userId: batchDenyMatch[2] }) || details;
+    }
+
+    // 32. User password/MFA actions
+    const passwordChangeMatch = details.match(/^User (.*) changed password$/);
+    if (passwordChangeMatch) {
+      return t('audit.details.auth.password.change', { username: passwordChangeMatch[1] }) || details;
+    }
+    const mfaEnableMatch = details.match(/^User (.*) enabled MFA$/);
+    if (mfaEnableMatch) {
+      return t('audit.details.auth.mfa.enable', { username: mfaEnableMatch[1] }) || details;
+    }
+    const mfaDisableMatch = details.match(/^User (.*) disabled MFA$/);
+    if (mfaDisableMatch) {
+      return t('audit.details.auth.mfa.disable', { username: mfaDisableMatch[1] }) || details;
+    }
+    const mfaVerifyMatch = details.match(/^User (.*) completed MFA verification$/);
+    if (mfaVerifyMatch) {
+      return t('audit.details.auth.mfa.verify', { username: mfaVerifyMatch[1] }) || details;
+    }
+
+    // 33. QC inspection delete
+    const qcDeleteMatch = details.match(/^Deleted QC inspection ID (.*) for Job (.*)$/);
+    if (qcDeleteMatch) {
+      return t('audit.details.qc_inspection.delete', { id: qcDeleteMatch[1], jobNumber: qcDeleteMatch[2] }) || details;
+    }
+
+    // 34. Workflow actions
+    const workflowDefCreateMatch = details.match(/^Created workflow definition: (.*)$/);
+    if (workflowDefCreateMatch) {
+      return t('audit.details.workflow.def.create', { name: workflowDefCreateMatch[1] }) || details;
+    }
+    const workflowDefUpdateMatch = details.match(/^Updated workflow definition: (.*)$/);
+    if (workflowDefUpdateMatch) {
+      return t('audit.details.workflow.def.update', { name: workflowDefUpdateMatch[1] }) || details;
+    }
+    const workflowStartMatch = details.match(/^Started workflow: (.*) \((.*):(.*)\)$/);
+    if (workflowStartMatch) {
+      return t('audit.details.workflow.instance.start', { title: workflowStartMatch[1], refType: workflowStartMatch[2], refId: workflowStartMatch[3] }) || details;
+    }
+    const workflowApproveMatch = details.match(/^Approved workflow: (.*) \(step (.*)\)$/);
+    if (workflowApproveMatch) {
+      return t('audit.details.workflow.approve', { title: workflowApproveMatch[1], step: workflowApproveMatch[2] }) || details;
+    }
+    const workflowRejectMatch = details.match(/^Rejected workflow: (.*)$/);
+    if (workflowRejectMatch) {
+      return t('audit.details.workflow.reject', { title: workflowRejectMatch[1] }) || details;
+    }
+    const workflowCancelMatch = details.match(/^Cancelled workflow: (.*)$/);
+    if (workflowCancelMatch) {
+      return t('audit.details.workflow.cancel', { title: workflowCancelMatch[1] }) || details;
+    }
+
+    // 35. Empty trash fallback: Emptied {entity} trash bin. Purged {count} {items}
+    const emptyTrashMatch = details.match(/^Emptied (formula|batch|production job|cylinder) trash bin. Purged (\d+) .*$/);
+    if (emptyTrashMatch) {
+      const entity = emptyTrashMatch[1].replace(' ', '_');
+      const count = emptyTrashMatch[2];
+      return t(`audit.details.${entity}.empty_trash`, { count }) || details;
+    }
+
     return details;
   };
 
@@ -442,8 +662,7 @@ export default function AuditSettingsPage() {
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
                         <td className="p-3 whitespace-nowrap">
-                          <span className="font-semibold">{log.username || 'System'}</span>
-                          {log.userId && <span className={`block text-[10px] ${themeConfig.textMuted}`}>{log.userId}</span>}
+                          <span className="font-semibold" title={log.userId || ''}>{log.username || 'System'}</span>
                         </td>
                         <td className="p-3 whitespace-nowrap">
                           <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
