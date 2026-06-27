@@ -15,32 +15,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build full image
+      - name: Show context size
+        run: |
+          du -sh .
+          echo "---"
+          ls -la backend/Dockerfile backend/package.json backend/package-lock.json
+          echo "---"
+          ls -la backend/prisma/schema.prisma
+
+      - name: Test minimal base image build
+        run: |
+          echo "FROM node:24-bookworm-slim" | docker build --no-cache --progress=plain -t test-node -f- . 2>&1
+
+      - name: Build backend image
         run: |
           docker build --no-cache --progress=plain \
             -f backend/Dockerfile \
-            -t gravure-backend:ci .
+            -t gravure-backend:ci . 2>&1
 
-      - name: Scan with Trivy
-        id: scan
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasecurity/trivy:latest \
-            image --severity HIGH,CRITICAL \
-            --exit-code 0 \
-            --format table \
-            gravure-backend:ci \
-            > trivy-report.txt 2>&1
-          echo "Trivy completed"
+      - name: Verify image exists
+        run: docker images gravure-backend:ci
 
-      - name: Show results
-        if: always()
-        run: |
-          echo "## Trivy Scan Results" >> $env:GITHUB_STEP_SUMMARY
-          cat trivy-report.txt >> $env:GITHUB_STEP_SUMMARY
-
-      - name: Fail on CVEs
+      - name: Run Trivy scan
+        if: success()
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -48,4 +45,13 @@ jobs:
             image --severity HIGH,CRITICAL \
             --exit-code 1 \
             --format table \
-            gravure-backend:ci
+            gravure-backend:ci 2>&1 | tee trivy-report.txt
+
+      - name: Show Trivy results
+        if: always()
+        run: |
+          if (Test-Path trivy-report.txt) {
+            Get-Content trivy-report.txt | ForEach-Object { $_ >> $env:GITHUB_STEP_SUMMARY }
+          } else {
+            "No trivy report generated - build likely failed" >> $env:GITHUB_STEP_SUMMARY
+          }
