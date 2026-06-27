@@ -15,6 +15,7 @@ EXPOSE 5000
 CMD ["npm", "run", "dev"]
 
 FROM node:24-bookworm-slim AS builder
+ARG DATABASE_URL=postgresql://dummy:test@localhost:5432/dummy
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules

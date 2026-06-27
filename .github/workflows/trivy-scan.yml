@@ -15,83 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build deps stage only
-        id: deps
-        continue-on-error: true
-        run: |
-          docker build --no-cache --progress=plain \
-            --target deps \
-            -f backend/Dockerfile \
-            -t gravure-deps:ci . 2>&1 | tee build-output.txt || true
-          echo "DEPS_EXIT=${PIPESTATUS[0]}" > build-result.txt
-          {
-            echo "--- docker images ---"
-            docker images --all
-            echo "--- docker image inspect ---"
-            docker image inspect gravure-deps:ci 2>&1 || echo "DEPS_IMAGE_NOT_FOUND"
-          } >> build-result.txt
-
-      - name: Build full image
-        id: full
-        continue-on-error: true
+      - name: Build image
         run: |
           docker build --no-cache --progress=plain \
             -f backend/Dockerfile \
-            -t gravure-backend:ci . 2>&1 | tee -a build-output.txt || true
-          echo "FULL_EXIT=${PIPESTATUS[0]}" >> build-result.txt
-          {
-            echo "--- docker images (all) ---"
-            docker images --all
-            echo "--- docker image inspect ---"
-            docker image inspect gravure-backend:ci 2>&1 || echo "FULL_IMAGE_NOT_FOUND"
-          } >> build-result.txt
-
-      - name: Show diagnostics
-        if: always()
-        run: |
-          echo "::group::build-result.txt"
-          cat build-result.txt
-          echo "::endgroup::"
-          echo "::group::build-output.txt (last 50 lines)"
-          tail -50 build-output.txt
-          echo "::endgroup::"
-          DEPS_EXIT=$(grep 'DEPS_EXIT=' build-result.txt | cut -d= -f2)
-          FULL_EXIT=$(grep 'FULL_EXIT=' build-result.txt | cut -d= -f2)
-          echo "::notice::DEPS build exit: ${DEPS_EXIT:-unknown}"
-          echo "::notice::FULL build exit: ${FULL_EXIT:-unknown}"
-          if grep -q 'IMAGE_NOT_FOUND' build-result.txt; then
-            echo "::error::Image not found in docker images. Checking build output for errors..."
-            grep -i -E '(error|fail|not found|permission denied|exit code)' build-output.txt | head -10 | while IFS= read -r line; do
-              echo "::error::$line"
-            done
-          fi
-
-      - name: Upload diagnostic files
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: diag-files
-          path: |
-            build-output.txt
-            build-result.txt
-
-      - name: Check image exists
-        id: check
-        run: |
-          if docker image inspect gravure-backend:ci >/dev/null 2>&1; then
-            echo "image_exists=yes" >> "$GITHUB_OUTPUT"
-          else
-            echo "image_exists=no" >> "$GITHUB_OUTPUT"
-          fi
+            -t gravure-backend:ci .
 
       - name: Run Trivy
-        if: steps.check.outputs.image_exists == 'yes'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: gravure-backend:ci
           format: table
           exit-code: '0'
           severity: HIGH,CRITICAL
+          output: trivy-report.txt
 
       - name: Upload Trivy report
         if: always()
