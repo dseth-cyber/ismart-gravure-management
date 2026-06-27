@@ -1,10 +1,10 @@
-FROM node:24-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
-FROM node:24-bookworm-slim AS dev
+FROM node:26-bookworm-slim AS dev
 
 WORKDIR /app
 ENV NODE_ENV=development
@@ -13,7 +13,7 @@ COPY frontend/ .
 EXPOSE 3000
 CMD ["npm", "run", "dev", "--", "--port", "3000"]
 
-FROM node:24-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -22,7 +22,7 @@ COPY shared/ /shared
 COPY frontend/ .
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
