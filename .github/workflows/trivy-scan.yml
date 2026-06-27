@@ -23,19 +23,18 @@ jobs:
 
       - name: Build image
         run: |
+          echo "=== Check files ==="
+          ls -la shared/ 2>&1
+          echo "=== Docker version ==="
+          docker version
+          echo "=== Minimal build test ==="
+          printf 'FROM node:24-bookworm-slim\nRUN node --version && npm --version\n' | docker build --progress=plain -t minimal -f- .
+          echo "=== Build actual image ==="
           if [ "${{ matrix.image }}" = "Dockerfile.backend" ]; then
-            docker build -f backend/Dockerfile -t gravure-backend:ci . 2>&1 | tee build-output.txt
+            docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci .
           else
-            docker build -f frontend/Dockerfile -t gravure-frontend:ci . 2>&1 | tee build-output.txt
+            docker build --progress=plain -f frontend/Dockerfile -t gravure-frontend:ci .
           fi
-          exit ${PIPESTATUS[0]}
-
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-${{ matrix.image }}
-          path: build-output.txt
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
