@@ -1,10 +1,10 @@
-FROM node:24-bookworm-slim AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm install && npm audit fix --audit-level=high; exit 0
 
-FROM node:24-bookworm-slim AS dev
+FROM node:24-alpine AS dev
 
 WORKDIR /app
 ENV NODE_ENV=development
@@ -14,7 +14,7 @@ RUN npx prisma generate
 EXPOSE 5000
 CMD ["npm", "run", "dev"]
 
-FROM node:24-bookworm-slim AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -22,9 +22,9 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runner
+FROM node:24-alpine AS runner
 
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 ENV NODE_ENV=production
