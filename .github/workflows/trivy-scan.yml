@@ -15,17 +15,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image (legacy builder)
-        id: build
+      - name: Build deps stage only
+        id: deps
         continue-on-error: true
         run: |
-          DOCKER_BUILDKIT=0 docker build --no-cache \
+          docker build --no-cache --progress=plain \
+            --target deps \
             -f backend/Dockerfile \
-            -t gravure-backend:ci . 2>&1 | tee build-output.txt || true
-          echo "EXIT_CODE=${PIPESTATUS[0]}" >> build-result.txt
+            -t gravure-deps:ci . 2>&1 | tee build-output.txt || true
+          echo "DEPS_EXIT=${PIPESTATUS[0]}" > build-result.txt
+          docker image inspect gravure-deps:ci >> build-result.txt 2>&1 || echo "DEPS_IMAGE_NOT_FOUND" >> build-result.txt
+          echo "---" >> build-result.txt
+          docker images --filter reference=gravure-* >> build-result.txt
+
+      - name: Build full image
+        id: full
+        continue-on-error: true
+        run: |
+          docker build --no-cache --progress=plain \
+            -f backend/Dockerfile \
+            -t gravure-backend:ci . 2>&1 | tee -a build-output.txt || true
+          echo "FULL_EXIT=${PIPESTATUS[0]}" >> build-result.txt
           {
-            echo "--- docker images ---"
-            docker images --filter reference=gravure-backend
+            echo "--- docker images (all) ---"
+            docker images --all
             echo "--- docker image inspect ---"
             docker image inspect gravure-backend:ci 2>&1 || echo "IMAGE_NOT_FOUND"
           } >> build-result.txt
