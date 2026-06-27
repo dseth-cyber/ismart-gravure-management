@@ -17,28 +17,35 @@ jobs:
 
       - name: Build full image
         run: |
-          docker build --no-cache --progress=plain -f backend/Dockerfile \
-            -t gravure-backend:ci . 2>&1
+          docker build --no-cache --progress=plain \
+            -f backend/Dockerfile \
+            -t gravure-backend:ci .
 
-      - name: Run Trivy scan
-        id: trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        continue-on-error: true
-        with:
-          image-ref: gravure-backend:ci
-          format: table
-          exit-code: '0'
-          severity: HIGH,CRITICAL
-          output: trivy-report.txt
+      - name: Scan with Trivy
+        id: scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasecurity/trivy:latest \
+            image --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            --format table \
+            gravure-backend:ci \
+            > trivy-report.txt 2>&1
+          echo "Trivy completed"
 
-      - name: Show scan results
+      - name: Show results
         if: always()
         run: |
+          echo "## Trivy Scan Results" >> $env:GITHUB_STEP_SUMMARY
           cat trivy-report.txt >> $env:GITHUB_STEP_SUMMARY
-          echo "Trivy exit code: ${{ steps.trivy.outcome }}" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Fail on CVEs
-        if: steps.trivy.outcome == 'failure'
         run: |
-          echo "::error::Trivy found HIGH/CRITICAL vulnerabilities"
-          exit 1
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasecurity/trivy:latest \
+            image --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format table \
+            gravure-backend:ci
