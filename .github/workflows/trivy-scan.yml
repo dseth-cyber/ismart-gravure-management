@@ -15,13 +15,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test Dockerfile build
+        run: |
+          echo "=== Test 1: Simple FROM ==="
+          printf 'FROM node:24-bookworm-slim\nRUN node --version\n' | docker build --progress=plain -t test1 -f- . 2>&1
+          echo "=== Test 2: npm install from backend/ ==="
+          printf 'FROM node:24-bookworm-slim\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\n' | docker build --progress=plain -t test2 -f- backend/ 2>&1
+          echo "=== Test 3: full original build from backend/ ==="
+          docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci backend/ 2>&1
+
       - name: Pull base image
         run: docker pull node:24-bookworm-slim
 
       - name: Run Trivy scan
-        run: |
-          docker pull aquasec/trivy:latest
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 0 node:24-bookworm-slim 2>&1 | tee trivy-report.txt
-          echo "=== CVE Summary ==="
-          grep -E "(HIGH|CRITICAL)" trivy-report.txt || echo "No CVEs found"
-          echo "=== Full report saved to artifact ==="
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: node:24-bookworm-slim
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          output: trivy-report.txt
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-report
+          path: trivy-report.txt
