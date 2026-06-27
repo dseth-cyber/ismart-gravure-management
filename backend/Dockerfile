@@ -17,7 +17,6 @@ CMD ["npm", "run", "dev"]
 FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY shared/ /shared
 COPY backend/ .
