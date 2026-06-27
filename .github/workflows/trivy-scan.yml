@@ -30,7 +30,7 @@ jobs:
           fi
 
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: ${{ matrix.image == 'Dockerfile.backend' && 'gravure-backend:ci' || 'gravure-frontend:ci' }}
           format: table
