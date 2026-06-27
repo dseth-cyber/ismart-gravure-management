@@ -15,22 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test Dockerfile build
-        run: |
-          echo "=== Test 1: Simple FROM ==="
-          printf 'FROM node:24-bookworm-slim\nRUN node --version\n' | docker build --progress=plain -t test1 -f- . 2>&1
-          echo "=== Test 2: npm install from backend/ ==="
-          printf 'FROM node:24-bookworm-slim\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\n' | docker build --progress=plain -t test2 -f- backend/ 2>&1
-          echo "=== Test 3: full original build from backend/ ==="
-          docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci backend/ 2>&1
-
-      - name: Pull base image
-        run: docker pull node:24-bookworm-slim
+      - name: Test simple FROM
+        run: printf 'FROM node:24-bookworm-slim\nRUN node --version\n' | docker build --progress=plain -t test1 -f- .
+      - name: Test npm install
+        run: printf 'FROM node:24-bookworm-slim\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\n' | docker build --progress=plain -t test2 -f- backend/
+      - name: Test full Dockerfile
+        run: docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci backend/
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: node:24-bookworm-slim
+          image-ref: gravure-backend:ci
           format: table
           exit-code: '1'
           severity: HIGH,CRITICAL
