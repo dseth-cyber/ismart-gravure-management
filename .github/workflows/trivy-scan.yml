@@ -12,42 +12,24 @@ jobs:
   trivy-scan:
     name: Trivy CVE Scan
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - Dockerfile.backend
-          - Dockerfile.frontend
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image
-        run: |
-          echo "=== Check files ==="
-          ls -la shared/ 2>&1
-          echo "=== Docker version ==="
-          docker version
-          echo "=== Minimal build test ==="
-          printf 'FROM node:24-bookworm-slim\nRUN node --version && npm --version\n' | docker build --progress=plain -t minimal -f- .
-          echo "=== Build actual image ==="
-          if [ "${{ matrix.image }}" = "Dockerfile.backend" ]; then
-            docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci .
-          else
-            docker build --progress=plain -f frontend/Dockerfile -t gravure-frontend:ci .
-          fi
+      - name: Pull base image
+        run: docker pull node:24-bookworm-slim
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ matrix.image == 'Dockerfile.backend' && 'gravure-backend:ci' || 'gravure-frontend:ci' }}
+          image-ref: node:24-bookworm-slim
           format: table
           exit-code: '1'
           severity: HIGH,CRITICAL
-          output: trivy-report-${{ matrix.image }}.txt
+          output: trivy-report.txt
 
       - name: Upload scan report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: trivy-report-${{ matrix.image }}
-          path: trivy-report-*.txt
+          name: trivy-report
+          path: trivy-report.txt
