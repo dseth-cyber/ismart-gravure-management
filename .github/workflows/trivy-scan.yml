@@ -21,14 +21,23 @@ jobs:
         run: |
           docker build --no-cache --progress=plain \
             -f backend/Dockerfile \
-            -t gravure-backend:ci . 2>&1 | tee build-output.txt
+            -t gravure-backend:ci . 2>&1 | tee build-output.txt || true
+          echo "EXIT_CODE=${PIPESTATUS[0]}" >> build-exit-code.txt
+          {
+            echo "--- docker images ---"
+            docker images
+            echo "--- docker image inspect ---"
+            docker image inspect gravure-backend:ci || echo "IMAGE_NOT_FOUND"
+          } >> build-exit-code.txt 2>&1
 
-      - name: Upload build output
+      - name: Upload diagnostic files
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: build-output.txt
+          name: diag-files
+          path: |
+            build-output.txt
+            build-exit-code.txt
 
       - name: Check image exists
         id: check
