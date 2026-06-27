@@ -24,9 +24,12 @@ jobs:
             -f backend/Dockerfile \
             -t gravure-deps:ci . 2>&1 | tee build-output.txt || true
           echo "DEPS_EXIT=${PIPESTATUS[0]}" > build-result.txt
-          docker image inspect gravure-deps:ci >> build-result.txt 2>&1 || echo "DEPS_IMAGE_NOT_FOUND" >> build-result.txt
-          echo "---" >> build-result.txt
-          docker images --filter reference=gravure-* >> build-result.txt
+          {
+            echo "--- docker images ---"
+            docker images --all
+            echo "--- docker image inspect ---"
+            docker image inspect gravure-deps:ci 2>&1 || echo "DEPS_IMAGE_NOT_FOUND"
+          } >> build-result.txt
 
       - name: Build full image
         id: full
@@ -40,8 +43,28 @@ jobs:
             echo "--- docker images (all) ---"
             docker images --all
             echo "--- docker image inspect ---"
-            docker image inspect gravure-backend:ci 2>&1 || echo "IMAGE_NOT_FOUND"
+            docker image inspect gravure-backend:ci 2>&1 || echo "FULL_IMAGE_NOT_FOUND"
           } >> build-result.txt
+
+      - name: Show diagnostics
+        if: always()
+        run: |
+          echo "::group::build-result.txt"
+          cat build-result.txt
+          echo "::endgroup::"
+          echo "::group::build-output.txt (last 50 lines)"
+          tail -50 build-output.txt
+          echo "::endgroup::"
+          DEPS_EXIT=$(grep 'DEPS_EXIT=' build-result.txt | cut -d= -f2)
+          FULL_EXIT=$(grep 'FULL_EXIT=' build-result.txt | cut -d= -f2)
+          echo "::notice::DEPS build exit: ${DEPS_EXIT:-unknown}"
+          echo "::notice::FULL build exit: ${FULL_EXIT:-unknown}"
+          if grep -q 'IMAGE_NOT_FOUND' build-result.txt; then
+            echo "::error::Image not found in docker images. Checking build output for errors..."
+            grep -i -E '(error|fail|not found|permission denied|exit code)' build-output.txt | head -10 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
 
       - name: Upload diagnostic files
         if: always()
