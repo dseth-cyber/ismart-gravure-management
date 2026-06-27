@@ -15,12 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test simple FROM
-        run: printf 'FROM node:24-bookworm-slim\nRUN node --version\n' | docker build --progress=plain -t test1 -f- .
-      - name: Test npm install
-        run: printf 'FROM node:24-bookworm-slim\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\n' | docker build --progress=plain -t test2 -f- backend/
-      - name: Test full Dockerfile
-        run: docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci backend/
+      - name: Build image
+        run: docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci .
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
