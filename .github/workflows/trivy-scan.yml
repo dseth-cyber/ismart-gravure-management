@@ -15,12 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build deps
-        run: docker build --progress=plain --target=deps -f backend/Dockerfile -t gravure-deps:ci .
-      - name: Test basic RUN
-        run: printf 'FROM gravure-deps:ci\nRUN node -e "console.log(\"node works\")"\nRUN ls -la node_modules/.bin/prisma 2>&1 || echo "no prisma binary"\nRUN node node_modules/.bin/prisma --version 2>&1 || echo "prisma failed"\n' | docker build --progress=plain -t gravure-basic -f- .
-      - name: Test full builder DUPLICATE
-        run: printf 'FROM gravure-deps:ci\nWORKDIR /app\nCOPY shared/ /shared\nCOPY backend/ .\nRUN npx prisma generate\nRUN npm run build\n' | docker build --progress=plain -t gravure-builder-dup -f- .
+      - name: Build full image
+        run: docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci .
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
