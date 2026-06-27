@@ -31,7 +31,7 @@ jobs:
             --format table \
             gravure-backend:ci 2>&1 | tee trivy-report.txt
 
-      - name: Upload Trivy report
+      - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
         with:
