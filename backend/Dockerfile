@@ -1,12 +1,10 @@
-FROM node:24-alpine AS deps
-
-RUN apk add --no-cache python3 make g++ openssl
+FROM node:24-bookworm-slim AS deps
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install && npm audit fix --audit-level=high; exit 0
+RUN npm install
 
-FROM node:24-alpine AS dev
+FROM node:24-bookworm-slim AS dev
 
 WORKDIR /app
 ENV NODE_ENV=development
@@ -16,7 +14,7 @@ RUN npx prisma generate
 EXPOSE 5000
 CMD ["npm", "run", "dev"]
 
-FROM node:24-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -24,9 +22,9 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:24-alpine AS runner
+FROM node:24-bookworm-slim AS runner
 
-RUN apk upgrade --no-cache && apk add --no-cache openssl
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ENV NODE_ENV=production
