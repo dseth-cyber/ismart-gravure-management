@@ -247,6 +247,7 @@ function PermissionsContent() {
       showSuccess(t('perm.deleted'));
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] });
+      if (user?.role === selectedRole) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -275,6 +276,7 @@ function PermissionsContent() {
       showSuccess(t('perm.assigned'));
       setSelectedGrantPerm('');
       queryClient.invalidateQueries({ queryKey: ['userPermissions', selectedUser] });
+      if (user?.id === selectedUser) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -284,6 +286,7 @@ function PermissionsContent() {
       await apiClient.post('/api/v1/permissions/users/deny', { userId: selectedUser, permissionId: permId });
       showSuccess(t('perm.assigned'));
       queryClient.invalidateQueries({ queryKey: ['userPermissions', selectedUser] });
+      if (user?.id === selectedUser) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -294,6 +297,7 @@ function PermissionsContent() {
       showSuccess(t('perm.assigned'));
       setSelectedOverridePerms(new Set());
       queryClient.invalidateQueries({ queryKey: ['userPermissions', selectedUser] });
+      if (user?.id === selectedUser) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -304,6 +308,7 @@ function PermissionsContent() {
       showSuccess(t('perm.assigned'));
       setSelectedOverridePerms(new Set());
       queryClient.invalidateQueries({ queryKey: ['userPermissions', selectedUser] });
+      if (user?.id === selectedUser) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -331,6 +336,7 @@ function PermissionsContent() {
       await apiClient.post('/api/v1/permissions/scopes/assign', { userId: scopeAssignUser, scopeId: scopeAssignId });
       showSuccess(t('perm.assigned'));
       setAssignScopeDialogOpen(false);
+      if (user?.id === scopeAssignUser) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -351,6 +357,7 @@ function PermissionsContent() {
       showSuccess(t('perm.saved'));
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] });
+      if (user?.role === selectedRole) await refreshPermissions();
     } catch (err: any) {
       showError(err?.response?.data?.message || t('perm.error'));
     }
@@ -381,6 +388,7 @@ function PermissionsContent() {
       await apiClient.delete(`/api/v1/permissions/scopes/${id}`);
       showSuccess(t('perm.deleted'));
       queryClient.invalidateQueries({ queryKey: ['scopesList'] });
+      if (user?.id) await refreshPermissions();
     } catch {
       showError(t('perm.error'));
     }
@@ -442,9 +450,8 @@ function PermissionsContent() {
         apiClient.post(endpoint, { userId, permissionIds: [...selectedOverridePerms] })
       ));
       showSuccess(`Batch ${effect} for ${selectedUsers.size} user(s)`);
-      setSelectedOverridePerms(new Set());
-      setSelectedUsers(new Set());
       [...selectedUsers].forEach(id => queryClient.invalidateQueries({ queryKey: ['userPermissions', id] }));
+      if (user?.id && selectedUsers.has(user.id)) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -481,6 +488,7 @@ function PermissionsContent() {
         await apiClient.delete(`/api/v1/permissions/roles/${roleToDelete}`);
         queryClient.invalidateQueries({ queryKey: ['rolesList'] });
         showSuccess(t('perm.roleDeleted') || 'Role deleted successfully');
+        if (user?.role === roleToDelete) await refreshPermissions();
       } catch (err: any) {
         showError(err?.response?.data?.message || t('perm.error'));
       }

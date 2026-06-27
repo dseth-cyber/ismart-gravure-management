@@ -1,6 +1,6 @@
 # Gravure Management System Roadmap
 
-Last updated: 2026-06-17 (Phase 42)
+Last updated: 2026-06-27 (Phase 43)
 Default status owner: Codex + project owner
 
 ## How To Update This File
@@ -91,8 +91,9 @@ Use newer stable versions when they are better for a new project and do not conf
 | 38 | Security Hardening — Score 9.0 | Done | Zod login validation, XSS sanitization, file upload MIME+magic bytes, immutable audit logs, security tests, secrets rotation script, npm audit CI, remove hardcoded secrets, cAdvisor capabilities, read-only Docker socket |
 | 39 | Security Hardening — Score 10.0 | Done | CSP nonce replacement, Coraza WAF with OWASP CRS, Trivy container scanning, Dependabot, OWASP ZAP pentest, incident response plan, anomaly detection Prometheus rules |
 | 40 | Role DB & Permission Overrides | Done | Role model in DB, inline permission overrides, batch grant/deny API |
-| 41 | Sidebar Permission Filtering & Menu Visibility | Done | Permission-based sidebar filtering, admin-configurable menu visibility per role, page-level access guard |
-| 42 | Batch Permission UX — Module-level, Multi-user, Search & Filter | Done | Select All per module in user dialog, batch Add/Remove All per role module, multi-user batch grant/deny, search + module filter in all permission lists |
+| 41 | Sidebar Permission Filtering & Page Guard | Done | Permission-based sidebar filtering, page-level access guard |
+| 42 | Batch Permission UX — Module-level, Multi-user, Search & Filter | Done | Select All per module, multi-user batch, search + filter |
+| 43 | Permission Cleanup & Sidebar Fixes | Done | Complete permission seeding (58 total), fix sidebar filtering, add approvals menu, remove Menu Visibility |
 
 ## Phase Details
 
@@ -580,7 +581,7 @@ Notes:
 Status: Done
 
 Outputs:
-- 50 permissions seeded across 6 modules (auth, customers, products, cylinders, inks, orders, jobs, qc, audit, permissions, inventory, reports)
+- 58 permissions seeded across 8 modules (auth, customers, products, cylinders, inks, orders, jobs, qc, audit, permissions, inventory, reports, approvals, settings)
 - Role-permission assignment API (CRUD on role_permissions table)
 - User permission override UI (grant/deny per user via UserPermission table)
 - Permission Management settings page (`/settings/permissions`) with 4 tabs:
@@ -594,7 +595,7 @@ Outputs:
 - Permission card on Settings landing page
 
 Acceptance criteria:
-- Seed script populates 30+ permissions across 6 modules
+- Seed script populates 58 permissions across 8 modules
 - PermissionProvider fetches permissions on app mount
 - Can component conditionally renders UI elements
 - Admin can manage permissions from settings page
@@ -977,7 +978,7 @@ Outputs:
 - PermissionProvider and Can guard component in frontend
 
 Acceptance criteria:
-- Seed script populates 50 permissions across 6 modules
+- Seed script populates 58 permissions across 8 modules
 - PermissionProvider fetches user permissions on app mount
 - Can component dynamically renders UI elements based on permissions
 - Admin can manage all roles, permissions, and user scopes directly from UI
@@ -1168,13 +1169,12 @@ This phase links the User Management page with the Permission Management system,
 - `seed.ts` updated to use string literals for role instead of removed `Role` enum import
 - Build note: `/settings/permissions` page has pre-existing prerender error (useSearchParams without Suspense) unrelated to this phase
 
-## Phase 41 — Sidebar Permission Filtering & Menu Visibility
+## Phase 41 — Sidebar Permission Filtering & Page Guard
 
-This phase closes the sidebar (Phase 31 decision log: "Sidebar MENU, languages, and roles to be made configurable via localStorage") by adding granular permission-based filtering to sidebar navigation, admin-configurable menu visibility per role, and a page-level access guard.
+This phase adds granular permission-based filtering to sidebar navigation and a page-level access guard. (The admin-configurable Menu Visibility feature was added in Phase 41 originally, but later removed in Phase 43 because permission-based filtering alone is sufficient — see Phase 43.)
 
 ### Requirements
 - Sidebar should show/hide menu items based on user's effective permissions (default behavior)
-- Admin should be able to override visibility per role (force-show/hide regardless of permissions)
 - Users navigating directly to a page URL they don't have permission for should see an "Access Denied" page instead of a 403 popup
 
 ### Implementation
@@ -1187,15 +1187,7 @@ This phase closes the sidebar (Phase 31 decision log: "Sidebar MENU, languages, 
 - Admin-only (`system` group) still uses `user?.role === 'admin'` check
 - Created `MenuGroup` and `MenuItem` TypeScript types for the MENU constant
 
-**41B — Admin-configurable menu visibility:**
-- Added "Menu" section to `/settings/system` page with role selector and per-group show/hide toggles
-- Visibility overrides stored as JSON in `system_settings` table under key `menu_visibility`
-- Format: `{ "roleName": { "menuGroupKey": "show"|"hide" } }`
-- Admin can reset to defaults (clear all overrides) or save changes
-- Fetch via existing `GET /api/v1/settings`, save via `PUT /api/v1/settings`
-- Sidebar applies `menuVisibility` overrides as a secondary filter on top of permission check
-
-**41C — Page-level access guard:**
+**41B — Page-level access guard:**
 - Created `RouteGuard` component embedded in `AppLayout` that maps pathname to required permission
 - Permission map: `/`→`reports:view`, `/cylinders`→`cylinders:read`, `/production`→`jobs:read`, `/settings/users`→`auth:users.read`, `/settings/permissions`→`permissions:manage`, `/settings/audit`→`audit:read`
 - Displays centered "Access Denied" panel with `ShieldAlert` icon when user lacks permission
@@ -1203,8 +1195,7 @@ This phase closes the sidebar (Phase 31 decision log: "Sidebar MENU, languages, 
 - Also created standalone `PageGuard` component in `lib/permission/page-guard.tsx` for per-page wrapping use
 
 ### Notes
-- Permission-based filtering is the default; admin overrides only apply when explicitly configured
-- The `menu_visibility` settings are global (not per-user) and apply across all users of the selected role
+- Permission-based filtering is the default; no admin overrides exist (Menu Visibility was removed in Phase 43)
 - Route permission mapping should be kept in sync with MENU definition and backend permission requirements
 - `usePermission.loading` is respected to prevent flash of hidden/shown content
 
@@ -1255,6 +1246,47 @@ This phase addresses the pain points identified in the Phase 41 review: individu
 - API calls use Promise.all for speed; could be optimized with a dedicated multi-user endpoint if needed
 - Search is case-insensitive and matches against permission name and module
 
+## Phase 43 — Permission Cleanup & Sidebar Fixes
+
+This phase addresses issues found after Phase 42 release: incomplete permission seeding (51 items showing instead of 58), sidebar filtering not actually applying, missing approvals menu integration, and removal of the unused Menu Visibility feature.
+
+### Requirements
+- All seeded permissions must display correctly in the Role Permissions UI
+- Sidebar must respect permission-based filtering on every item (not just groups)
+- Approvals page must have its own sidebar menu entry visible with correct permission
+- Remove the admin-configurable Menu Visibility feature (41B) — permission-based filtering is sufficient and the override layer caused confusion
+
+### Implementation
+
+**43A — Complete permission seeding:**
+- Added 5 missing `perm.desc.*` locale keys to all 5 languages:
+  - `settings:master.manage`, `workflows:rules.manage`, `workflows:approvals.manage`, `notifications:settings.manage`, `settings:system.manage`
+- Added 2 new permissions:
+  - `approvals:read` — standalone permission for viewing pending approvals (separate from `workflows:approvals.manage` which controls the approval matrix config)
+  - `reports:duplicates.view` — permission under reports module for duplicate detection reports
+- Total: 58 permissions across 8 modules, 131 role-permission mappings
+- Re-seeded database to apply changes
+
+**43B — Fix sidebar permission filtering:**
+- Sidebar rendering was calculating `visibleItems` for group-level filtering but then rendering `group.items` (unfiltered) instead of `visibleMenu` (filtered). Fixed to render `visibleMenu` which contains the correctly filtered items.
+- `PermissionProvider` always lacked a `refreshPermissions` function — added so sidebar updates immediately when modifying own role
+
+**43C — Approvals sidebar integration:**
+- Added `'approvals'` to default `menuOrder` array, enabling drag-reorder support
+- Added `perm: 'approvals:read'` to the approvals menu item definition
+- Created `/approvals` route guard with `approvals:read` permission check
+
+**43D — Remove Menu Visibility feature (41B):**
+- Removed "Menu" tab from `/settings/system` page (UI, state, API fetch, localStorage wiring, `roleOverrides` check)
+- Removed unused `apiClient` import from `app-layout.tsx`
+- The `menu_visibility` key in `system_settings` table is orphaned (no code reads it anymore)
+- The sidebar now relies solely on permission-based filtering
+
+### Notes
+- Permission-based filtering is now the only sidebar visibility mechanism — no admin overrides layer
+- The `menu_visibility` data in `system_settings` table is harmless but unused; can be cleaned up if desired
+- After deploying, users should refresh browser (F5) to pick up new permissions and sidebar changes
+
 ## Event Naming (Optional)
 
 If event-based decoupling is implemented internally:
@@ -1297,12 +1329,13 @@ If event-based decoupling is implemented internally:
 | 2026-06-17 | Allow permission override assignment during user creation/editing | Previously required 2-step flow (create user → navigate to overrides tab → grant/deny individually); now inline in the create/edit dialog |
 | 2026-06-17 | Add DATABASE_URL to docker-compose backend env | Needed for Prisma CLI (`prisma db push`, `prisma generate`, `prisma migrate`) to work correctly inside the Docker container |
 | 2026-06-17 | Add npx prisma generate to Docker dev stage | Previously only ran in builder stage; dev stage needs Prisma client for new models |
-| 2026-06-17 | Default sidebar filter by permission + allow admin override per role | Type "เราควรให้ ซ่อน/แสดงตามสิทธิ หรือว่า มีสิทธิหรือไม่มีก็ สามารถ ซ่อน/แสดง ได้เพื่อความยืดหยุ่นของระบบ" — decision: default = permission-based hide/show, admin can override per role via /settings/system → Menu section |
-| 2026-06-17 | Store menu visibility overrides in system_settings table | Already has GET/PUT API endpoints, no schema migration needed, follows existing pattern for key-value configs |
 | 2026-06-17 | RouteGuard embedded in AppLayout instead of per-page PageGuard | Avoids modifying every page file; single entry point maps pathname → required permission; PageGuard also available for per-page granular control |
 | 2026-06-17 | Created reusable PermissionSelector component for user dialog permission overrides | Both Create and Edit User dialogs had duplicated checkbox-per-permission UI; extract into shared component with search, module filter, and Select All per module |
 | 2026-06-17 | Group role-perms tab by module with Add All / Remove All per module | Previously all permissions were in a flat list — admin had to click each one individually; module grouping enables bulk operations |
 | 2026-06-17 | Multi-user batch grant uses Promise.all over existing single-user API endpoints | Avoids backend changes; multi-user endpoint could be added later if performance becomes an issue |
+| 2026-06-27 | Remove admin-configurable Menu Visibility feature (41B) | Permission-based filtering alone is sufficient; the override layer caused confusion and added unnecessary complexity |
+| 2026-06-27 | Add `approvals:read` as standalone permission | Separate from `workflows:approvals.manage` (approval matrix config); needed for viewing pending approvals |
+| 2026-06-27 | Add `reports:duplicates.view` permission | Enables granular control over duplicate detection report access |
 
 ## Risks And Blockers
 
@@ -1351,9 +1384,12 @@ If event-based decoupling is implemented internally:
 | 2026-06-17 | 40B | Inline permission assignment — extended user create/edit with permission overrides array |
 | 2026-06-17 | 40C | Batch permission override — API endpoints + frontend batch grant/deny in overrides tab |
 | 2026-06-17 | 41A | Permission-based sidebar filtering — perm field on MENU items, filter with usePermission().check() |
-| 2026-06-17 | 41B | Admin-configurable menu visibility — Menu section in /settings/system, stored in system_settings |
-| 2026-06-17 | 41C | Page-level access guard — RouteGuard in AppLayout + standalone PageGuard component |
+| 2026-06-17 | 41B | Page-level access guard — RouteGuard in AppLayout + standalone PageGuard component |
 | 2026-06-17 | 42A | Module-level batch in User Dialog — PermissionSelector component with Select All per module |
 | 2026-06-17 | 42B | Batch per-module for role permissions — Add All / Remove All per module in role-perms tab |
 | 2026-06-17 | 42C | Multi-user batch grant — user checkboxes in overrides tab, grant/deny to multiple users at once |
 | 2026-06-17 | 42D | Search + Module Filter — search and module dropdown in All Permissions, Role-Perms, Overrides tabs, and User dialog |
+| 2026-06-27 | 43A | Incomplete permission fix — added 5 missing perm.desc.* locale keys, 2 new permissions (approvals:read, reports:duplicates.view), total 58 permissions |
+| 2026-06-27 | 43B | Sidebar filter fix — changed rendering from raw group.items to filtered visibleMenu; added refreshPermissions() to PermissionProvider |
+| 2026-06-27 | 43C | Approvals sidebar integration — added approvals menu item, permission guard, drag-reorder support |
+| 2026-06-27 | 43D | Remove Menu Visibility feature — removed Menu tab from /settings/system, all related code in app-layout.tsx |

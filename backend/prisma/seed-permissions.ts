@@ -97,7 +97,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'auth:*', 'customers:*', 'products:*', 'cylinders:*', 'inks:*',
     'orders:*', 'jobs:*', 'qc:*', 'audit:*', 'permissions:*',
     'inventory:*', 'reports:*', 'progress:*',
-    'settings:*', 'workflows:*', 'notifications:*',
+    'settings:*', 'workflows:*', 'notifications:*', 'approvals:*',
   ],
   sales: [
     'customers:read', 'customers:create', 'customers:update',
