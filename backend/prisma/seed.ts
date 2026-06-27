@@ -9,7 +9,7 @@ async function main() {
 
   console.log('Seeding database with test accounts...');
 
-  const defaultPassword = 'Password123!';
+  const defaultPassword = 'Password123$';
   const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
   const testAccounts = [

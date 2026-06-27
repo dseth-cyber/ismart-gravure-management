@@ -29,7 +29,7 @@ paths:
                 password:
                   type: string
                   format: password
-                  example: Password123!
+                  example: Password123$
       responses:
         '200':
           description: Successfully authenticated

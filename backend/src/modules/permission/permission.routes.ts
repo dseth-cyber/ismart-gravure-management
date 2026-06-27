@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PermissionController } from './permission.controller';
-import { requireAuth, requireRoles } from '../../middleware/auth';
+import { requireAuth } from '../../middleware/auth';
 import { requirePermission } from '../../middleware/permission';
 import { validate, validateCreatePermission } from '../../middleware/validate';
 import { z } from 'zod';
@@ -26,8 +26,8 @@ router.get('/', PermissionController.listPermissions);
 router.get('/users/me', PermissionController.getUserPermissions);
 router.get('/scopes/user/me', PermissionController.getUserScopes);
 
-// Admin-only routes (require admin role)
-router.use(requireRoles(['admin']));
+// Granular permission management routes
+router.use(requirePermission('permissions:manage'));
 
 // Permissions CRUD (admin)
 router.get('/exists', PermissionController.checkPermissionExists);

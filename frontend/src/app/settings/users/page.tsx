@@ -540,12 +540,12 @@ export default function UserManagementPage() {
             <p className={`text-xs font-semibold ${themeConfig.textMuted}`}>{t('settings.changePasswordOpt')}</p>
             <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>{t('settings.newPassword')}</label>
-              <input name="password" type="password" minLength={8}
+              <input name="password" type="password" autoComplete="new-password" minLength={8}
                 className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm ${themeConfig.border} ${themeConfig.panel}`} />
             </div>
             <div>
               <label className={`text-xs font-bold uppercase tracking-wider ${themeConfig.textMuted}`}>{t('settings.confirmNewPassword')}</label>
-              <input name="confirmPassword" type="password" minLength={8}
+              <input name="confirmPassword" type="password" autoComplete="new-password" minLength={8}
                 className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm ${themeConfig.border} ${themeConfig.panel}`} />
             </div>
             <div className="flex justify-end gap-2 pt-2">

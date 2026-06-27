@@ -27,7 +27,8 @@ export function rateLimiter(req: Request, res: Response, next: NextFunction): vo
     clientIp === '127.0.0.1' ||
     clientIp === '::1' ||
     clientIp === '::ffff:127.0.0.1' ||
-    process.env.NODE_ENV === 'test'
+    process.env.NODE_ENV === 'test' ||
+    (process.env.NODE_ENV !== 'production' && req.headers['x-test-bypass'] === 'true')
   ) {
     return next();
   }
@@ -74,7 +75,8 @@ export function authRateLimiter(req: Request, res: Response, next: NextFunction)
     clientIp === '127.0.0.1' ||
     clientIp === '::1' ||
     clientIp === '::ffff:127.0.0.1' ||
-    process.env.NODE_ENV === 'test'
+    process.env.NODE_ENV === 'test' ||
+    (process.env.NODE_ENV !== 'production' && req.headers['x-test-bypass'] === 'true')
   ) {
     return next();
   }

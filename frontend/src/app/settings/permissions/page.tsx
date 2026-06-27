@@ -16,6 +16,8 @@ import { getRoles, saveRoles } from '@/lib/constants/roles';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedCheck } from '@/lib/hooks/use-debounced-check';
+import { useAuth } from '@/lib/auth/auth-provider';
+import { usePermission } from '@/lib/permission/can';
 
 type TabId = 'permissions' | 'role-perms' | 'overrides' | 'scopes' | 'roles';
 
@@ -44,6 +46,8 @@ function PermissionsContent() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const { refreshPermissions } = usePermission();
   const optionClass = themeConfig.name === 'light' ? 'bg-white text-gray-900' : 'bg-slate-900 text-white';
   const [activeTab, setActiveTab] = useState<TabId>((searchParams.get('tab') as TabId) || 'permissions');
   const [error, setError] = useState('');
@@ -251,6 +255,7 @@ function PermissionsContent() {
       await apiClient.post('/api/v1/permissions/roles/assign', { permissionId: permId, role: selectedRole });
       showSuccess(t('perm.assigned'));
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] });
+      if (user?.role === selectedRole) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -259,6 +264,7 @@ function PermissionsContent() {
       await apiClient.post('/api/v1/permissions/roles/remove', { permissionId: permId, role: selectedRole });
       showSuccess(t('perm.removed'));
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] });
+      if (user?.role === selectedRole) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -412,6 +418,7 @@ function PermissionsContent() {
       await Promise.all(perms.map(p => apiClient.post('/api/v1/permissions/roles/assign', { permissionId: p.id, role: selectedRole })));
       showSuccess(`Granted all ${module} permissions`);
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] });
+      if (user?.role === selectedRole) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 
@@ -422,6 +429,7 @@ function PermissionsContent() {
       await Promise.all(perms.map(p => apiClient.post('/api/v1/permissions/roles/remove', { permissionId: p.id, role: selectedRole })));
       showSuccess(`Removed all ${module} permissions`);
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] });
+      if (user?.role === selectedRole) await refreshPermissions();
     } catch { showError(t('perm.error')); }
   };
 

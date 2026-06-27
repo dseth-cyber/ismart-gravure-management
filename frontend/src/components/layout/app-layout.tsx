@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   GitBranch,
+  ClipboardCheck,
   Search
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme/theme-provider';
@@ -40,7 +41,6 @@ import type { ThemeName } from '@/lib/theme/theme-config';
 import { persistLanguage } from '@/lib/i18n/i18n-provider';
 import { languages, type Language } from '@/lib/i18n/settings';
 import { usePermission } from '@/lib/permission/can';
-import { apiClient } from '@/lib/api/client';
 import { useAuth } from '@/lib/auth/auth-provider';
 import { useRealtimeEvent } from '@/lib/realtime/use-realtime';
 import { listNotifications, type AlertNotification } from '@/lib/services/notification';
@@ -103,23 +103,29 @@ const MENU: MenuGroup[] = [
     key: 'system', 
     labelKey: 'nav.settings',
     icon: Shield,
-    adminOnly: true,
     items: [
-      { key: 'settings', labelKey: 'nav.masterSetup', href: '/setup?tab=master', icon: Settings },
-      { key: 'ruleEngine', labelKey: 'nav.ruleEngine', href: '/setup?tab=rules', icon: Shield },
-      { key: 'approvalMatrix', labelKey: 'nav.approvalMatrix', href: '/setup?tab=approvals', icon: User },
+      { key: 'settings', labelKey: 'nav.masterSetup', href: '/setup?tab=master', icon: Settings, perm: 'settings:master.manage' },
+      { key: 'ruleEngine', labelKey: 'nav.ruleEngine', href: '/setup?tab=rules', icon: Shield, perm: 'workflows:rules.manage' },
+      { key: 'approvalMatrix', labelKey: 'nav.approvalMatrix', href: '/setup?tab=approvals', icon: User, perm: 'workflows:approvals.manage' },
       { key: 'userMgt', labelKey: 'nav.userMgt', href: '/settings/users', icon: User, perm: 'auth:users.read' },
       { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield, perm: 'permissions:manage' },
-      { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell },
+      { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell, perm: 'notifications:settings.manage' },
       { key: 'auditLogs', labelKey: 'settings.auditLogs', href: '/settings/audit', icon: History, perm: 'audit:read' },
-      { key: 'duplicateReport', labelKey: 'Duplicate Report', href: '/reports/duplicates', icon: ShieldAlert, perm: 'reports:view' },
     ] 
+  },
+  {
+    key: 'approvals',
+    labelKey: 'nav.approvals',
+    icon: ClipboardCheck,
+    perm: 'approvals:read',
+    items: [{ key: 'approvalList', labelKey: 'nav.approvals', href: '/approvals', icon: ClipboardCheck, perm: 'approvals:read' }]
   },
   {
     key: 'progress',
     labelKey: 'nav.progress',
     icon: BookOpen,
-    items: [{ key: 'roadmap', labelKey: 'nav.progress', href: '/progress', icon: BookOpen }]
+    perm: 'progress:read',
+    items: [{ key: 'roadmap', labelKey: 'nav.progress', href: '/progress', icon: BookOpen, perm: 'progress:read' }]
   }
 ];
 
@@ -135,6 +141,7 @@ function DragHandleIcon({ className }: { className?: string }) {
 }
 
 let globalOpenGroups: Record<string, boolean> | null = null;
+let globalIgnoreScrollSave = false;
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { t, i18n } = useTranslation();
@@ -148,10 +155,34 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // Layout navigation states
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarReorder, setSidebarReorder] = useState(false);
-  const [menuOrder, setMenuOrder] = useState<string[]>(['overview', 'cylinder', 'ink', 'production', 'system', 'progress']);
+  const [menuOrder, setMenuOrder] = useState<string[]>(['overview', 'cylinder', 'ink', 'production', 'system', 'approvals', 'progress']);
   
   // Track if this is the first initialization in this browser session
   const isFirstMount = useRef(globalOpenGroups === null);
+
+  const navRef = useRef<HTMLElement>(null);
+  const isUnmounting = useRef(false);
+  const ignoreScrollSave = useRef(globalIgnoreScrollSave);
+
+  // Track layout dimensions to detect layout reflows (so we ignore programmatic/shrink scrolls)
+  const lastScrollHeight = useRef(0);
+  const lastClientHeight = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      isUnmounting.current = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    globalIgnoreScrollSave = true;
+    ignoreScrollSave.current = true; // Lock scroll save on route change
+    const timer = setTimeout(() => {
+      globalIgnoreScrollSave = false;
+      ignoreScrollSave.current = false;
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [pathname, searchParams]);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const isSetup = pathname === '/setup';
@@ -183,28 +214,86 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading, isAuthenticated } = useAuth();
   
   // Map production role key to role.production for localization compatibility
   const userRole = user?.role === 'production' ? 'operator' : (user?.role || 'viewer');
 
   // Permission-based menu filtering
   const { check, loading: permLoading } = usePermission();
-  const [menuVisibility, setMenuVisibility] = useState<Record<string, Record<string, 'show' | 'hide'>>>({});
 
+  // Restore scroll position
   useEffect(() => {
-    apiClient.get('/api/v1/settings')
-      .then(res => {
-        if (res.data?.status === 'success' && res.data.data) {
-          const settings = res.data.data;
-          const mv = settings.find((s: any) => s.key === 'menu_visibility');
-          if (mv?.value) {
-            try { setMenuVisibility(JSON.parse(mv.value)); } catch {}
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
+    if (!sidebarOpen) return;
+    const savedScroll = sessionStorage.getItem('sidebar_scroll_top');
+    if (!savedScroll || !navRef.current) return;
+    
+    const targetScroll = parseInt(savedScroll, 10);
+    if (isNaN(targetScroll) || targetScroll < 0) return;
+
+    const restore = () => {
+      if (navRef.current) {
+        navRef.current.scrollTop = targetScroll;
+        // Sync our dimension tracking variables after restoration
+        lastScrollHeight.current = navRef.current.scrollHeight;
+        lastClientHeight.current = navRef.current.clientHeight;
+      }
+    };
+
+    restore();
+
+    // Run restore at progressive intervals to handle async loading/layout passes
+    const timeouts = [50, 150, 300, 500, 1000].map(delay => setTimeout(restore, delay));
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [sidebarOpen, pathname, searchParams, permLoading]);
+
+  const saveScrollPosition = (element: HTMLElement) => {
+    if (!sidebarOpen || isUnmounting.current || ignoreScrollSave.current || globalIgnoreScrollSave) return;
+    const { scrollTop, scrollHeight, clientHeight } = element;
+    // Save scroll position for scrollable layout state
+    if (scrollTop > 0 || scrollHeight > clientHeight) {
+      sessionStorage.setItem('sidebar_scroll_top', scrollTop.toString());
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+
+    // Initialize layout dimension tracking on the first scroll event
+    if (lastScrollHeight.current === 0 && lastClientHeight.current === 0) {
+      lastScrollHeight.current = scrollHeight;
+      lastClientHeight.current = clientHeight;
+    }
+
+    // Ignore scroll events caused by reflows/resizing (where height/size changes)
+    if (scrollHeight !== lastScrollHeight.current || clientHeight !== lastClientHeight.current) {
+      lastScrollHeight.current = scrollHeight;
+      lastClientHeight.current = clientHeight;
+      return;
+    }
+
+    saveScrollPosition(e.currentTarget);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    const element = e.currentTarget;
+    saveScrollPosition(element);
+    
+    // Lock scroll saving if they clicked a link to navigate
+    const isLinkClick = (e.target as HTMLElement).closest('a');
+    if (isLinkClick) {
+      globalIgnoreScrollSave = true;
+      ignoreScrollSave.current = true;
+      // Safety timeout to release lock in case route transition doesn't happen
+      setTimeout(() => {
+        globalIgnoreScrollSave = false;
+        ignoreScrollSave.current = false;
+      }, 1500);
+    }
+  };
 
   // Notifications
   const [notifications, setNotifications] = useState<AlertNotification[]>([]);
@@ -397,6 +486,18 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       ...activeGroups
     }));
   }, [pathname, activeTabQuery]);
+
+  if (authLoading) {
+    return (
+      <div className={`h-screen w-screen flex items-center justify-center text-sm ${themeConfig.textMuted} bg-slate-950`}>
+        {t('common.loading') || 'Loading...'}
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const currentLangMeta = LANG_META.find(l => l.code === i18n.language) || LANG_META[0];
 
@@ -673,27 +774,32 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Menus lists */}
-          <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1" aria-label={t('nav.main')}>
+          <nav 
+            ref={navRef}
+            onScroll={handleScroll}
+            onClick={handleClick}
+            className="flex-1 overflow-y-auto py-3 px-2 space-y-1" 
+            aria-label={t('nav.main')}
+          >
             {(() => {
               const isAdmin = user?.role === 'admin';
-              const roleOverrides = menuVisibility[userRole] || {};
-              const filteredMenu = MENU.filter(group => {
-                // Check admin-only groups
+
+              const canSeeItem = (item: MenuItem) => {
+                if (item.adminOnly && !isAdmin) return false;
+                if (item.perm && !permLoading && !check(item.perm) && !isAdmin) return false;
+                return true;
+              };
+
+              const visibleMenu = MENU.map(group => ({
+                ...group,
+                items: group.items.filter(canSeeItem),
+              })).filter(group => {
                 if (group.adminOnly && !isAdmin) return false;
-                // Check permission-based filter (skip for admin — admin can see everything)
                 if (group.perm && !permLoading && !check(group.perm) && !isAdmin) return false;
-                // Check role override
-                const override = roleOverrides[group.key];
-                if (override === 'hide') return false;
-                // Filter out items the user can't access
-                const visibleItems = group.items.filter(item => {
-                  if (item.adminOnly && !isAdmin) return false;
-                  if (item.perm && !permLoading && !check(item.perm) && !isAdmin) return false;
-                  return true;
-                });
-                return visibleItems.length > 0;
+                return group.items.length > 0;
               });
-              const orderedMenu = [...filteredMenu].sort((a, b) => {
+
+              const orderedMenu = [...visibleMenu].sort((a, b) => {
                 return menuOrder.indexOf(a.key) - menuOrder.indexOf(b.key);
               });
               return orderedMenu.map(group => {
@@ -844,7 +950,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className={`text-[10px] ${themeConfig.textMuted} font-bold font-mono`}>iSmart ERP</span>
               <button 
                 onClick={() => setSidebarReorder(true)}
                 className={`p-1.5 rounded hover:bg-white/10 transition-colors ${themeConfig.textSecondary}`}
@@ -868,31 +973,57 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 /** Route-to-permission mapping for page-level access guard */
 const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; permission: string }> = [
   { pattern: /^\/$/, permission: 'reports:view' },
+  { pattern: /^\/approvals/, permission: 'approvals:read' },
   { pattern: /^\/cylinders/, permission: 'cylinders:read' },
   { pattern: /^\/inks/, permission: 'inks:read' },
   { pattern: /^\/production/, permission: 'jobs:read' },
+  { pattern: /^\/progress/, permission: 'progress:read' },
   { pattern: /^\/settings\/users/, permission: 'auth:users.read' },
   { pattern: /^\/settings\/permissions/, permission: 'permissions:manage' },
   { pattern: /^\/settings\/audit/, permission: 'audit:read' },
+  { pattern: /^\/settings\/system/, permission: 'settings:system.manage' },
+  { pattern: /^\/settings\/notifications/, permission: 'notifications:settings.manage' },
 ];
 
 function RouteGuard({ pathname, children }: { pathname: string; children: React.ReactNode }) {
   const { check, loading } = usePermission();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const isAdmin = user?.role === 'admin';
 
   // Skip guard for non-authenticated routes
-  if (pathname.startsWith('/login') || pathname.startsWith('/progress') || pathname.startsWith('/approvals')) {
+  if (pathname.startsWith('/login')) {
     return <>{children}</>;
   }
-
-  const match = ROUTE_PERMISSIONS.find(r => r.pattern.test(pathname));
-  if (!match) return <>{children}</>;
 
   // Admin always has access to everything (skip loading check too)
   if (isAdmin) return <>{children}</>;
 
   if (loading) return null;
+
+  // Special case for setup page tabs
+  if (pathname.startsWith('/setup')) {
+    const tab = searchParams.get('tab') || 'master';
+    let requiredPerm = 'settings:master.manage';
+    if (tab === 'rules') requiredPerm = 'workflows:rules.manage';
+    if (tab === 'approvals') requiredPerm = 'workflows:approvals.manage';
+
+    if (!check(requiredPerm)) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <ShieldAlert className="w-16 h-16 text-red-400" />
+          <h2 className="text-xl font-bold text-red-400">Access Denied</h2>
+          <p className="text-sm text-gray-400 max-w-md text-center">
+            You do not have permission to access this page.
+          </p>
+        </div>
+      );
+    }
+    return <>{children}</>;
+  }
+
+  const match = ROUTE_PERMISSIONS.find(r => r.pattern.test(pathname));
+  if (!match) return <>{children}</>;
 
   if (!check(match.permission)) {
     return (

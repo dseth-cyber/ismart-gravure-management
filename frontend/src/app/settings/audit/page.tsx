@@ -24,6 +24,21 @@ export default function AuditSettingsPage() {
   };
 
   // Localize Details description dynamically
+  const actionKeyBase = (verb: string) => {
+    const map: Record<string, string> = {
+      created: 'create', updated: 'update', deleted: 'delete', restored: 'restore',
+      'permanently deleted': 'permanent_delete',
+      Created: 'create', Updated: 'update', Deleted: 'delete', Restored: 'restore',
+      'Permanently deleted': 'permanent_delete',
+    };
+    return map[verb] || verb.toLowerCase();
+  };
+
+  const batchActionKey = (verb: string) => {
+    const map: Record<string, string> = { updated: 'status', deleted: 'delete', restored: 'restore' };
+    return map[verb] || verb;
+  };
+
   const getLocalizedDetails = (action: string, details: string) => {
     // 1. User {username} logged in successfully
     const loginSuccessMatch = details.match(/^User (.*) logged in successfully$/);
@@ -132,7 +147,7 @@ export default function AuditSettingsPage() {
     if (cylinderActionMatch) {
       const action = cylinderActionMatch[1];
       const id = cylinderActionMatch[2];
-      const key = `audit.details.cylinder.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      const key = `audit.details.cylinder.${actionKeyBase(action)}`;
       return t(key, { id }) || details;
     }
 
@@ -142,7 +157,7 @@ export default function AuditSettingsPage() {
       const action = cylinderBatchMatch[1];
       const count = cylinderBatchMatch[2];
       const status = cylinderBatchMatch[3];
-      const key = `audit.details.cylinder.batch_${action}`;
+      const key = `audit.details.cylinder.batch_${batchActionKey(action)}`;
       return t(key, { count, ...(status ? { status } : {}) }) || details;
     }
 
@@ -157,7 +172,7 @@ export default function AuditSettingsPage() {
     if (formulaActionMatch) {
       const action = formulaActionMatch[1];
       const code = formulaActionMatch[2];
-      const key = `audit.details.formula.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      const key = `audit.details.formula.${actionKeyBase(action)}`;
       return t(key, { code }) || details;
     }
 
@@ -166,7 +181,7 @@ export default function AuditSettingsPage() {
     if (batchActionMatch) {
       const action = batchActionMatch[1];
       const id = batchActionMatch[2];
-      const key = `audit.details.batch.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      const key = `audit.details.batch.${actionKeyBase(action)}`;
       return t(key, { id }) || details;
     }
 
@@ -175,7 +190,7 @@ export default function AuditSettingsPage() {
     if (userActionMatch) {
       const action = userActionMatch[1];
       const username = userActionMatch[2];
-      const key = `audit.details.user.${action === 'permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      const key = `audit.details.user.${actionKeyBase(action)}`;
       return t(key, { username }) || details;
     }
 
@@ -190,7 +205,7 @@ export default function AuditSettingsPage() {
     if (jobActionMatch) {
       const action = jobActionMatch[1];
       const jobNumber = jobActionMatch[2];
-      const key = `audit.details.production_job.${action === 'Permanently deleted' ? 'permanent_delete' : action.toLowerCase()}`;
+      const key = `audit.details.production_job.${actionKeyBase(action)}`;
       return t(key, { jobNumber }) || details;
     }
 
@@ -206,7 +221,7 @@ export default function AuditSettingsPage() {
       const action = jobBatchMatch[1];
       const count = jobBatchMatch[2];
       const status = jobBatchMatch[3];
-      const key = `audit.details.job.batch_${action}`;
+      const key = `audit.details.job.batch_${batchActionKey(action)}`;
       return t(key, { count, ...(status ? { status } : {}) }) || details;
     }
 
@@ -216,7 +231,7 @@ export default function AuditSettingsPage() {
       const action = inkFormulaBatchMatch[1];
       const count = inkFormulaBatchMatch[2];
       const status = inkFormulaBatchMatch[3];
-      const key = `audit.details.ink.batch_formula_${action}`;
+      const key = `audit.details.ink.batch_formula_${batchActionKey(action)}`;
       return t(key, { count, ...(status ? { status } : {}) }) || details;
     }
 
@@ -225,7 +240,7 @@ export default function AuditSettingsPage() {
     if (inkBatchBatchMatch) {
       const action = inkBatchBatchMatch[1];
       const count = inkBatchBatchMatch[2];
-      const key = `audit.details.ink.batch_batch_${action}`;
+      const key = `audit.details.ink.batch_batch_${batchActionKey(action)}`;
       return t(key, { count }) || details;
     }
 
@@ -242,10 +257,9 @@ export default function AuditSettingsPage() {
     // 30. Permission/Role/Scope actions: Created/Updated/Deleted {type}: {name}
     const genericCrudMatch = details.match(/^(Created|Updated|Deleted) (permission|role|scope): (.*)$/);
     if (genericCrudMatch) {
-      const action = genericCrudMatch[1].toLowerCase();
       const entity = genericCrudMatch[2];
       const name = genericCrudMatch[3];
-      const key = `audit.details.${entity}.${action}`;
+      const key = `audit.details.${entity}.${actionKeyBase(genericCrudMatch[1])}`;
       return t(key, { name }) || details;
     }
 

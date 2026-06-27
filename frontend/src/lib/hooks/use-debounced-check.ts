@@ -10,6 +10,12 @@ export function useDebouncedCheck(
   const [status, setStatus] = useState<'idle' | 'checking' | 'exists' | 'ok'>('idle');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  const checkFnRef = useRef(checkFn);
+
+  // Keep checkFnRef synchronized with the latest callback reference
+  useEffect(() => {
+    checkFnRef.current = checkFn;
+  }, [checkFn]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -27,7 +33,7 @@ export function useDebouncedCheck(
     setStatus('checking');
     timerRef.current = setTimeout(async () => {
       try {
-        const exists = await checkFn(value.trim());
+        const exists = await checkFnRef.current(value.trim());
         if (mountedRef.current) setStatus(exists ? 'exists' : 'ok');
       } catch {
         if (mountedRef.current) setStatus('idle');
@@ -37,7 +43,8 @@ export function useDebouncedCheck(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [value, checkFn, delay]);
+  }, [value, delay]);
 
   return status;
 }
+

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AuthController } from './auth.controller';
-import { requireAuth, requireRoles } from '../../middleware/auth';
+import { requireAuth } from '../../middleware/auth';
+import { requirePermission } from '../../middleware/permission';
 import { validate } from '../../middleware/validate';
 import { z } from 'zod';
 
@@ -67,14 +68,14 @@ router.post('/mfa/disable', requireAuth, AuthController.mfaDisable);
 router.get('/mfa/status', requireAuth, AuthController.mfaStatus);
 
 // ── User Management (admin) ──
-router.get('/users', requireAuth, requireRoles(['admin']), AuthController.listUsers);
-router.delete('/users/trash/empty', requireAuth, requireRoles(['admin']), AuthController.emptyUserTrash);
-router.get('/users/exists', requireAuth, requireRoles(['admin']), AuthController.checkUserExists);
-router.get('/users/:id', requireAuth, requireRoles(['admin']), AuthController.getUser);
-router.post('/users', requireAuth, requireRoles(['admin']), validate(createUserSchema), AuthController.createUser);
-router.put('/users/:id', requireAuth, requireRoles(['admin']), validate(updateUserSchema), AuthController.updateUser);
-router.delete('/users/:id', requireAuth, requireRoles(['admin']), AuthController.deleteUser);
-router.post('/users/:id/restore', requireAuth, requireRoles(['admin']), AuthController.restoreUser);
-router.delete('/users/:id/permanent', requireAuth, requireRoles(['admin']), AuthController.permanentDeleteUser);
+router.get('/users', requireAuth, requirePermission('auth:users.read'), AuthController.listUsers);
+router.delete('/users/trash/empty', requireAuth, requirePermission('auth:users.delete'), AuthController.emptyUserTrash);
+router.get('/users/exists', requireAuth, requirePermission('auth:users.read'), AuthController.checkUserExists);
+router.get('/users/:id', requireAuth, requirePermission('auth:users.read'), AuthController.getUser);
+router.post('/users', requireAuth, requirePermission('auth:users.create'), validate(createUserSchema), AuthController.createUser);
+router.put('/users/:id', requireAuth, requirePermission('auth:users.update'), validate(updateUserSchema), AuthController.updateUser);
+router.delete('/users/:id', requireAuth, requirePermission('auth:users.delete'), AuthController.deleteUser);
+router.post('/users/:id/restore', requireAuth, requirePermission('auth:users.delete'), AuthController.restoreUser);
+router.delete('/users/:id/permanent', requireAuth, requirePermission('auth:users.delete'), AuthController.permanentDeleteUser);
 
 export default router;

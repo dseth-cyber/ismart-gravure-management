@@ -3,6 +3,7 @@ import { PermissionService } from './permission.service';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { AuditService } from '../audit/audit.service';
 import { ApiResponse } from '@shared/dto/auth/auth.dto';
+import { getUserPermissions as getCombinedUserPermissions } from '../../middleware/permission';
 
 export class PermissionController {
   // ── List all permissions ──
@@ -126,9 +127,18 @@ export class PermissionController {
 
   static async getUserPermissions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> {
     try {
-      const userId = String(req.params.userId || req.user?.userId || '');
-      const perms = await PermissionService.getUserPermissions(userId);
-      return res.status(200).json({ status: 'success', statusCode: 200, data: perms } as ApiResponse);
+      const isMe = !req.params.userId;
+      if (isMe) {
+        const userId = req.user!.userId;
+        const role = req.user!.role;
+        const permsSet = await getCombinedUserPermissions(userId, role);
+        const permsList = Array.from(permsSet);
+        return res.status(200).json({ status: 'success', statusCode: 200, data: permsList } as ApiResponse);
+      } else {
+        const userId = String(req.params.userId);
+        const perms = await PermissionService.getUserPermissions(userId);
+        return res.status(200).json({ status: 'success', statusCode: 200, data: perms } as ApiResponse);
+      }
     } catch (error) { next(error); }
   }
 

@@ -7,7 +7,7 @@ import { Rate, Trend } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:5000/api/v1';
 const USERNAME = __ENV.USERNAME || 'admin';
-const PASSWORD = __ENV.PASSWORD || 'Password123!';
+const PASSWORD = __ENV.PASSWORD || 'Password123$';
 
 const errorRate = new Rate('errors');
 const loginTrend = new Trend('login_duration');

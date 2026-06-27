@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { Users, Bell, Settings as SettingsIcon, Shield, KeyRound, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-provider';
+import { usePermission } from '@/lib/permission/can';
 
 const cards = [
   { key: 'userMgt', icon: Users, href: '/settings/users', color: 'from-blue-500 to-indigo-600' },
@@ -20,10 +21,27 @@ export default function SettingsPage() {
   const { t } = useTranslation();
   const { themeConfig } = useTheme();
   const { user } = useAuth();
+  const { check, loading } = usePermission();
 
   const isAdmin = user?.role === 'admin';
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex h-[50vh] items-center justify-center text-sm text-gray-400">
+          {t('common.loading') || 'Loading...'}
+        </div>
+      </AppLayout>
+    );
+  }
+
   const visibleCards = cards.filter(c => {
-    if (['userMgt', 'permissions', 'notifications', 'auditLogs'].includes(c.key) && !isAdmin) return false;
+    if (isAdmin) return true;
+    if (c.key === 'userMgt') return check('auth:users.read');
+    if (c.key === 'permissions') return check('permissions:manage');
+    if (c.key === 'notifications') return check('notifications:settings.manage');
+    if (c.key === 'auditLogs') return check('audit:read');
+    if (c.key === 'system') return check('settings:system.manage');
     return true;
   });
 
@@ -53,3 +71,4 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+

@@ -67,14 +67,28 @@ const PERMISSION_DEFS = [
   { name: 'permissions:manage', module: 'permissions', action: 'permissions.manage', description: 'Manage permissions and role assignments' },
   { name: 'permissions:scopes.manage', module: 'permissions', action: 'permissions.scopes.manage', description: 'Manage data scopes' },
 
+  // Settings & System Configurations
+  { name: 'settings:master.manage', module: 'settings', action: 'master.manage', description: 'Manage master data setup' },
+  { name: 'workflows:rules.manage', module: 'workflows', action: 'rules.manage', description: 'Manage auto rules engine' },
+  { name: 'workflows:approvals.manage', module: 'workflows', action: 'approvals.manage', description: 'Manage approval matrix configuration' },
+  { name: 'notifications:settings.manage', module: 'notifications', action: 'settings.manage', description: 'Manage notification templates and channels' },
+  { name: 'settings:system.manage', module: 'settings', action: 'system.manage', description: 'Manage system settings and menus visibility' },
+
   // Inventory module (future)
   { name: 'inventory:read', module: 'inventory', action: 'inventory.read', description: 'View inventory' },
   { name: 'inventory:adjust', module: 'inventory', action: 'inventory.adjust', description: 'Adjust inventory levels' },
   { name: 'inventory:approve', module: 'inventory', action: 'inventory.approve', description: 'Approve inventory adjustments' },
 
+  // Approvals workflow
+  { name: 'approvals:read', module: 'approvals', action: 'approvals.read', description: 'View pending approvals' },
+
   // Reporting
   { name: 'reports:view', module: 'reports', action: 'reports.view', description: 'View reports and dashboards' },
   { name: 'reports:export', module: 'reports', action: 'reports.export', description: 'Export reports' },
+  { name: 'reports:duplicates.view', module: 'reports', action: 'reports.duplicates.view', description: 'View duplicate data report' },
+
+  // Progress/Roadmap
+  { name: 'progress:read', module: 'progress', action: 'progress.read', description: 'View project roadmap and progress' },
 ];
 
 // ── Permission map per role ──
@@ -82,7 +96,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: [
     'auth:*', 'customers:*', 'products:*', 'cylinders:*', 'inks:*',
     'orders:*', 'jobs:*', 'qc:*', 'audit:*', 'permissions:*',
-    'inventory:*', 'reports:*',
+    'inventory:*', 'reports:*', 'progress:*',
+    'settings:*', 'workflows:*', 'notifications:*',
   ],
   sales: [
     'customers:read', 'customers:create', 'customers:update',
@@ -90,6 +105,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'orders:read', 'orders:create', 'orders:update',
     'jobs:read',
     'reports:view',
+    'progress:read',
   ],
   planner: [
     'customers:read', 'products:read', 'products:create',
@@ -98,27 +114,33 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'orders:read',
     'jobs:read', 'jobs:create', 'jobs:update', 'jobs:status.update',
     'jobs:verify',
+    'approvals:read',
     'qc:read',
-    'reports:view',
+    'reports:view', 'reports:duplicates.view',
+    'progress:read',
   ],
   production: [
     'cylinders:read', 'cylinders:status.update',
     'inks:read',
     'jobs:read', 'jobs:log.run',
     'reports:view',
+    'progress:read',
   ],
   qc: [
     'cylinders:read',
     'inks:read',
     'jobs:read',
+    'approvals:read',
     'qc:read', 'qc:create', 'qc:approve',
-    'reports:view',
+    'reports:view', 'reports:duplicates.view',
+    'progress:read',
   ],
   warehouse: [
     'cylinders:read', 'cylinders:create', 'cylinders:update',
     'inks:read', 'inks:create', 'inks:update',
     'inventory:read', 'inventory:adjust',
     'reports:view',
+    'progress:read',
   ],
   inkroom: [
     'inks:read', 'inks:create', 'inks:update',
@@ -126,11 +148,14 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'cylinders:read',
     'inventory:read',
     'reports:view',
+    'progress:read',
   ],
   viewer: [
     'customers:read', 'products:read', 'cylinders:read', 'inks:read',
     'orders:read', 'jobs:read', 'qc:read',
-    'reports:view',
+    'approvals:read',
+    'reports:view', 'reports:duplicates.view',
+    'progress:read',
   ],
 };
 

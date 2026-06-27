@@ -3,10 +3,11 @@ import type { NextRequest } from 'next/server';
 
 export default function proxy(request: NextRequest) {
   const nonce = crypto.randomUUID();
+  const isDev = process.env.NODE_ENV === 'development';
 
   const cspHeader = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'nonce-${nonce}'`,
     `img-src 'self' data: https:`,
     `font-src 'self'`,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Server, ShieldCheck, Workflow, Boxes, Database, RadioTower, FileText, Info, BarChart3, HardDrive, Mail, Clock, Container, Activity, Globe } from 'lucide-react';
+import { Server, ShieldCheck, Workflow, Boxes, Database, RadioTower, FileText, Info, BarChart3, HardDrive, Mail, Clock, Container, Activity, Globe, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '@/components/layout/app-layout';
 import { AppDialog } from '@/components/shared/app-dialog';
@@ -107,6 +107,9 @@ export default function ProgressPage() {
   const { themeConfig } = useTheme();
   const [selectedPhaseId, setSelectedPhaseId] = useState<number | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [phasesOpen, setPhasesOpen] = useState(true);
+  const [rulesOpen, setRulesOpen] = useState(true);
+  const [archOpen, setArchOpen] = useState(true);
 
   interface SummaryItem {
     labelKey: string;
@@ -166,12 +169,16 @@ export default function ProgressPage() {
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-          <div className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('phase.sectionTitle')}</h2>
-              <span className={`rounded-full px-3 py-1 text-xs ${themeConfig.badge}`}>{t('phase.updateRule')}</span>
-            </div>
-            <div className="grid gap-3">
+            <div className={`self-start rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
+              <button onClick={() => setPhasesOpen(!phasesOpen)} className="flex w-full items-center justify-between gap-4">
+                <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('phase.sectionTitle')}</h2>
+                <span className={`flex items-center gap-2`}>
+                  <span className={`rounded-full px-3 py-1 text-xs ${themeConfig.badge}`}>{t('phase.updateRule')}</span>
+                  {phasesOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                </span>
+              </button>
+              {phasesOpen && (
+              <div className="mt-4 grid gap-3">
               {phases.map((phase) => (
                 <article
                   className={`group grid gap-3 rounded-lg border p-4 sm:grid-cols-[48px_minmax(0,1fr)_auto] sm:items-center cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-md ${themeConfig.border} ${themeConfig.panelHover}`}
@@ -192,12 +199,16 @@ export default function ProgressPage() {
                   </div>
                 </article>
               ))}
-            </div>
+            </div>)}
           </div>
 
           <div className="grid gap-4 self-start" id="rules">
             <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
-              <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('rule.sectionTitle')}</h2>
+              <button onClick={() => setRulesOpen(!rulesOpen)} className="flex w-full items-center justify-between gap-4">
+                <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('rule.sectionTitle')}</h2>
+                {rulesOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              </button>
+              {rulesOpen && (
               <ul className="mt-4 grid gap-3">
                 {rules.map((rule) => (
                   <li className={`flex gap-3 text-sm leading-6 ${themeConfig.textSecondary}`} key={rule}>
@@ -205,7 +216,7 @@ export default function ProgressPage() {
                     <span>{t(rule)}</span>
                   </li>
                 ))}
-              </ul>
+              </ul>)}
             </section>
 
             <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`} id="documents">
@@ -224,7 +235,11 @@ export default function ProgressPage() {
             </section>
 
             <section className={`rounded-lg p-5 ${themeConfig.panel} ${themeConfig.shadow}`} id="architecture">
-              <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('architecture.sectionTitle')}</h2>
+              <button onClick={() => setArchOpen(!archOpen)} className="flex w-full items-center justify-between gap-4">
+                <h2 className={`text-lg font-bold ${themeConfig.textPrimary}`}>{t('architecture.sectionTitle')}</h2>
+                {archOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              </button>
+              {archOpen && (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {architecture.map((item) => {
                   const Icon = item.icon;
@@ -236,7 +251,7 @@ export default function ProgressPage() {
                     </article>
                   );
                 })}
-              </div>
+              </div>)}
             </section>
           </div>
         </section>

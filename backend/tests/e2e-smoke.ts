@@ -63,17 +63,17 @@ async function runTests() {
   console.log('\nTest 2: Authenticating users...');
   
   // Admin login
-  const adminLogin = await api('POST', '/auth/login', { username: 'admin', password: 'Password123!' });
+  const adminLogin = await api('POST', '/auth/login', { username: 'admin', password: 'Password123$' });
   adminToken = adminLogin.data.accessToken;
   console.log('✔ Admin authenticated successfully.');
 
   // Planner login
-  const plannerLogin = await api('POST', '/auth/login', { username: 'planner1', password: 'Password123!' });
+  const plannerLogin = await api('POST', '/auth/login', { username: 'planner1', password: 'Password123$' });
   plannerToken = plannerLogin.data.accessToken;
   console.log('✔ Planner authenticated successfully.');
 
   // Operator login
-  const operatorLogin = await api('POST', '/auth/login', { username: 'operator1', password: 'Password123!' });
+  const operatorLogin = await api('POST', '/auth/login', { username: 'operator1', password: 'Password123$' });
   operatorToken = operatorLogin.data.accessToken;
   console.log('✔ Operator authenticated successfully.');
 

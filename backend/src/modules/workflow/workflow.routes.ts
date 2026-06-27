@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { WorkflowController } from './workflow.controller';
-import { requireAuth, requireRoles } from '../../middleware/auth';
+import { requireAuth } from '../../middleware/auth';
 import { requirePermission } from '../../middleware/permission';
 
 const router = Router();
@@ -21,7 +21,7 @@ router.post('/instances/:id/cancel', WorkflowController.cancel);
 // Definition management — admin only
 router.get('/definitions', WorkflowController.listDefinitions);
 router.get('/definitions/:id', WorkflowController.getDefinition);
-router.post('/definitions', requireRoles(['admin']), WorkflowController.createDefinition);
-router.put('/definitions/:id', requireRoles(['admin']), WorkflowController.updateDefinition);
+router.post('/definitions', requirePermission('workflows:approvals.manage'), WorkflowController.createDefinition);
+router.put('/definitions/:id', requirePermission('workflows:approvals.manage'), WorkflowController.updateDefinition);
 
 export default router;
