@@ -1,7 +1,7 @@
 FROM node:24-bookworm-slim AS deps
 
 WORKDIR /app
-COPY frontend/package*.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
 FROM node:24-bookworm-slim AS dev
