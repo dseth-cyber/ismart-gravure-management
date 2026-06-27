@@ -21,12 +21,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug - list files
+        run: |
+          echo "=== PWD ==="
+          pwd
+          echo "=== Root dir ==="
+          ls -la
+          echo "=== shared/ ==="
+          ls -la shared/ || echo "shared/ NOT FOUND"
+          echo "=== backend/ ==="
+          ls -la backend/
+          echo "=== Docker version ==="
+          docker version
+        shell: bash
+
       - name: Build image
         run: |
           if [ "${{ matrix.image }}" = "Dockerfile.backend" ]; then
-            docker build -f backend/Dockerfile -t gravure-backend:ci .
+            docker build -f backend/Dockerfile -t gravure-backend:ci . 2>&1
           else
-            docker build -f frontend/Dockerfile -t gravure-frontend:ci .
+            docker build -f frontend/Dockerfile -t gravure-frontend:ci . 2>&1
           fi
 
       - name: Run Trivy scan
