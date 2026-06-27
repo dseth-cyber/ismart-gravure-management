@@ -20,8 +20,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY shared/ /shared
 COPY backend/ .
-RUN npx prisma generate
-RUN npm run build
+RUN ls -la prisma/
+RUN npx prisma generate --schema=prisma/schema.prisma 2>&1
+RUN npm run build 2>&1
 
 FROM node:24-bookworm-slim AS runner
 

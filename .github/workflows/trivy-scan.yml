@@ -15,9 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug - check files in context
+        run: ls -la backend/package.json backend/package-lock.json backend/prisma/ backend/tsconfig.json
+
       - name: Build full image
         run: |
-          docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci . 2>&1 | tee build-log.txt; exit ${PIPESTATUS[0]}
+          docker build --no-cache --progress=plain -f backend/Dockerfile \
+            --build-arg BUILDKIT_INLINE_CACHE=0 \
+            -t gravure-backend:ci . 2>&1 | tee build-log.txt
 
       - name: Upload build log
         if: failure()
