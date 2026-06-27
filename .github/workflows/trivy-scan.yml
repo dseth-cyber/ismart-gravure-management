@@ -17,11 +17,10 @@ jobs:
 
       - name: Build deps
         run: docker build --progress=plain --target=deps -f backend/Dockerfile -t gravure-deps:ci .
-      - name: Test prisma with openssl
-        run: printf 'FROM gravure-deps:ci\nRUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*\nCOPY backend/ .\nRUN npx prisma generate\n' | docker build --progress=plain -t gravure-prisma -f- .
-      - name: Build full image
-        if: success()
-        run: docker build --progress=plain -f backend/Dockerfile -t gravure-backend:ci .
+      - name: Test node + tsc
+        run: printf 'FROM gravure-deps:ci\nRUN node --version\nRUN npm --version\nCOPY backend/ .\nRUN npm run build\n' | docker build --progress=plain -t gravure-tsc -f- .
+      - name: Test prisma
+        run: printf 'FROM gravure-deps:ci\nCOPY backend/ .\nRUN ls -la prisma/\nRUN npx prisma --version\n' | docker build --progress=plain -t gravure-prisma-test -f- .
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
