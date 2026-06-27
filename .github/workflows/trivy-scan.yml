@@ -24,9 +24,9 @@ jobs:
       - name: Build image
         run: |
           if [ "${{ matrix.image }}" = "Dockerfile.backend" ]; then
-            docker build -f backend/Dockerfile -t gravure-backend:ci backend/
+            docker build -f backend/Dockerfile -t gravure-backend:ci .
           else
-            docker build -f frontend/Dockerfile -t gravure-frontend:ci frontend/
+            docker build -f frontend/Dockerfile -t gravure-frontend:ci .
           fi
 
       - name: Run Trivy scan
