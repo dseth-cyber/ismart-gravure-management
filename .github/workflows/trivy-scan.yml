@@ -15,20 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image
+      - name: Build image (legacy builder)
         id: build
         continue-on-error: true
         run: |
-          docker build --no-cache --progress=plain \
+          DOCKER_BUILDKIT=0 docker build --no-cache \
             -f backend/Dockerfile \
             -t gravure-backend:ci . 2>&1 | tee build-output.txt || true
-          echo "EXIT_CODE=${PIPESTATUS[0]}" >> build-exit-code.txt
+          echo "EXIT_CODE=${PIPESTATUS[0]}" >> build-result.txt
           {
             echo "--- docker images ---"
-            docker images
+            docker images --filter reference=gravure-backend
             echo "--- docker image inspect ---"
-            docker image inspect gravure-backend:ci || echo "IMAGE_NOT_FOUND"
-          } >> build-exit-code.txt 2>&1
+            docker image inspect gravure-backend:ci 2>&1 || echo "IMAGE_NOT_FOUND"
+          } >> build-result.txt
 
       - name: Upload diagnostic files
         if: always()
@@ -37,7 +37,7 @@ jobs:
           name: diag-files
           path: |
             build-output.txt
-            build-exit-code.txt
+            build-result.txt
 
       - name: Check image exists
         id: check
