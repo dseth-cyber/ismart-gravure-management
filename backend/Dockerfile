@@ -2,7 +2,7 @@ FROM node:24-bookworm-slim AS deps
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install && npm audit fix --audit-level=high; exit 0
 
 FROM node:24-bookworm-slim AS dev
 
@@ -23,6 +23,8 @@ RUN npx prisma generate
 RUN npm run build
 
 FROM node:24-bookworm-slim AS runner
+
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ENV NODE_ENV=production
