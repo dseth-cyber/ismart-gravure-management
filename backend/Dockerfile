@@ -1,5 +1,7 @@
 FROM node:24-alpine AS deps
 
+RUN apk add --no-cache python3 make g++ openssl
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install && npm audit fix --audit-level=high; exit 0
@@ -24,7 +26,7 @@ RUN npm run build
 
 FROM node:24-alpine AS runner
 
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache && apk add --no-cache openssl
 
 WORKDIR /app
 ENV NODE_ENV=production
