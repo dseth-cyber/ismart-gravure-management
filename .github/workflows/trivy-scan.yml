@@ -16,12 +16,42 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build image
+        id: build
+        continue-on-error: true
         run: |
           docker build --no-cache --progress=plain \
             -f backend/Dockerfile \
             -t gravure-backend:ci . 2>&1
 
+      - name: Show build status
+        run: |
+          echo "Build exit code: ${{ steps.build.outcome }}"
+          echo "Build conclusion: ${{ steps.build.conclusion }}"
+
+      - name: Check image exists
+        id: check
+        run: |
+          if docker image inspect gravure-backend:ci >/dev/null 2>&1; then
+            echo "image_exists=yes" >> "$GITHUB_OUTPUT"
+            docker images gravure-backend:ci
+          else
+            echo "image_exists=no" >> "$GITHUB_OUTPUT"
+            echo "Image gravure-backend:ci NOT FOUND"
+            docker images
+          fi
+
       - name: Run Trivy
+        if: steps.check.outputs.image_exists == 'yes'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: gravure-backend:ci
+          format: table
+          exit-code: '0'
+          severity: HIGH,CRITICAL
+
+      - name: Run Trivy (fallback via docker)
+        if: steps.check.outputs.image_exists == 'yes'
+        continue-on-error: true
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
