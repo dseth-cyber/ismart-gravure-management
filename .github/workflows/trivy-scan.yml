@@ -15,29 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show context size
-        run: |
-          du -sh .
-          echo "---"
-          ls -la backend/Dockerfile backend/package.json backend/package-lock.json
-          echo "---"
-          ls -la backend/prisma/schema.prisma
-
-      - name: Test minimal base image build
-        run: |
-          echo "FROM node:24-bookworm-slim" | docker build --no-cache --progress=plain -t test-node -f- . 2>&1
-
-      - name: Build backend image
+      - name: Build image
         run: |
           docker build --no-cache --progress=plain \
             -f backend/Dockerfile \
             -t gravure-backend:ci . 2>&1
 
-      - name: Verify image exists
-        run: docker images gravure-backend:ci
-
-      - name: Run Trivy scan
-        if: success()
+      - name: Scan with Trivy
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -47,11 +31,9 @@ jobs:
             --format table \
             gravure-backend:ci 2>&1 | tee trivy-report.txt
 
-      - name: Show Trivy results
+      - name: Upload Trivy report
         if: always()
-        run: |
-          if (Test-Path trivy-report.txt) {
-            Get-Content trivy-report.txt | ForEach-Object { $_ >> $env:GITHUB_STEP_SUMMARY }
-          } else {
-            "No trivy report generated - build likely failed" >> $env:GITHUB_STEP_SUMMARY
-          }
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.txt
