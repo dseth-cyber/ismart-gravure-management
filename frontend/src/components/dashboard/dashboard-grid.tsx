@@ -10,7 +10,9 @@ import type { RglLayouts } from '@/lib/dashboard/dashboard-config';
 import type { ChartType, DataSource } from '@/lib/dashboard/dashboard-config';
 import { DashboardCard } from './dashboard-card';
 import { AddCardDrawer } from './add-card-drawer';
-import { Settings, Check, RotateCcw, Plus, QrCode, GripVertical, X, Save } from 'lucide-react';
+import { useExport } from '@/lib/hooks/use-export';
+import { ExportButton } from '@/components/shared/export-button';
+import { Settings, Check, RotateCcw, Plus, QrCode, GripVertical, X, Save, Download } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { fetchDefaultLayout, fetchMyLayout, saveDefaultLayout, saveMyLayout, resetMyLayout } from '@/lib/api/layouts';
@@ -194,6 +196,8 @@ export function DashboardGrid() {
     setCardConfigs((prev) => ({ ...prev, [cardId]: { chartType, dataSource } }));
   }, [setCardConfigs]);
 
+  const { exportImage, captureRef } = useExport();
+
   const visibleCardIds = useMemo(() =>
     Object.keys(mergedCardDefs).filter((id) => !hiddenCards.includes(id)),
     [mergedCardDefs, hiddenCards]
@@ -219,7 +223,7 @@ export function DashboardGrid() {
   }, [layouts, visibleCardIds]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={captureRef}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <p className={`text-[10px] font-bold tracking-widest uppercase ${themeConfig.primaryText}`}>
@@ -272,6 +276,14 @@ export function DashboardGrid() {
                   <Settings size={13} />
                   {t('layout.customize')}
                 </button>
+                <ExportButton
+                  showImage={true}
+                  onExportImage={() => {
+                    const el = captureRef.current;
+                    if (el) exportImage(el, 'dashboard-overview');
+                  }}
+                  className="inline-flex"
+                />
                 <Link
                   href="/cylinders?scan=true"
                   className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition text-white ${themeConfig.primaryButton}`}

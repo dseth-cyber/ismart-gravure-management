@@ -7,9 +7,11 @@ import { apiClient } from '@/lib/api/client';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PageHeader } from '@/components/shared/page-header';
 import { useAuth } from '@/lib/auth/auth-provider';
-import { CheckCircle, XCircle, AlertTriangle, ArrowRight, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, ArrowRight, Shield, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { ApiResponse } from '@shared/dto/auth/auth.dto';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
+import { ExportButton } from '@/components/shared/export-button';
 
 interface PendingItem {
   id: string;
@@ -80,12 +82,32 @@ export default function ApprovalsPage() {
     return map[type] || '📄';
   };
 
+  const { exportExcel, exportPDF } = useExport();
+
+  const approvalColumns: ExportColumn[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'title', label: 'Title' },
+    { key: 'refType', label: 'Type' },
+    { key: 'initiator', label: 'Initiator' },
+    { key: 'createdAt', label: 'Created', format: (v) => new Date(v as string).toLocaleDateString() },
+    { key: 'currentStep', label: 'Current Step', format: (v) => (v as any)?.label || '—' },
+  ];
+
   const isSuperRole = ['admin', 'director', 'owner'].includes(user?.role || '');
 
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto space-y-6">
-        <PageHeader titleKey="approvals.title" />
+        <PageHeader 
+          titleKey="approvals.title"
+          actions={
+            <ExportButton
+              showImage={false}
+              onExportExcel={() => exportExcel(filteredItems as any, approvalColumns, 'approvals')}
+              onExportPDF={() => exportPDF(filteredItems as any, approvalColumns, 'approvals', 'Pending Approvals')}
+            />
+          }
+        />
 
         {isSuperRole && (
           <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300`}>

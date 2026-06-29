@@ -11,7 +11,9 @@ import { listCylinders } from '@/lib/services/cylinder';
 import { listFormulas, listBatches } from '@/lib/services/ink';
 import { listMasterData } from '@/lib/services/master-data';
 import { apiClient } from '@/lib/api/client';
-import { AlertTriangle, Check, Search, ShieldAlert } from 'lucide-react';
+import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
+import { ExportButton } from '@/components/shared/export-button';
+import { AlertTriangle, Check, Search, ShieldAlert, Download, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface DuplicateGroup {
   entity: string;
@@ -103,6 +105,14 @@ export default function DuplicateReportPage() {
     return allDuplicates.filter(d => !ignored.has(d.label));
   }, [allDuplicates, hideIgnored, ignored]);
 
+  const { exportExcel, exportPDF } = useExport();
+
+  const duplicateColumns: ExportColumn[] = [
+    { key: 'entity', label: 'Entity' },
+    { key: 'field', label: 'Field' },
+    { key: 'label', label: 'Matches' },
+  ];
+
   const totalDuplicates = allDuplicates.length;
 
   return (
@@ -113,6 +123,11 @@ export default function DuplicateReportPage() {
           subtitleKey="Fuzzy matching scan across all entities"
           actions={
             <div className="flex items-center gap-3">
+              <ExportButton
+                showImage={false}
+                onExportExcel={() => exportExcel(visibleDuplicates as any, duplicateColumns, 'duplicate-report')}
+                onExportPDF={() => exportPDF(visibleDuplicates as any, duplicateColumns, 'duplicate-report', 'Duplicate Report')}
+              />
               <label className={`text-xs font-bold ${themeConfig.textSecondary}`}>
                 Threshold: {(threshold * 100).toFixed(0)}%
                 <input type="range" min="10" max="80" value={threshold * 100} onChange={e => setThreshold(parseInt(e.target.value) / 100)} className="ml-2 w-20" />

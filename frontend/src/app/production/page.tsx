@@ -12,6 +12,8 @@ import { ColorBadge } from '@/components/shared/color-badge';
 import { AppDialog } from '@/components/shared/app-dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
+import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
+import { ExportButton } from '@/components/shared/export-button';
 
 const QrScanner = dynamic(() => import('@/components/shared/qr-scanner').then(m => ({ default: m.QrScanner })), { ssr: false });
 import { listJobs, deleteJob, restoreJob, permanentDeleteJob, emptyJobTrash, batchUpdateJobStatus, batchDeleteJobs, batchRestoreJobs } from '@/lib/services/job';
@@ -25,6 +27,8 @@ import {
   Check, 
   AlertTriangle, 
   Download, 
+  FileSpreadsheet, 
+  FileText, 
   Search, 
   User, 
   Settings, 
@@ -278,6 +282,17 @@ function ProductionPageContent() {
       console.error('Failed to permanently delete job', err);
     }
   };
+
+  const { exportExcel, exportPDF } = useExport();
+
+  const jobColumns: ExportColumn[] = [
+    { key: 'jobNumber', label: 'Job' },
+    { key: 'productCode', label: 'Product' },
+    { key: 'machineName', label: 'Machine' },
+    { key: 'status', label: 'Status' },
+    { key: 'totalPrinted', label: 'Meter Run', format: (v) => `${(v as number).toLocaleString()} m` },
+    { key: 'plannedDate', label: 'Date', format: (v) => v ? (typeof v === 'string' ? v : new Date(v as any).toLocaleDateString()) : '—' },
+  ];
 
   const handleEmptyTrash = async () => {
     try {
@@ -629,13 +644,11 @@ function ProductionPageContent() {
           <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
             <div className="flex justify-between items-center mb-5">
               <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('prod.prodLog')}</h3>
-              <button 
-                onClick={() => alert('Exporting log data...')}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition border border-transparent ${themeConfig.secondaryButton}`}
-              >
-                <Download size={14} />
-                {t('btn.export')}
-              </button>
+              <ExportButton
+                showImage={false}
+                onExportExcel={() => exportExcel(jobsList as any, jobColumns, 'production-log')}
+                onExportPDF={() => exportPDF(jobsList as any, jobColumns, 'production-log', 'Production Log')}
+              />
             </div>
 
             {prodLoading ? (

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode, Printer, Trash2, RotateCw } from 'lucide-react';
+import { Camera, Plus, Download, Search, RefreshCw, AlertTriangle, Clock, Check, X, FlaskConical, Droplets, Palette, Factory, User, QrCode, Printer, Trash2, RotateCw, FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -19,6 +19,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedCheck } from '@/lib/hooks/use-debounced-check';
 import { apiClient } from '@/lib/api/client';
 import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
+import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
+import { ExportButton } from '@/components/shared/export-button';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import SearchableSelect from '@/components/ui/SearchableSelect';
@@ -337,6 +339,31 @@ function InksPageContent() {
     }
   };
 
+  const { exportExcel, exportPDF } = useExport();
+
+  const formulaColumns: ExportColumn[] = [
+    { key: 'code', label: 'Formula' },
+    { key: 'productCode', label: 'Product' },
+    { key: 'color', label: 'Color' },
+    { key: 'pantone', label: 'Pantone' },
+    { key: 'revision', label: 'Revision' },
+    { key: 'viscosity', label: 'Viscosity' },
+    { key: 'labTarget', label: 'Lab Target' },
+    { key: 'status', label: 'Status' },
+  ];
+
+  const batchColumns: ExportColumn[] = [
+    { key: 'id', label: 'Batch' },
+    { key: 'formulaCode', label: 'Formula' },
+    { key: 'color', label: 'Color' },
+    { key: 'mixDate', label: 'Mix Date' },
+    { key: 'expiryDate', label: 'Expiry' },
+    { key: 'weight', label: 'Weight', format: (v) => `${v} kg` },
+    { key: 'remaining', label: 'Remaining', format: (v) => `${v} kg` },
+    { key: 'operator', label: 'Operator' },
+    { key: 'status', label: 'Status' },
+  ];
+
   // Trash bins handlers
   const handleDeleteFormula = async (code: string) => {
     try {
@@ -535,6 +562,14 @@ function InksPageContent() {
 
         {!loading && !error && activeTab === 'formulas' && (
           <div>
+            <div className="flex items-center justify-between mb-2">
+              <span></span>
+              <ExportButton
+                showImage={false}
+                onExportExcel={() => exportExcel(filteredFormulas as any, formulaColumns, 'ink-formulas')}
+                onExportPDF={() => exportPDF(filteredFormulas as any, formulaColumns, 'ink-formulas', 'Ink Formulas')}
+              />
+            </div>
             <BatchToolbar
               items={filteredFormulas}
               selectedIds={selectedFormulaIds}
@@ -635,6 +670,14 @@ function InksPageContent() {
 
         {!loading && !error && activeTab === 'batch' && (
           <div>
+            <div className="flex items-center justify-between mb-2">
+              <span></span>
+              <ExportButton
+                showImage={false}
+                onExportExcel={() => exportExcel(filteredBatches as any, batchColumns, 'ink-batches')}
+                onExportPDF={() => exportPDF(filteredBatches as any, batchColumns, 'ink-batches', 'Ink Batches')}
+              />
+            </div>
             <BatchToolbar
               items={filteredBatches}
               selectedIds={selectedBatchIds}

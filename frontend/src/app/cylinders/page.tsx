@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X, Printer, Trash2, RotateCcw } from 'lucide-react';
+import { Camera, Plus, Download, Search, RefreshCw, MapPin, Eye, LayoutGrid, List, Check, AlertTriangle, Clock, Hammer, ShieldAlert, X, Printer, Trash2, RotateCcw, FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -13,6 +13,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedCheck } from '@/lib/hooks/use-debounced-check';
 import { apiClient } from '@/lib/api/client';
 import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
+import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
+import { ExportButton } from '@/components/shared/export-button';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import SearchableSelect from '@/components/ui/SearchableSelect';
@@ -270,6 +272,30 @@ function CylindersPageContent() {
     }
   };
 
+  const { exportExcel, exportPDF } = useExport();
+
+  const cylinderColumns: ExportColumn[] = [
+    { key: 'id', label: 'Code' },
+    { key: 'colorName', label: 'Color' },
+    { key: 'product', label: 'Product', format: (v) => (v as string) || (filtered.find(c => c.productCode === v)?.productCode) || '—' },
+    { key: 'customer', label: 'Customer', format: (v) => (v as string) || '—' },
+    { key: 'status', label: 'Status' },
+    { key: 'location', label: 'Location' },
+    { key: 'meter', label: 'Meter Run', format: (v) => `${(v as number).toLocaleString()} m` },
+    { key: 'type', label: 'Type' },
+  ];
+
+  const historyColumns: ExportColumn[] = [
+    { key: 'cyl', label: 'Code' },
+    { key: 'product', label: 'Product' },
+    { key: 'job', label: 'Job' },
+    { key: 'date', label: 'Date' },
+    { key: 'machine', label: 'Machine' },
+    { key: 'operator', label: 'Operator' },
+    { key: 'meter', label: 'Meter Run', format: (v) => `${(v as number).toLocaleString()} m` },
+    { key: 'remark', label: 'Remark', format: (v) => (v as string) || '—' },
+  ];
+
   // Clear selection when filter changes
   useEffect(() => {
     setSelectedIds([]);
@@ -342,10 +368,19 @@ function CylindersPageContent() {
               <Plus size={15} />
               {t('btn.add')}
             </button>
-            <button className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all ${themeConfig.secondaryButton} shadow`}>
-              <Download size={15} />
-              {t('btn.export')}
-            </button>
+            <ExportButton
+              showImage={false}
+              onExportExcel={() => {
+                if (activeTab === 'list') exportExcel(filtered as any, cylinderColumns, `cylinders-${activeTab}`);
+                else if (activeTab === 'history') exportExcel(mockHistory as any, historyColumns, 'cylinder-history');
+                else exportExcel(cylinders as any, cylinderColumns, `cylinders-${activeTab}`);
+              }}
+              onExportPDF={() => {
+                if (activeTab === 'list') exportPDF(filtered as any, cylinderColumns, `cylinders-${activeTab}`, 'Cylinder Report');
+                else if (activeTab === 'history') exportPDF(mockHistory as any, historyColumns, 'cylinder-history', 'Cylinder Usage History');
+                else exportPDF(cylinders as any, cylinderColumns, `cylinders-${activeTab}`, 'Cylinder Report');
+              }}
+            />
             <button onClick={() => setShowTrash(v => !v)}
               className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all shadow ${
                 showTrash
