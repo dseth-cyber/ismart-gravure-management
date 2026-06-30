@@ -35,4 +35,4 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 5000
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/backend/src/server.js"]
