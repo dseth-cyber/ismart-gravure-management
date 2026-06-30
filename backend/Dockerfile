@@ -1,10 +1,10 @@
-FROM node:24-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 
 WORKDIR /app
 COPY backend/package.json backend/package-lock.json ./
 RUN npm install
 
-FROM node:24-bookworm-slim AS dev
+FROM node:26-bookworm-slim AS dev
 
 WORKDIR /app
 ENV NODE_ENV=development
@@ -14,7 +14,7 @@ RUN npx prisma generate
 EXPOSE 5000
 CMD ["npm", "run", "dev"]
 
-FROM node:24-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 ARG DATABASE_URL=postgresql://dummy:test@localhost:5432/dummy
 
 WORKDIR /app
@@ -24,7 +24,7 @@ COPY backend/ .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
