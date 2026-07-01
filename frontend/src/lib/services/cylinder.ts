@@ -50,6 +50,11 @@ export async function batchRestoreCylinders(ids: string[]): Promise<{ restored: 
   return res.data.data!;
 }
 
+export async function bulkCreateCylinders(data: CreateCylinderDto[]): Promise<number> {
+  const created = await Promise.allSettled(data.map((d) => createCylinder(d)));
+  return created.filter((r) => r.status === 'fulfilled').length;
+}
+
 export async function emptyCylinderTrash(): Promise<{ deleted: number }> {
   const res = await apiClient.delete<ApiResponse<{ deleted: number }>>('/api/v1/cylinders/trash/empty');
   return res.data.data!;

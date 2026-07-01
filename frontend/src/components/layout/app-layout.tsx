@@ -30,6 +30,7 @@ import {
   History,
   FlaskConical,
   Clock,
+  Calendar,
   ShieldCheck,
   ShieldAlert,
   GitBranch,
@@ -111,6 +112,7 @@ const MENU: MenuGroup[] = [
       { key: 'permissions', labelKey: 'nav.permissions', href: '/settings/permissions', icon: Shield, perm: 'permissions:manage' },
       { key: 'notifSettings', labelKey: 'nav.notifSettings', href: '/settings/notifications', icon: Bell, perm: 'notifications:settings.manage' },
       { key: 'auditLogs', labelKey: 'settings.auditLogs', href: '/settings/audit', icon: History, perm: 'audit:read' },
+      { key: 'scheduledReports', labelKey: 'settings.scheduledReports', href: '/settings/reports', icon: Calendar, perm: 'reports:export' },
     ] 
   },
   {
@@ -125,7 +127,10 @@ const MENU: MenuGroup[] = [
     labelKey: 'nav.progress',
     icon: BookOpen,
     perm: 'progress:read',
-    items: [{ key: 'roadmap', labelKey: 'nav.progress', href: '/progress', icon: BookOpen, perm: 'progress:read' }]
+    items: [
+      { key: 'roadmap', labelKey: 'nav.roadmap', href: '/roadmap', icon: BookOpen, perm: 'progress:read' },
+      { key: 'progress', labelKey: 'nav.progress', href: '/progress', icon: List, perm: 'progress:read' },
+    ]
   }
 ];
 
@@ -186,7 +191,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const isSetup = pathname === '/setup';
-    const isProgress = pathname === '/progress';
+    const isProgress = pathname === '/progress' || pathname === '/roadmap';
 
     const base = globalOpenGroups || {
       overview: true,
@@ -978,11 +983,13 @@ const ROUTE_PERMISSIONS: Array<{ pattern: RegExp; permission: string }> = [
   { pattern: /^\/inks/, permission: 'inks:read' },
   { pattern: /^\/production/, permission: 'jobs:read' },
   { pattern: /^\/progress/, permission: 'progress:read' },
+  { pattern: /^\/roadmap/, permission: 'progress:read' },
   { pattern: /^\/settings\/users/, permission: 'auth:users.read' },
   { pattern: /^\/settings\/permissions/, permission: 'permissions:manage' },
   { pattern: /^\/settings\/audit/, permission: 'audit:read' },
   { pattern: /^\/settings\/system/, permission: 'settings:system.manage' },
   { pattern: /^\/settings\/notifications/, permission: 'notifications:settings.manage' },
+  { pattern: /^\/settings\/reports/, permission: 'reports:export' },
 ];
 
 function RouteGuard({ pathname, children }: { pathname: string; children: React.ReactNode }) {

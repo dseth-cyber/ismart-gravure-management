@@ -15,6 +15,8 @@ import { apiClient } from '@/lib/api/client';
 import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
 import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
 import { ExportButton } from '@/components/shared/export-button';
+import { ImportButton } from '@/components/shared/import-button';
+import { bulkCreateCylinders } from '@/lib/services/cylinder';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import SearchableSelect from '@/components/ui/SearchableSelect';
@@ -368,6 +370,18 @@ function CylindersPageContent() {
               <Plus size={15} />
               {t('btn.add')}
             </button>
+            <ImportButton
+              fieldMapping={[
+                { key: 'cylinderCode', label: 'Cylinder Code', required: true },
+                { key: 'type', label: 'Type' },
+                { key: 'status', label: 'Status' },
+                { key: 'position', label: 'Position' },
+              ]}
+              onImport={async (rows, mapping) => {
+                await bulkCreateCylinders(rows as any);
+                queryClient.invalidateQueries({ queryKey: ['cylinders'] });
+              }}
+            />
             <ExportButton
               showImage={false}
               onExportExcel={() => {

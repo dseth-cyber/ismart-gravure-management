@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme/theme-provider';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
@@ -12,10 +12,15 @@ import { DashboardCard } from './dashboard-card';
 import { AddCardDrawer } from './add-card-drawer';
 import { useExport } from '@/lib/hooks/use-export';
 import { ExportButton } from '@/components/shared/export-button';
-import { Settings, Check, RotateCcw, Plus, QrCode, GripVertical, X, Save, Download } from 'lucide-react';
+import { Settings, Check, RotateCcw, Plus, QrCode, X, Save, ChevronDown, Trash2, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { fetchDefaultLayout, fetchMyLayout, saveDefaultLayout, saveMyLayout, resetMyLayout } from '@/lib/api/layouts';
+import {
+  fetchDefaultLayout, fetchMyLayout, saveDefaultLayout, saveMyLayout, resetMyLayout,
+  listMyLayouts, fetchMyLayoutByName, saveMyLayoutByName, deleteMyLayoutByName,
+  saveDefaultLayoutByName, listDefaultLayouts,
+} from '@/lib/api/layouts';
+import type { LayoutSummary } from '@/lib/api/layouts';
 
 const RGL = dynamic(
   () => import('react-grid-layout/legacy').then((m) => {
@@ -61,20 +66,45 @@ export function DashboardGrid() {
   const [cardConfigs, setCardConfigs] = useLocalStorage<Record<string, { chartType: string; dataSource: string }>>('gm_card_config', {});
   const [hiddenCards, setHiddenCards] = useLocalStorage<string[]>('gm_hidden_cards', []);
 
+  const [activeLayoutName, setActiveLayoutName] = useLocalStorage<string | null>('gm_active_layout', null);
+  const [savedLayouts, setSavedLayouts] = useState<LayoutSummary[]>([]);
+  const [showSaveAs, setShowSaveAs] = useState(false);
+  const [saveAsName, setSaveAsName] = useState('');
+  const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin';
 
+  const currentData = useMemo(() => ({ layouts, extraCards, cardTitles, cardConfigs, hiddenCards }), [layouts, extraCards, cardTitles, cardConfigs, hiddenCards]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showLayoutMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowLayoutMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showLayoutMenu]);
+
+  // Auto-save every 2s
   useEffect(() => {
     if (!isClient) return;
-    const timer = setTimeout(() => {
-      saveMyLayout({ layouts, extraCards, cardTitles, cardConfigs, hiddenCards }).catch(() => {});
+    const timer = setTimeout(async () => {
+      if (activeLayoutName) {
+        await saveMyLayoutByName(activeLayoutName, currentData).catch(() => {});
+      } else {
+        await saveMyLayout(currentData).catch(() => {});
+      }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [layouts, extraCards, cardTitles, cardConfigs, hiddenCards, isClient]);
+  }, [currentData, isClient, activeLayoutName]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Initial load
   useEffect(() => {
     (async () => {
       const defaultData = await fetchDefaultLayout();
@@ -85,6 +115,23 @@ export function DashboardGrid() {
         if (defaultData.cardConfigs) localStorage.setItem('gm_default_card_config', JSON.stringify(defaultData.cardConfigs));
         if (defaultData.hiddenCards) localStorage.setItem('gm_default_hidden_cards', JSON.stringify(defaultData.hiddenCards));
       }
+
+      const layoutsList = await listMyLayouts();
+      setSavedLayouts(layoutsList);
+
+      const loadedName = localStorage.getItem('gm_active_layout');
+      if (loadedName && layoutsList.some((l) => l.name === loadedName)) {
+        const myData = await fetchMyLayoutByName(loadedName);
+        if (myData) {
+          if (myData.layouts) setLayouts(myData.layouts);
+          if (myData.extraCards) setExtraCards(myData.extraCards);
+          if (myData.cardTitles) setCardTitles(myData.cardTitles);
+          if (myData.cardConfigs) setCardConfigs(myData.cardConfigs);
+          if (myData.hiddenCards) setHiddenCards(myData.hiddenCards);
+          return;
+        }
+      }
+
       const myData = await fetchMyLayout();
       if (myData) {
         if (myData.layouts) setLayouts(myData.layouts);
@@ -95,6 +142,76 @@ export function DashboardGrid() {
       }
     })();
   }, []);
+
+  const switchToLayout = useCallback(async (name: string | null) => {
+    setShowLayoutMenu(false);
+    if (name === null) {
+      setActiveLayoutName(null);
+      const myData = await fetchMyLayout();
+      if (myData) {
+        if (myData.layouts) setLayouts(myData.layouts);
+        if (myData.extraCards) setExtraCards(myData.extraCards);
+        if (myData.cardTitles) setCardTitles(myData.cardTitles);
+        if (myData.cardConfigs) setCardConfigs(myData.cardConfigs);
+        if (myData.hiddenCards) setHiddenCards(myData.hiddenCards);
+      } else {
+        const defaultData = await fetchDefaultLayout();
+        if (defaultData) {
+          if (defaultData.layouts) setLayouts(defaultData.layouts);
+          if (defaultData.extraCards) setExtraCards(defaultData.extraCards);
+          if (defaultData.cardTitles) setCardTitles(defaultData.cardTitles);
+          if (defaultData.cardConfigs) setCardConfigs(defaultData.cardConfigs);
+          if (defaultData.hiddenCards) setHiddenCards(defaultData.hiddenCards);
+        } else {
+          setLayouts(DEFAULT_RGL_LAYOUTS);
+          setExtraCards([]);
+          setCardTitles({});
+          setCardConfigs({});
+          setHiddenCards([]);
+        }
+      }
+      setToast(t('layout.switchedTo', { name: t('layout.defaultLayout') }));
+    } else {
+      setActiveLayoutName(name);
+      const myData = await fetchMyLayoutByName(name);
+      if (myData) {
+        if (myData.layouts) setLayouts(myData.layouts);
+        if (myData.extraCards) setExtraCards(myData.extraCards);
+        if (myData.cardTitles) setCardTitles(myData.cardTitles);
+        if (myData.cardConfigs) setCardConfigs(myData.cardConfigs);
+        if (myData.hiddenCards) setHiddenCards(myData.hiddenCards);
+      }
+      setToast(t('layout.switchedTo', { name }));
+    }
+    setTimeout(() => setToast(null), 2500);
+  }, [t, setActiveLayoutName, setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards]);
+
+  const handleSaveAs = useCallback(async () => {
+    const name = saveAsName.trim();
+    if (!name) return;
+    await saveMyLayoutByName(name, currentData);
+    setSavedLayouts((prev) => {
+      const exists = prev.find((l) => l.name === name);
+      if (exists) return prev;
+      return [{ name, updatedAt: new Date().toISOString() }, ...prev];
+    });
+    setActiveLayoutName(name);
+    setShowSaveAs(false);
+    setSaveAsName('');
+    setToast(t('layout.savedAs', { name }));
+    setTimeout(() => setToast(null), 2500);
+  }, [saveAsName, currentData, setActiveLayoutName, t]);
+
+  const handleDeleteLayout = useCallback(async (name: string) => {
+    await deleteMyLayoutByName(name);
+    setSavedLayouts((prev) => prev.filter((l) => l.name !== name));
+    if (activeLayoutName === name) {
+      setActiveLayoutName(null);
+    }
+    setShowLayoutMenu(false);
+    setToast(t('layout.deletedLayout', { name }));
+    setTimeout(() => setToast(null), 2500);
+  }, [activeLayoutName, setActiveLayoutName, t]);
 
   const mergedCardDefs = useMemo(() => {
     const map = { ...DEFAULT_CARD_DEFS };
@@ -157,9 +274,10 @@ export function DashboardGrid() {
       setCardConfigs({});
       setHiddenCards([]);
     }
+    setActiveLayoutName(null);
     setToast(t('layout.resetDone'));
     setTimeout(() => setToast(null), 2500);
-  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards, t]);
+  }, [setLayouts, setExtraCards, setCardTitles, setCardConfigs, setHiddenCards, setActiveLayoutName, t]);
 
   const saveAsDefault = useCallback(() => {
     const data = { layouts, extraCards, cardTitles, cardConfigs, hiddenCards };
@@ -269,6 +387,61 @@ export function DashboardGrid() {
               </>
             ) : (
               <>
+                {/* Layout selector */}
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setShowLayoutMenu((v) => !v)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition border ${themeConfig.border} hover:bg-white/5 ${themeConfig.textPrimary}`}
+                  >
+                    <LayoutDashboard size={13} />
+                    {activeLayoutName || t('layout.defaultLayout')}
+                    <ChevronDown size={11} />
+                  </button>
+                  {showLayoutMenu && (
+                    <div className={`absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg border ${themeConfig.border} backdrop-blur-xl shadow-2xl py-1`}
+                      style={{ backgroundColor: 'rgba(15,23,42,0.95)' }}
+                    >
+                      <div className={`px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase ${themeConfig.textSecondary}`}>
+                        {t('layout.selectLayout')}
+                      </div>
+                      <button
+                        onClick={() => switchToLayout(null)}
+                        className={`w-full text-left px-3 py-1.5 text-xs transition hover:bg-white/5 flex items-center gap-2 ${!activeLayoutName ? 'text-cyan-400' : themeConfig.textPrimary}`}
+                      >
+                        {!activeLayoutName && <Check size={11} />}
+                        <span className={!activeLayoutName ? 'ml-0' : 'ml-[19px]'}>{t('layout.defaultLayout')}</span>
+                      </button>
+                      {savedLayouts.map((l) => (
+                        <div key={l.name} className="group flex items-center">
+                          <button
+                            onClick={() => switchToLayout(l.name)}
+                            className={`flex-1 text-left px-3 py-1.5 text-xs transition hover:bg-white/5 flex items-center gap-2 ${activeLayoutName === l.name ? 'text-cyan-400' : themeConfig.textPrimary}`}
+                          >
+                            {activeLayoutName === l.name && <Check size={11} />}
+                            <span className={activeLayoutName === l.name ? 'ml-0' : 'ml-[19px]'}>{l.name}</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLayout(l.name)}
+                            className="px-2 py-1.5 text-rose-400 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition"
+                            title={t('layout.deleteLayout')}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className={`border-t ${themeConfig.border} mt-1 pt-1`}>
+                        <button
+                          onClick={() => { setShowLayoutMenu(false); setShowSaveAs(true); setSaveAsName(''); }}
+                          className={`w-full text-left px-3 py-1.5 text-xs transition hover:bg-white/5 ${themeConfig.textPrimary} flex items-center gap-2`}
+                        >
+                          <Save size={11} />
+                          {t('layout.saveAs')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={() => setIsEditing(true)}
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition border border-transparent bg-white/5 hover:bg-white/10 ${themeConfig.textPrimary}`}
@@ -351,6 +524,40 @@ export function DashboardGrid() {
       )}
 
       <AddCardDrawer isOpen={showAddDrawer} onClose={() => setShowAddDrawer(false)} onAddCard={addCard} />
+
+      {/* Save As dialog */}
+      {showSaveAs && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className={`rounded-xl border ${themeConfig.border} p-6 w-full max-w-sm shadow-2xl`}
+            style={{ backgroundColor: 'rgba(15,23,42,0.95)' }}
+          >
+            <h3 className={`text-base font-bold mb-4 ${themeConfig.textPrimary}`}>{t('layout.saveAsTitle')}</h3>
+            <input
+              autoFocus
+              value={saveAsName}
+              onChange={(e) => setSaveAsName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveAs(); }}
+              placeholder={t('layout.enterName')}
+              className={`w-full px-3 py-2 rounded-lg text-sm border ${themeConfig.border} bg-white/5 ${themeConfig.textPrimary} placeholder:text-gray-500 outline-none focus:border-cyan-500 transition`}
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setShowSaveAs(false)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition border ${themeConfig.border} hover:bg-white/5 ${themeConfig.textPrimary}`}
+              >
+                {t('btn.cancel')}
+              </button>
+              <button
+                onClick={handleSaveAs}
+                disabled={!saveAsName.trim()}
+                className="px-4 py-1.5 rounded-lg text-xs font-bold transition text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40"
+              >
+                {t('layout.saveAs')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-[9999] px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold shadow-2xl animate-fade-in">

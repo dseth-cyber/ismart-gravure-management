@@ -14,6 +14,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
 import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
 import { ExportButton } from '@/components/shared/export-button';
+import { ImportButton } from '@/components/shared/import-button';
+import { bulkCreateJobs } from '@/lib/services/job';
 
 const QrScanner = dynamic(() => import('@/components/shared/qr-scanner').then(m => ({ default: m.QrScanner })), { ssr: false });
 import { listJobs, deleteJob, restoreJob, permanentDeleteJob, emptyJobTrash, batchUpdateJobStatus, batchDeleteJobs, batchRestoreJobs } from '@/lib/services/job';
@@ -644,11 +646,24 @@ function ProductionPageContent() {
           <div className={`rounded-xl p-5 ${themeConfig.panel} ${themeConfig.shadow}`}>
             <div className="flex justify-between items-center mb-5">
               <h3 className={`text-base font-bold ${themeConfig.textPrimary}`}>{t('prod.prodLog')}</h3>
-              <ExportButton
-                showImage={false}
-                onExportExcel={() => exportExcel(jobsList as any, jobColumns, 'production-log')}
-                onExportPDF={() => exportPDF(jobsList as any, jobColumns, 'production-log', 'Production Log')}
-              />
+              <div className="flex items-center gap-2">
+                <ImportButton
+                  fieldMapping={[
+                    { key: 'jobNumber', label: 'Job Number', required: true },
+                    { key: 'productCode', label: 'Product Code' },
+                    { key: 'qty', label: 'Quantity' },
+                  ]}
+                  onImport={async (rows, mapping) => {
+                    await bulkCreateJobs(rows as any);
+                    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+                  }}
+                />
+                <ExportButton
+                  showImage={false}
+                  onExportExcel={() => exportExcel(jobsList as any, jobColumns, 'production-log')}
+                  onExportPDF={() => exportPDF(jobsList as any, jobColumns, 'production-log', 'Production Log')}
+                />
+              </div>
             </div>
 
             {prodLoading ? (

@@ -78,6 +78,16 @@ export async function batchRestoreBatches(ids: string[]): Promise<{ restored: nu
   return res.data.data!;
 }
 
+export async function bulkCreateFormulas(data: CreateInkFormulaDto[]): Promise<number> {
+  const created = await Promise.allSettled(data.map((d) => createFormula(d)));
+  return created.filter((r) => r.status === 'fulfilled').length;
+}
+
+export async function bulkCreateBatches(data: CreateInkBatchDto[]): Promise<number> {
+  const created = await Promise.allSettled(data.map((d) => createBatch(d)));
+  return created.filter((r) => r.status === 'fulfilled').length;
+}
+
 export async function restoreFormula(code: string): Promise<void> {
   await apiClient.post(`/api/v1/inks/formulas/${code}/restore`);
 }

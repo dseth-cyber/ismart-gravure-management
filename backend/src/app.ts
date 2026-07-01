@@ -34,6 +34,7 @@ import layoutRoutes from './modules/layouts/layouts.routes';
 import settingRoutes from './modules/setting/setting.routes';
 import searchRoutes from './modules/search/search.routes';
 import masterDataRoutes from './modules/master-data/masterData.routes';
+import reportsRoutes from './modules/reports/reports.routes';
 import { initQueueWorker } from './modules/queue/queue.service';
 import { prisma } from './config/database';
 import { getRedis } from './config/redis';
@@ -245,6 +246,7 @@ app.use('/api/v1/layouts', layoutRoutes);
 app.use('/api/v1/settings', settingRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/master-data', masterDataRoutes);
+app.use('/api/v1/reports', reportsRoutes);
 
 // Initialize background worker
 initQueueWorker();

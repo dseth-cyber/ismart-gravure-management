@@ -626,3 +626,26 @@ model MasterDataItem {
   @@map("master_data_items")
 }
 
+model ScheduledReport {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  type         String   // "cylinders", "inks", "jobs", "orders", "audit"
+  format       String   @default("pdf") // "pdf" | "xlsx"
+  cron         String   // cron expression, e.g. "0 8 * * 1" (every Monday 8AM)
+  recipients   String[] // email addresses
+  params       Json?    // filters, columns, etc.
+  active       Boolean  @default(true)
+  lastRunAt    DateTime?
+  lastError    String?
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@index([active])
+  @@index([deletedAt])
+  @@schema("auth")
+  @@map("scheduled_reports")
+}
+

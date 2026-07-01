@@ -21,6 +21,11 @@ export async function createJob(data: CreateProductionJobDto): Promise<Productio
   return res.data.data!;
 }
 
+export async function bulkCreateJobs(data: CreateProductionJobDto[]): Promise<number> {
+  const created = await Promise.allSettled(data.map((d) => createJob(d)));
+  return created.filter((r) => r.status === 'fulfilled').length;
+}
+
 export async function updateJobStatus(jobNumber: string, data: UpdateJobStatusDto): Promise<void> {
   await apiClient.put(`/api/v1/jobs/${jobNumber}/status`, data);
 }

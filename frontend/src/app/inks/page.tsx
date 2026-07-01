@@ -21,6 +21,8 @@ import { apiClient } from '@/lib/api/client';
 import { BatchToolbar, BatchSelectAllCheckbox, BatchRowCheckbox } from '@/components/shared/batch-toolbar';
 import { useExport, type ExportColumn } from '@/lib/hooks/use-export';
 import { ExportButton } from '@/components/shared/export-button';
+import { ImportButton } from '@/components/shared/import-button';
+import { bulkCreateFormulas, bulkCreateBatches } from '@/lib/services/ink';
 
 const QrLabel = dynamic(() => import('@/components/shared/qr-label').then(m => ({ default: m.QrLabel })), { ssr: false });
 import SearchableSelect from '@/components/ui/SearchableSelect';
@@ -563,12 +565,24 @@ function InksPageContent() {
         {!loading && !error && activeTab === 'formulas' && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span></span>
+              <div className="flex items-center gap-2">
+              <ImportButton
+                fieldMapping={[
+                  { key: 'code', label: 'Formula Code', required: true },
+                  { key: 'name', label: 'Name' },
+                  { key: 'color', label: 'Color' },
+                ]}
+                onImport={async (rows, mapping) => {
+                  await bulkCreateFormulas(rows as any);
+                  queryClient.invalidateQueries({ queryKey: ['ink-formulas'] });
+                }}
+              />
               <ExportButton
                 showImage={false}
                 onExportExcel={() => exportExcel(filteredFormulas as any, formulaColumns, 'ink-formulas')}
                 onExportPDF={() => exportPDF(filteredFormulas as any, formulaColumns, 'ink-formulas', 'Ink Formulas')}
               />
+            </div>
             </div>
             <BatchToolbar
               items={filteredFormulas}
@@ -671,12 +685,24 @@ function InksPageContent() {
         {!loading && !error && activeTab === 'batch' && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span></span>
+              <div className="flex items-center gap-2">
+              <ImportButton
+                fieldMapping={[
+                  { key: 'batchNo', label: 'Batch No', required: true },
+                  { key: 'formulaCode', label: 'Formula Code', required: true },
+                  { key: 'quantity', label: 'Quantity' },
+                ]}
+                onImport={async (rows, mapping) => {
+                  await bulkCreateBatches(rows as any);
+                  queryClient.invalidateQueries({ queryKey: ['ink-batches'] });
+                }}
+              />
               <ExportButton
                 showImage={false}
                 onExportExcel={() => exportExcel(filteredBatches as any, batchColumns, 'ink-batches')}
                 onExportPDF={() => exportPDF(filteredBatches as any, batchColumns, 'ink-batches', 'Ink Batches')}
               />
+            </div>
             </div>
             <BatchToolbar
               items={filteredBatches}

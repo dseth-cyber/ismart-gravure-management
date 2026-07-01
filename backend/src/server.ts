@@ -5,6 +5,7 @@ import { prisma } from './config/database';
 import { initRealtime } from './modules/realtime/realtime';
 import { NotificationService } from './modules/notification/notification.service';
 import { CleanupService } from './modules/cleanup/cleanup.service';
+import { ReportsService } from './modules/reports/reports.service';
 
 const server = http.createServer(app);
 initRealtime(server).catch(err => {
@@ -32,6 +33,15 @@ setTimeout(() => {
     console.error('[Notifications] Initial check failed:', err);
   });
 }, 3000);
+
+// Check scheduled reports every minute
+setInterval(async () => {
+  try {
+    await ReportsService.checkAndRunDue();
+  } catch (err) {
+    console.error('[Reports] Periodic check failed:', err);
+  }
+}, 60 * 1000);
 
 // Daily data retention cleanup
 setInterval(async () => {

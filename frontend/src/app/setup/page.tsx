@@ -30,8 +30,10 @@ import {
 import { ConfirmDialog } from '@/components/shared/app-dialog';
 import { 
   listMasterData, createMasterData, updateMasterData, deleteMasterData,
-  restoreMasterData, permanentDeleteMasterData, emptyMasterTrash as emptyMasterTrashApi
+  restoreMasterData, permanentDeleteMasterData, emptyMasterTrash as emptyMasterTrashApi,
+  bulkCreateMasterData
 } from '@/lib/services/master-data';
+import { ImportButton } from '@/components/shared/import-button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 function SetupPageContent() {
@@ -488,13 +490,26 @@ function SetupPageContent() {
                     </button>
                   )}
                   {!showMasterTrash && (
-                    <button
-                      onClick={() => setShowAddMasterModal(true)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
-                    >
-                      <Plus size={14} />
-                      {t('btn.add')}
-                    </button>
+                    <>
+                      <ImportButton
+                        fieldMapping={[
+                          { key: 'name', label: 'Name', required: true },
+                          { key: 'nameTh', label: 'Name (TH)' },
+                        ]}
+                        onImport={async (rows, mapping) => {
+                          const items = rows.map((r: any) => ({ ...r, category: activeCategory }));
+                          await bulkCreateMasterData(items);
+                          queryClient.invalidateQueries({ queryKey: ['master-data'] });
+                        }}
+                      />
+                      <button
+                        onClick={() => setShowAddMasterModal(true)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow ${themeConfig.primaryButton}`}
+                      >
+                        <Plus size={14} />
+                        {t('btn.add')}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

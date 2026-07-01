@@ -18,6 +18,11 @@ export async function listMasterData(category: string, showDeleted = false) {
   return res.data.data as MasterDataItem[];
 }
 
+export async function bulkCreateMasterData(data: { category: string; name: string; nameTh?: string; active?: boolean; extra?: any; sortOrder?: number }[]): Promise<number> {
+  const created = await Promise.allSettled(data.map((d) => createMasterData(d)));
+  return created.filter((r) => r.status === 'fulfilled').length;
+}
+
 export async function createMasterData(data: { category: string; name: string; nameTh?: string; active?: boolean; extra?: any; sortOrder?: number }) {
   const res = await apiClient.post('/api/v1/master-data', data);
   return res.data.data as MasterDataItem;
